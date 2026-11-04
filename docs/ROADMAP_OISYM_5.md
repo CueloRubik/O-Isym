@@ -1,217 +1,218 @@
-# O-Isym 5 — Plan de desarrollo
+# O-Isym 5 — Plan maestro de construcción
 
-> Documento de trabajo. La rama `oisym-5-development` parte de `main`; la versión principal se conserva intacta.
+> Rama de trabajo: `oisym-5-development`. La rama `main` se mantiene separada.
+> La aplicación anterior se considera un prototipo heredado, no la arquitectura ni el diseño final.
 
-## Objetivo
+## Visión del producto
 
-Convertir O-Isym en un sistema personal de organización de la vida diaria: actividades, tareas, calendario, planificación flexible, concentración, objetivos y seguimiento. Debe sentirse rápido, claro y agradable, sin convertir la organización en una obligación rígida.
+O-Isym será un sistema personal de organización de la vida diaria, no solamente un calendario. Debe ayudar a decidir qué hacer, organizar actividades y tareas, proteger compromisos importantes, reservar tiempo de concentración y entender el progreso sin convertir cada día en una puntuación ni castigar el descanso.
 
-## Decisiones ya establecidas
+## Decisiones de producto ya acordadas
 
-- **Identidad:** Personal Life System; no es solamente un calendario.
-- **Diseño:** visual personalizado, limpio, moderno y luminoso; colores con intención, sin estética genérica ni fondos oscuros como base.
-- **Perfiles:** un perfil principal y perfiles adicionales opcionales, con datos y preferencias separados.
-- **Calendario:** integrado con tareas y actividades.
-- **Autonomía:** manual, automática o híbrida, configurable. Las citas y compromisos bloqueados no se mueven sin autorización.
-- **Creación:** catálogo de actividades reutilizables y tareas personalizadas.
-- **Focus:** temporizador dentro de una actividad y espacio de concentración independiente; ambos comparten historial y estadísticas.
-- **Primera versión técnica:** conservar Electron 28 y JavaScript; persistencia local sencilla y versionada. No añadir dependencias nativas sin una razón demostrable.
+- **Diseño:** propio, luminoso, claro, moderno y colorido con intención. Evitar interfaces genéricas, gradientes decorativos y una base oscura.
+- **Perfiles:** un perfil principal y perfiles adicionales opcionales. Cada uno tendrá datos y preferencias independientes.
+- **Actividades y tareas:** una actividad es una definición reutilizable; una tarea es una instancia concreta que se puede completar, posponer o programar.
+- **Calendario:** integrado con tareas y actividades; no será una lista paralela de eventos.
+- **Planificación:** manual, sugerida, automática o híbrida, configurable por perfil.
+- **Protección de compromisos:** los elementos bloqueados nunca se moverán automáticamente. Los flexibles sí podrán recibir propuestas según las reglas del usuario.
+- **Focus:** temporizador dentro de una tarea y espacio libre de concentración; ambos comparten historial.
+- **Tecnología:** JavaScript y Electron 28.3.3, compatible con el entorno objetivo. Sin frameworks o dependencias pesadas salvo que exista una necesidad clara.
+- **Datos:** almacenamiento local, versionado, separado por perfil, con escritura atómica y copias de seguridad.
 
-## Principios de trabajo
+## Reglas de construcción
 
-1. Trabajar en etapas pequeñas y comprobables; no reemplazar toda la aplicación de una vez.
-2. Mantener `main` intacta y desarrollar exclusivamente en esta rama.
-3. Antes de cambiar una función, entender cómo funciona y qué otras partes dependen de ella.
-4. Mantener una sola fuente de verdad para tareas, actividades, calendario e historial.
-5. Separar interfaz, lógica de negocio y almacenamiento.
-6. Validar entradas del usuario y evitar insertar texto sin escapar mediante `innerHTML`.
-7. Guardar datos de forma segura, con versión de esquema, copias de respaldo y escritura resistente a interrupciones.
-8. Cada etapa debe incluir una comprobación manual concreta y, cuando sea viable, pruebas automatizadas.
-9. No añadir funciones decorativas que compliquen el uso. Cada módulo debe resolver una necesidad real.
-10. Las recomendaciones ayudan; no imponen horarios ni penalizan al usuario por descansar o cambiar de plan.
+1. No tratar el prototipo anterior como base de producto: solo rescatar ideas y, cuando corresponda, datos.
+2. No crear pantallas decorativas ni controles que no funcionen.
+3. Cada módulo debe tener interfaz, reglas, persistencia y estados de error antes de considerarse terminado.
+4. Mantener una fuente de verdad compartida para tareas, actividades, bloques de calendario y sesiones.
+5. Separar proceso Electron, interfaz, lógica de dominio y almacenamiento.
+6. Validar toda entrada y construir contenido de usuario con APIs DOM seguras.
+7. No migrar ni borrar datos antiguos hasta haberlos respaldado y verificado.
+8. Cada etapa termina con pruebas automatizadas cuando sean viables y una comprobación manual en el Mac.
+9. No avanzar si una comprobación importante de la etapa anterior falla.
+10. Las sugerencias son explicables, editables y descartables; el sistema no impone una agenda.
 
 ## Arquitectura objetivo
 
-La arquitectura se introducirá gradualmente. No se crearán carpetas vacías por adelantado ni se moverán todos los archivos en un solo cambio.
-
 ```text
 O-Isym/
-  electron/
-    main.js
-    preload.js
-    ipc-handlers.js
-  src/
-    app/
-      bootstrap.js
-      navigation.js
-      state.js
-    modules/
-      profiles/
-      activities/
-      today/
-      calendar/
-      planner/
-      focus/
-      goals/
-      insights/
-      settings/
-    services/
-      storage/
-      scheduling/
-      recommendations/
-      statistics/
-    components/
-      navigation/
-      buttons/
-      cards/
-      dialogs/
-      forms/
-    styles/
-      tokens.css
-      layout.css
-      components.css
-    views/
-      onboarding/
-      profile-selector/
-      today/
-      activities/
-      calendar/
-      focus/
-      goals/
-      insights/
-      settings/
-  tests/
-  docs/
+├── electron/
+│   ├── main.js
+│   ├── preload.js
+│   ├── ipc-handlers.js
+│   └── storage.js
+├── src/
+│   ├── app/
+│   │   ├── bootstrap.js
+│   │   ├── navigation.js
+│   │   └── state.js
+│   ├── modules/
+│   │   ├── profiles/
+│   │   ├── activities/
+│   │   ├── tasks/
+│   │   ├── today/
+│   │   ├── calendar/
+│   │   ├── planner/
+│   │   ├── focus/
+│   │   ├── goals/
+│   │   ├── insights/
+│   │   └── settings/
+│   ├── services/
+│   │   ├── scheduling/
+│   │   ├── recommendations/
+│   │   └── statistics/
+│   ├── components/
+│   ├── styles/
+│   └── views/
+├── tests/
+├── docs/
+└── legacy/
+    └── prototype/
 ```
 
-### Límites entre capas
+No se crearán carpetas vacías solo para aparentar avance. Se añadirán cuando cada módulo empiece a implementarse.
 
-- **Electron:** ventana, ciclo de vida, almacenamiento y operaciones del sistema. El renderer no tendrá acceso directo a Node.
-- **Interfaz (renderer):** vistas, componentes, navegación y presentación del estado.
-- **Módulos:** reglas y acciones propias de cada área.
-- **Servicios:** almacenamiento, planificación, recomendaciones y estadísticas compartidos.
-- **Datos:** entidades identificadas por ID, fechas normalizadas y relaciones explícitas.
+## Modelo de datos previsto
 
-## Modelo de datos inicial
+- **Profile:** identificador, nombre visible, color de acento, preferencias y modo de autonomía.
+- **Activity:** definición reutilizable, categoría, duración orientativa, frecuencia y preferencias.
+- **Task:** instancia concreta, título, estado, prioridad, duración estimada, fechas y vínculo opcional con Activity.
+- **ScheduleBlock:** ubicación temporal de una tarea o compromiso; indica flexibilidad y bloqueo.
+- **Goal:** objetivo con periodo, progreso y relaciones opcionales.
+- **FocusSession:** inicio, fin, pausas, duración real y vínculo opcional a tarea.
+- **DailyRecord:** resumen derivado de eventos reales, no una puntuación punitiva.
+- **Recommendation:** propuesta con explicación, motivo, impacto y opción de ignorar.
 
-- **Profile:** identidad, color/acento, preferencias, autonomía y configuración.
-- **Activity:** definición reutilizable (nombre, categoría, duración orientativa, frecuencia y preferencias).
-- **Task:** instancia concreta de algo que se quiere hacer; puede vincularse a una Activity.
-- **ScheduleBlock:** ubicación temporal de una tarea o compromiso; admite bloqueos y flexibilidad.
-- **Goal:** objetivo con periodo, progreso y relación opcional con actividades.
-- **FocusSession:** sesión con inicio, fin, pausas, duración real y vínculo opcional a tarea.
-- **DailyRecord:** resumen diario calculado a partir de eventos reales.
-- **Recommendation:** sugerencia explicable, descartable y nunca obligatoria.
+Todos los registros tendrán identificadores estables y fechas ISO. Los datos personales estarán aislados por perfil. Las estadísticas se calcularán desde el historial cuando sea posible.
 
-Los datos personales estarán separados por perfil. Los registros tendrán identificadores estables y fechas ISO. Las estadísticas se derivarán del historial siempre que sea posible, en vez de duplicar datos que puedan desincronizarse.
+## Etapas de construcción
 
-## Navegación prevista
+### Paso 0 — Separar el prototipo del producto
+- Congelar la lógica del prototipo: no añadirle nuevos módulos.
+- Registrar qué partes existen, cuáles son defectuosas y qué datos antiguos pueden recuperarse.
+- Mantener el prototipo disponible mientras se construye la nueva base.
+- No borrar `localStorage` ni cambiar su origen hasta tener una migración verificada.
 
-1. **Hoy:** resumen del día, tareas próximas y pendientes, progreso, tiempo libre y captura rápida.
-2. **Actividades:** catálogo, categorías y actividades personalizadas.
-3. **Calendario:** vistas diaria, semanal y mensual.
-4. **Focus:** temporizador vinculado a una tarea o sesión libre.
-5. **Objetivos:** metas y seguimiento.
-6. **Insights:** tendencias, constancia e historial.
-7. **Perfil y ajustes:** perfiles, preferencias, autonomía y apariencia.
+**Resultado:** sabemos qué se conserva como referencia y qué se reconstruye.
 
-## Etapas de implementación
+### Paso 1 — Fundamentos técnicos y almacenamiento
+- Separar de forma segura el proceso principal de Electron y el renderer.
+- Desactivar Node Integration en la interfaz y activar Context Isolation y sandbox.
+- Exponer únicamente operaciones IPC concretas desde `preload`; validar el emisor de cada llamada.
+- Crear almacenamiento JSON local con esquema versionado, validación, escritura atómica y copias de seguridad rotativas.
+- Proteger archivos dañados: nunca sobrescribirlos silenciosamente.
+- Añadir pruebas automatizadas para inicialización, guardado, lectura, validación y protección de datos.
+- Mantener temporalmente la interfaz heredada, sin ampliarla, mientras se construye la nueva.
 
-### Etapa 0 — Auditoría y estabilización
-- Confirmar el árbol real del repositorio y las rutas que usa Electron.
-- Resolver cualquier discrepancia entre la ubicación de `main.js`, HTML, CSS y scripts.
-- Identificar qué archivos son activos y cuáles son restos de versiones anteriores.
-- Verificar que la aplicación abre y que las funciones actuales siguen funcionando.
-- Registrar el comportamiento existente antes de refactorizar.
+**Resultado:** una base segura y comprobable sobre la que construir el producto. No se considera terminada hasta pasar las pruebas y la comprobación manual.
 
-**Salida:** aplicación actual reproducible y mapa fiable de archivos. No rediseñar todavía.
+### Paso 2 — Modelo de dominio y perfiles
+- Definir validadores y operaciones para perfiles.
+- Crear el perfil principal y permitir perfiles adicionales.
+- Aislar todos los datos por perfil.
+- Crear selector, edición y preferencias iniciales.
+- Preparar importación de datos antiguos con vista previa, respaldo y confirmación.
 
-### Etapa 1 — Base técnica
-- Separar el proceso principal de Electron y el renderer.
-- Introducir `preload` y una API IPC pequeña y validada.
-- Establecer estructura modular y convenciones.
-- Implementar almacenamiento local con versión de esquema, escritura segura y respaldo.
-- Añadir manejo visible de errores.
+**Resultado:** perfiles reales, persistentes y aislados.
 
-**Salida:** base segura y estable, sin cambiar todavía el alcance funcional de la app.
+### Paso 3 — Sistema visual y navegación
+- Definir colores, tipografía, espaciado, superficies, estados y componentes.
+- Crear navegación estable y adaptable al tamaño de ventana.
+- Diseñar la identidad visual final y estados vacíos útiles.
+- Sustituir la interfaz heredada por la nueva estructura, sin romper la persistencia.
 
-### Etapa 2 — Perfiles y preferencias
-- Crear perfil principal y perfiles adicionales.
-- Aislar tareas, calendario, objetivos, sesiones e historial por perfil.
-- Selector y configuración de perfil.
-- Preferencias visuales y de autonomía.
+**Resultado:** una aplicación coherente y navegable, todavía sin módulos incompletos.
 
-**Salida:** cambio de perfil sin mezcla de datos.
+### Paso 4 — Actividades
+- Catálogo organizado por categorías.
+- Crear, editar, archivar, restaurar y reutilizar actividades.
+- Definir duración orientativa, frecuencia y preferencias.
+- Búsqueda y filtros útiles.
 
-### Etapa 3 — Sistema visual y navegación
-- Definir tokens de color, tipografía, espaciado, superficies y estados.
-- Construir navegación y componentes reutilizables.
-- Aplicar el diseño luminoso y personalizado.
-- Adaptar la ventana a tamaños razonables.
+**Resultado:** catálogo funcional y persistente.
 
-**Salida:** interfaz coherente; las vistas pueden usar datos de prueba mientras se conectan los módulos.
+### Paso 5 — Tareas y captura rápida
+- Crear tareas desde una actividad o desde cero.
+- Editar, completar, reabrir, posponer y archivar.
+- Prioridad, duración estimada, fecha y notas.
+- Captura rápida accesible desde las áreas principales.
 
-### Etapa 4 — Actividades y tareas
-- Catálogo de actividades por categorías.
-- Crear, editar, archivar y reutilizar actividades.
-- Crear tareas desde el catálogo o desde cero.
-- Estados, prioridades, duración estimada y recurrencia básica.
-- Captura rápida de tareas.
+**Resultado:** una única fuente de verdad para todas las tareas.
 
-**Salida:** las tareas tienen un modelo común y persisten correctamente.
+### Paso 6 — Hoy
+- Resumen de la fecha actual.
+- Próximas tareas y pendientes.
+- Progreso claro, tiempo reservado y espacio libre.
+- Acciones rápidas conectadas al modelo real.
 
-### Etapa 5 — Hoy
-- Panel diario alimentado por los datos reales.
-- Próximas tareas, pendientes, progreso y captura rápida.
-- Acciones rápidas para completar, posponer o reprogramar.
+**Resultado:** panel principal útil desde el primer uso.
 
-**Salida:** pantalla principal útil, no una maqueta.
-
-### Etapa 6 — Calendario y planificación
+### Paso 7 — Calendario
 - Vistas diaria, semanal y mensual.
+- Tareas y compromisos representados desde el mismo modelo.
+- Navegación por fechas y filtros.
+- Crear o editar elementos desde el calendario.
+
+**Resultado:** calendario integrado, no duplicado.
+
+### Paso 8 — Planificador
 - Bloques flexibles y compromisos bloqueados.
-- Detección de solapamientos y días sobrecargados.
-- Reprogramación manual y propuestas automáticas explicables.
-- Nunca mover citas bloqueadas sin confirmación.
+- Detección de solapamientos y carga excesiva.
+- Reprogramación manual.
+- Propuestas automáticas explicables y confirmables.
+- Ningún compromiso bloqueado se mueve sin autorización.
 
-**Salida:** calendario y tareas comparten datos; no hay duplicados independientes.
+**Resultado:** planificación fiable y bajo control del usuario.
 
-### Etapa 7 — Focus
+### Paso 9 — Focus
 - Temporizador configurable y sesión libre.
-- Sesiones vinculadas a tareas.
-- Pausa, reanudación y recuperación correcta tras suspender/cerrar la app.
+- Sesiones asociadas a tareas.
+- Pausa, reanudación y recuperación tras suspender o cerrar.
 - Historial y duración real.
 
-**Salida:** sesiones fiables incluso si el equipo duerme o la ventana se cierra.
+**Resultado:** concentración e historial consistentes.
 
-### Etapa 8 — Objetivos, constancia e insights
-- Objetivos con periodos y progreso.
-- Historial, tendencias y estadísticas.
-- Rachas razonables, sin castigar descansos planificados.
-- Revisión semanal.
+### Paso 10 — Objetivos e Insights
+- Objetivos por periodo.
+- Seguimiento de progreso.
+- Historial, tendencias y estadísticas comprensibles.
+- Revisión semanal y descansos sin penalizaciones artificiales.
 
-**Salida:** métricas comprensibles derivadas de datos reales.
+**Resultado:** información útil para reflexionar y ajustar planes.
 
-### Etapa 9 — Recomendaciones y autonomía
-- Motor local de reglas para sugerir horarios y detectar conflictos.
-- Recomendaciones con explicación y opción de ignorar.
+### Paso 11 — Recomendaciones y autonomía
+- Motor local de reglas.
+- Explicación de cada sugerencia.
 - Modos manual, sugerido, automático e híbrido.
-- Solo reorganizar elementos flexibles según las reglas del perfil.
+- Reglas de flexibilidad, prioridades y protección de compromisos.
+- Revertir o ignorar cambios fácilmente.
 
-**Salida:** asistencia útil y predecible, sin depender de servicios externos.
+**Resultado:** asistencia predecible, configurable y no invasiva.
 
-### Etapa 10 — Pulido y publicación
-- Accesibilidad, estados vacíos, mensajes de error y rendimiento.
-- Pruebas de persistencia, perfiles, navegación y planificación.
-- Copias de seguridad y recuperación.
-- Empaquetado y guía de actualización.
+### Paso 12 — Calidad y publicación
+- Pruebas de integración y persistencia.
+- Accesibilidad y navegación por teclado.
+- Manejo de errores y recuperación.
+- Rendimiento y compatibilidad del entorno objetivo.
+- Copias de seguridad, restauración y guía de actualización.
+- Empaquetado de la aplicación.
 
-**Salida:** versión candidata estable para uso cotidiano.
+**Resultado:** versión candidata para uso cotidiano.
 
-## Criterio para avanzar entre etapas
+## Criterio de aceptación de cada paso
 
-No se considera terminada una etapa solo porque la pantalla se vea bien. Debe funcionar con datos reales, guardar y recuperar los datos, manejar errores básicos y no romper las etapas anteriores. Si una comprobación falla, se corrige antes de ampliar el alcance.
+Un paso se considera terminado únicamente cuando:
+- Las acciones visibles funcionan de principio a fin.
+- Los datos sobreviven al cierre y reapertura.
+- Los errores previsibles se muestran sin perder información.
+- Las pruebas automatizadas relevantes pasan.
+- La comprobación manual en el Mac está documentada.
+- No se rompe ninguna función que ya se haya aceptado como terminada.
 
-## Primera tarea concreta
+## Estado actual
 
-Empezar por la **Etapa 0**: revisar el árbol completo y las rutas de ejecución, reproducir el arranque esperado y decidir la corrección mínima. La primera modificación de código debe ser pequeña, reversible y acompañada de una prueba.
+- **Paso 0:** completado a nivel de inventario inicial. El prototipo sigue presente y se conserva como referencia.
+- **Paso 1:** en implementación. La capa segura de Electron y el servicio de almacenamiento ya están añadidos; falta ejecutar las pruebas y validar en el Mac.
+- **Pasos 2–12:** pendientes.
+
+La interfaz actual sigue siendo la del prototipo. No debe confundirse con el diseño final de O-Isym 5.
