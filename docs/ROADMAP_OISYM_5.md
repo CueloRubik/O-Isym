@@ -87,10 +87,11 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 
 ## Avance: personalización visual inicial
 - Cada perfil conserva su propio avatar, tema claro y preferencia de movimiento.
+- La creación de perfiles ya ofrece un diálogo guiado para elegir nombre, avatar, tema y color; el avatar también aparece en el selector lateral.
 - Temas Clásico, Cálido y Cielo mantienen contraste y jerarquía profesional.
 - La opción de movimiento reducido desactiva transiciones y animaciones no esenciales.
 - Los perfiles antiguos reciben valores predeterminados seguros; no se altera su contenido.
-- Pendiente: selector de avatares con vista previa, personalización durante la creación de perfiles y revisión visual completa en macOS.
+- Pendiente: selector de avatares más gráfico con vista previa en vivo y revisión visual completa en macOS.
 
 
 ## Avance: Insights 2.0
