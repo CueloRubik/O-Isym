@@ -165,10 +165,23 @@ function updateTask(task, patch) {
   return next;
 }
 
+function updateActivity(activity, patch) {
+  const next = { ...activity, ...patch, updatedAt: new Date().toISOString() };
+  if (patch.name !== undefined) {
+    next.name = String(patch.name).trim().slice(0, 90);
+    if (!next.name) throw new Error('El nombre de la actividad no puede quedar vacío.');
+  }
+  if (patch.category !== undefined) next.category = String(patch.category || 'Personal').trim().slice(0, 40);
+  if (patch.description !== undefined) next.description = String(patch.description || '').trim().slice(0, 500);
+  if (patch.durationMinutes !== undefined) next.durationMinutes = clampNumber(patch.durationMinutes, 5, 600, 30);
+  if (patch.frequency !== undefined) next.frequency = String(patch.frequency || 'Cuando lo necesite').trim().slice(0, 50);
+  return next;
+}
+
 function createGoal(input) {
   const title = String(input.title || '').trim();
   if (!title) throw new Error('Escribe un nombre para el objetivo.');
-  return {
+  const goal = {
     id: makeId('goal'),
     title: title.slice(0, 100),
     description: String(input.description || '').trim().slice(0, 500),
@@ -179,6 +192,23 @@ function createGoal(input) {
     createdAt: new Date().toISOString(),
     archived: false
   };
+  if (!isValidDateKey(goal.dueDate)) throw new Error('La fecha objetivo no es válida.');
+  return goal;
+}
+
+function updateGoal(goal, patch) {
+  const next = { ...goal, ...patch, updatedAt: new Date().toISOString() };
+  if (patch.title !== undefined) {
+    next.title = String(patch.title).trim().slice(0, 100);
+    if (!next.title) throw new Error('El nombre del objetivo no puede quedar vacío.');
+  }
+  if (patch.description !== undefined) next.description = String(patch.description || '').trim().slice(0, 500);
+  if (patch.target !== undefined) next.target = clampNumber(patch.target, 1, 1000000, 1);
+  if (patch.unit !== undefined) next.unit = String(patch.unit || 'veces').trim().slice(0, 30);
+  if (patch.dueDate !== undefined) next.dueDate = patch.dueDate || '';
+  if (!isValidDateKey(next.dueDate)) throw new Error('La fecha objetivo no es válida.');
+  next.progress = clampNumber(next.progress, 0, next.target, 0);
+  return next;
 }
 
 function getRecommendations(profile, today = localDate()) {
@@ -266,5 +296,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, createActivity, createTask, updateTask, createGoal, getRecommendations, suggestSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, validateSnapshot };
 });
