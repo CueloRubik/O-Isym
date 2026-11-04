@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>O-Isym</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <div id="calendar-view" class="view active">
+      <header class="view-header">
+        <div class="header-titles">
+          <h1 id="cal-month-title"></h1>
+          <span id="cal-year-title"></span>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="cal-today-btn">Hoy</button>
+          <div class="nav-group">
+            <button class="btn btn-secondary" id="cal-prev-btn">&lt;</button>
+            <button class="btn btn-secondary" id="cal-next-btn">&gt;</button>
+          </div>
+          <button class="btn btn-secondary" id="nav-settings-btn">⚙</button>
+        </div>
+      </header>
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 700; font-size: 0.75rem; margin-top: 10px; color: var(--cell-muted);">
+        <div>DOM</div><div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div><div>SÁB</div>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+    </div>
+
+    <div id="planner-view" class="view">
+      <header class="view-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button class="btn btn-secondary" id="planner-back-btn">← Volver</button>
+          <h2 id="planner-date-title">Planificador</h2>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="nav-timer-btn">⏱ Temporizador</button>
+          <button class="btn" id="evaluate-btn">Evaluar Jornada</button>
+        </div>
+      </header>
+      <div class="planner-body">
+        <div class="planner-box">
+          <h3>Añadir Actividad Personalizada</h3>
+          <div class="form-row">
+            <input type="text" id="act-name" placeholder="Nombre (Ej: Lectura, Tesis, Gym)">
+            <input type="text" id="act-goal" placeholder="Meta (Ej: 20 páginas)">
+          </div>
+          <div class="form-row">
+            <label>Inicio: <input type="time" id="act-start" value="09:00"></label>
+            <label>Fin: <input type="time" id="act-end" value="10:00"></label>
+          </div>
+          <button class="btn" id="add-act-btn">Agregar a la Agenda</button>
+          <hr style="border-color: var(--border-color); margin: 8px 0;">
+          <h3>Agenda del Día</h3>
+          <div id="activities-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+        <div class="planner-box" style="justify-content: space-between;">
+          <div>
+            <h3>Evaluación Estricta y Rendimiento</h3>
+            <p id="current-time-indicator" style="font-size: 0.85rem; color: var(--cell-muted); margin-top: 4px;"></p>
+          </div>
+          <div id="score-display" style="font-size: 3rem; font-weight: 800; color: var(--accent-color); text-align: center;">-- %</div>
+          <div id="feedback-box" style="background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9rem;">
+            Registra tus bloques y evalúa tu desempeño según la hora actual.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="timer-view" class="view">
+      <header class="view-header">
+        <h2>Temporizador de Enfoque</h2>
+        <button class="btn btn-secondary" id="timer-back-btn">← Volver</button>
+      </header>
+      <div class="timer-body">
+        <div id="timer-display" class="timer-display">25:00</div>
+        <div class="nav-group">
+          <button class="btn" id="timer-start">Iniciar</button>
+          <button class="btn btn-secondary" id="timer-pause">Pausar</button>
+          <button class="btn btn-secondary" id="timer-reset">Reiniciar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings-view" class="view">
+      <header class="view-header">
+        <h2>Personalización de UI por Elemento</h2>
+        <button class="btn btn-secondary" id="settings-back-btn">← Volver</button>
+      </header>
+      <div class="settings-body">
+        <div class="planner-box" style="max-width: 450px; width: 100%;">
+          <h3>Paleta de Colores</h3>
+          <label>Fondo de Aplicación: <input type="color" id="c-bg" value="#0f172a"></label>
+          <label>Fondo de Tarjetas: <input type="color" id="c-card" value="#1e293b"></label>
+          <label>Color de Texto: <input type="color" id="c-text" value="#f8fafc"></label>
+          <label>Color Principal (Acento): <input type="color" id="c-accent" value="#10b981"></label>
+          <label>Color Celdas: <input type="color" id="c-cell" value="#334155"></label>
+          <button class="btn" id="save-colors-btn">Aplicar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>

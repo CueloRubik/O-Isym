@@ -1,0 +1,12 @@
+{
+  "name": "o-isym",
+  "version": "4.0.0",
+  "description": "O-Isym Professional Life Manager",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
