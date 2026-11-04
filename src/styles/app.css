@@ -330,3 +330,15 @@ p { line-height: 1.55; }
 #app[data-audience="child"][data-theme="playful"] { --accent:#438b70; --accent-dark:#286d56; --accent-soft:#e6f3df; --page:#f5f8ef; --surface-soft:#f8faf3; --line:#e5ecdc; }
 #app[data-audience="teen"] .welcome-card { background:#edf4fb; border-color:#dce8f5; }
 @media (max-width:560px) { .avatar-picker { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; } .profile-wizard-actions { justify-content:flex-start; } .profile-wizard-actions .button.primary { margin-left:0; } }
+
+
+/* Recuperación de datos: opciones explícitas y seguras cuando el archivo no abre. */
+.recovery-screen { width: min(620px, calc(100% - 36px)); min-height: 100vh; margin: 0 auto; padding: 44px 0; align-items: stretch; text-align: left; color: var(--text); }
+.recovery-mark { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--accent); color: #fff; font-size: 27px; font-weight: 800; }
+.recovery-screen h1 { margin: 8px 0 0; color: var(--text); font-size: 27px; letter-spacing: -.6px; }
+.recovery-screen h2 { margin: 16px 0 0; font-size: 16px; }
+.recovery-screen p { margin: 0; line-height: 1.6; }
+.recovery-screen .recovery-error { padding: 12px 14px; border: 1px solid #e8c9bd; border-radius: 12px; background: #fff8f4; color: #8a3d2b; }
+.recovery-select { width: 100%; }
+.recovery-screen .button { min-height: 44px; }
+.recovery-screen .recovery-note { font-size: 12px; color: var(--muted); }
