@@ -62,7 +62,7 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 1. Ejecutar \`npm test\` y resolver cualquier fallo.
 2. Validar instalación y apertura en el Mac.
 3. Completar búsqueda y filtros, y validar edición de actividades y objetivos.
-4. Añadir accesos de teclado y pruebas de navegación del calendario.
+4. Accesos de teclado y navegación del calendario implementados; pruebas de cambio de fecha y límites de año añadidas.
 5. Probar manualmente la recuperación de Focus, la alarma y los avisos al suspender el Mac, minimizar y reabrir O-Isym.
 6. Diseñar el sistema de avatares y personalización visual configurable por perfil.
 7. Completar accesibilidad, pruebas de integración y empaquetado.
@@ -75,3 +75,11 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 - Señala tareas vencidas y tareas que no caben en la jornada, en lugar de colocarlas fuera de contexto.
 - Presenta una vista previa editable por aceptación o descarte antes de guardar cambios.
 - Pruebas automáticas para huecos, colisiones, vencimientos, prioridades y horarios inválidos.
+
+
+## Avance: accesibilidad y navegación
+- Atajos de teclado para crear tareas, volver a Hoy, navegar días/meses/semanas y consultar ayuda rápida.
+- Navegación por teclado desactivada mientras se escribe en campos para evitar interferencias.
+- Etiquetas accesibles y estado seleccionado en las celdas del calendario.
+- Indicadores de foco visibles para controles interactivos.
+- Pruebas de navegación en años nuevos y días bisiestos.
