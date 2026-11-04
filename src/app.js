@@ -11,6 +11,7 @@ const state = {
   view: 'today',
   selectedDate: localDate(),
   calendarDate: new Date(),
+  calendarMode: 'month',
   focusTick: null,
   toastTimer: null,
   editingTaskId: null,
@@ -378,38 +379,69 @@ function renderActivities(main) {
 }
 
 function renderCalendar(main) {
-  const year = state.calendarDate.getFullYear();
-  const month = state.calendarDate.getMonth();
-  const monthName = state.calendarDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  const selected = state.selectedDate;
+  const selectedDate = new Date(Number(selected.slice(0, 4)), Number(selected.slice(5, 7)) - 1, Number(selected.slice(8, 10)));
   const header = element('div', 'calendar-heading');
   const title = element('div', '');
-  title.append(element('h1', '', monthName), element('p', 'muted', 'Selecciona un día para revisar su agenda.'));
-  const controls = element('div', 'button-group');
-  controls.append(button('‹', 'calendar-prev', 'button secondary'), button('Hoy', 'calendar-today', 'button secondary'), button('›', 'calendar-next', 'button secondary'));
-  header.append(title, controls);
-  main.append(header);
-  const wrap = card('calendar-card');
-  const grid = element('div', 'calendar-grid');
-  ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(day => grid.append(element('div', 'calendar-weekday', day)));
-  const first = new Date(year, month, 1);
-  const offset = (first.getDay() + 6) % 7;
-  const count = new Date(year, month + 1, 0).getDate();
-  for (let i = 0; i < offset; i++) grid.append(element('div', 'calendar-blank'));
-  for (let day = 1; day <= count; day++) {
-    const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-    const cell = button('', 'select-date', 'calendar-day' + (key === localDate() ? ' is-today' : '') + (key === state.selectedDate ? ' is-selected' : ''), { date: key });
-    cell.append(element('span', 'calendar-number', day));
-    const countTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key)).length;
-    if (countTasks) cell.append(element('span', 'calendar-count', countTasks + (countTasks === 1 ? ' tarea' : ' tareas')));
-    grid.append(cell);
+  const controls = element('div', 'button-group calendar-controls');
+  const modeControls = element('div', 'button-group calendar-mode');
+  modeControls.append(
+    button('Mes', 'calendar-mode-month', 'button ' + (state.calendarMode === 'month' ? 'primary' : 'secondary')),
+    button('Semana', 'calendar-mode-week', 'button ' + (state.calendarMode === 'week' ? 'primary' : 'secondary'))
+  );
+  controls.append(modeControls);
+  if (state.calendarMode === 'month') {
+    const year = state.calendarDate.getFullYear();
+    const month = state.calendarDate.getMonth();
+    title.append(element('h1', '', state.calendarDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })), element('p', 'muted', 'Selecciona un día para revisar su agenda.'));
+    controls.append(button('‹', 'calendar-prev', 'button secondary'), button('Hoy', 'calendar-today', 'button secondary'), button('›', 'calendar-next', 'button secondary'));
+    header.append(title, controls);
+    main.append(header);
+    const wrap = card('calendar-card');
+    const grid = element('div', 'calendar-grid');
+    ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(day => grid.append(element('div', 'calendar-weekday', day)));
+    const first = new Date(year, month, 1);
+    const offset = (first.getDay() + 6) % 7;
+    const count = new Date(year, month + 1, 0).getDate();
+    for (let i = 0; i < offset; i++) grid.append(element('div', 'calendar-blank'));
+    for (let day = 1; day <= count; day++) {
+      const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      const cell = button('', 'select-date', 'calendar-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
+      cell.append(element('span', 'calendar-number', day));
+      const countTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key)).length;
+      if (countTasks) cell.append(element('span', 'calendar-count', countTasks + (countTasks === 1 ? ' tarea' : ' tareas')));
+      grid.append(cell);
+    }
+    wrap.append(grid);
+    main.append(wrap);
+  } else {
+    const weekStart = shiftDate(selected, -((selectedDate.getDay() + 6) % 7));
+    const weekEnd = shiftDate(weekStart, 6);
+    title.append(element('h1', '', dateLabel(weekStart, { day: 'numeric', month: 'long' }) + ' – ' + dateLabel(weekEnd, { day: 'numeric', month: 'long', year: 'numeric' })), element('p', 'muted', 'Elige un día para consultar sus tareas.'));
+    controls.append(button('‹ Semana', 'calendar-week-prev', 'button secondary'), button('Esta semana', 'calendar-today', 'button secondary'), button('Semana ›', 'calendar-week-next', 'button secondary'));
+    header.append(title, controls);
+    main.append(header);
+    const week = card('week-calendar');
+    for (let index = 0; index < 7; index++) {
+      const key = shiftDate(weekStart, index);
+      const dayTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key));
+      const dayButton = button('', 'select-date', 'week-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
+      const top = element('div', 'week-day-top');
+      top.append(element('strong', '', dateLabel(key, { weekday: 'short' })), element('span', '', key.slice(-2)));
+      dayButton.append(top, element('span', 'week-day-count', dayTasks.length ? dayTasks.length + (dayTasks.length === 1 ? ' pendiente' : ' pendientes') : 'Sin pendientes'));
+      dayTasks.slice(0, 2).forEach(task => dayButton.append(element('span', 'week-day-task', task.title)));
+      if (dayTasks.length > 2) dayButton.append(element('span', 'week-day-more', '+' + (dayTasks.length - 2) + ' más'));
+      week.append(dayButton);
+    }
+    main.append(week);
   }
-  wrap.append(grid);
-  main.append(wrap);
-  const selected = card();
-  selected.append(heading(dateLabel(state.selectedDate), 'Agenda del día seleccionado'));
-  renderTaskList(selected, state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === state.selectedDate || task.dueDate === state.selectedDate)));
-  selected.append(button('Abrir planificador', 'navigate-date', 'button primary', { date: state.selectedDate }));
-  main.append(selected);
+  const selectedCard = card();
+  const dayItems = state.profile.tasks.filter(task => task.scheduledDate === selected || task.dueDate === selected);
+  selectedCard.append(heading(dateLabel(selected), dayItems.length ? dayItems.length + ' tareas asociadas a este día' : 'No hay tareas asociadas a este día'));
+  renderTaskList(selectedCard, dayItems, { emptyTitle: 'Día despejado', emptyDetail: 'Puedes dejarlo así o añadir una tarea para esta fecha.' });
+  selectedCard.append(button('+ Añadir tarea para este día', 'calendar-add-task', 'button primary'));
+  selectedCard.append(button('Abrir planificador', 'navigate-date', 'button secondary', { date: selected }));
+  main.append(selectedCard);
 }
 
 function renderPlanner(main) {
@@ -806,6 +838,23 @@ root.addEventListener('click', async event => {
   if (action === 'calendar-prev') { state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() - 1, 1); updateShell(); }
   if (action === 'calendar-next') { state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() + 1, 1); updateShell(); }
   if (action === 'calendar-today') { state.calendarDate = new Date(); state.selectedDate = localDate(); updateShell(); }
+  if (action === 'calendar-mode-month') { state.calendarMode = 'month'; updateShell(); }
+  if (action === 'calendar-mode-week') { state.calendarMode = 'week'; updateShell(); }
+  if (action === 'calendar-week-prev' || action === 'calendar-week-next') {
+    state.selectedDate = shiftDate(state.selectedDate, action === 'calendar-week-prev' ? -7 : 7);
+    const [year, month, day] = state.selectedDate.split('-').map(Number);
+    state.calendarDate = new Date(year, month - 1, day);
+    updateShell();
+  }
+  if (action === 'calendar-add-task') {
+    state.view = 'tasks';
+    state.editingTaskId = null;
+    updateShell();
+    const dateField = $('.task-form input[name="scheduledDate"]');
+    const titleField = $('.task-form input[name="title"]');
+    if (dateField) dateField.value = state.selectedDate;
+    if (titleField) titleField.focus();
+  }
   if (action === 'navigate-date') { state.selectedDate = target.dataset.date; state.view = 'planner'; updateShell(); }
   if (action === 'apply-recommendation') {
     const task = taskById(id);
