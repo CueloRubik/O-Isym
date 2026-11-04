@@ -309,39 +309,119 @@ function getRecommendations(profile, today = localDate()) {
   return suggestions.slice(0, 5);
 }
 
-function suggestSchedule(profile, dateKey) {
-  const startAt = profile.preferences.workingDayStart || '09:00';
-  const endAt = profile.preferences.workingDayEnd || '17:00';
-  const toMinutes = value => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
-  const fromMinutes = toMinutes(startAt);
-  const untilMinutes = toMinutes(endAt);
-  const occupied = profile.tasks
-    .filter(task => task.status === 'pending' && task.scheduledDate === dateKey && task.startTime && task.endTime)
-    .map(task => [toMinutes(task.startTime), toMinutes(task.endTime)])
-    .sort((a, b) => a[0] - b[0]);
-  const candidates = profile.tasks
-    .filter(task => task.status === 'pending' && !task.locked && !task.scheduledDate)
-    .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] - ({ high: 0, medium: 1, low: 2 }[b.priority])));
-  const proposals = [];
-  let cursor = fromMinutes;
+function analyzeSchedule(profile, dateKey) {
+  const preferences = profile && profile.preferences ? profile.preferences : {};
+  const parseTime = value => {
+    if (typeof value !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value)) return null;
+    const parts = value.split(':').map(Number);
+    return parts[0] * 60 + parts[1];
+  };
+  const formatTime = minutes => String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  const requestedStart = parseTime(preferences.workingDayStart);
+  const requestedEnd = parseTime(preferences.workingDayEnd);
+  const fromMinutes = requestedStart === null ? 540 : requestedStart;
+  const untilMinutes = requestedEnd === null || requestedEnd <= fromMinutes ? 1020 : requestedEnd;
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateKey || ''))) {
+    return { date: dateKey, workday: { start: formatTime(fromMinutes), end: formatTime(untilMinutes) }, proposals: [], skipped: [], availableMinutes: untilMinutes - fromMinutes };
+  }
+  const tasks = Array.isArray(profile.tasks) ? profile.tasks : [];
+  const skipped = [];
+  const intervals = [];
+  let occupiedMinutes = 0;
+  for (const task of tasks) {
+    if (task.status !== 'pending' || task.scheduledDate !== dateKey || !task.startTime || !task.endTime) continue;
+    const start = parseTime(task.startTime);
+    const end = parseTime(task.endTime);
+    if (start === null || end === null || end <= start) {
+      skipped.push({ taskId: task.id, title: task.title, reason: 'Tiene un horario existente que necesita revisión.' });
+      continue;
+    }
+    intervals.push([start, end]);
+  }
+  intervals.sort((a, b) => a[0] - b[0]);
+  const occupied = [];
+  for (const interval of intervals) {
+    const previous = occupied[occupied.length - 1];
+    if (previous && interval[0] <= previous[1]) previous[1] = Math.max(previous[1], interval[1]);
+    else occupied.push(interval.slice());
+  }
+  occupied.forEach(interval => {
+    occupiedMinutes += Math.max(0, Math.min(untilMinutes, interval[1]) - Math.max(fromMinutes, interval[0]));
+  });
+  const priorityRank = { high: 0, medium: 1, low: 2 };
+  const candidates = tasks.filter(task =>
+    task.status === 'pending' &&
+    !task.locked &&
+    (!task.scheduledDate || (task.scheduledDate === dateKey && (!task.startTime || !task.endTime)))
+  );
+  const eligible = [];
   for (const task of candidates) {
+    if (task.dueDate && task.dueDate < dateKey) {
+      skipped.push({ taskId: task.id, title: task.title, reason: 'Ya venció el ' + task.dueDate + '; revisa su fecha antes de programarla.' });
+      continue;
+    }
+    eligible.push(task);
+  }
+  eligible.sort((a, b) => {
+    const dueA = a.dueDate || '9999-12-31';
+    const dueB = b.dueDate || '9999-12-31';
+    return dueA.localeCompare(dueB) ||
+      (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1) ||
+      clampNumber(a.estimatedMinutes, 5, 600, 30) - clampNumber(b.estimatedMinutes, 5, 600, 30) ||
+      String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+  });
+  const proposals = [];
+  for (const task of eligible) {
     const duration = clampNumber(task.estimatedMinutes, 5, 600, 30);
+    let cursor = fromMinutes;
+    let chosenStart = null;
     for (const slot of occupied) {
-      if (cursor + duration <= slot[0]) break;
+      if (cursor + duration <= slot[0]) {
+        chosenStart = cursor;
+        break;
+      }
       if (cursor < slot[1]) cursor = slot[1];
     }
-    if (cursor + duration > untilMinutes) continue;
-    const start = String(Math.floor(cursor / 60)).padStart(2, '0') + ':' + String(cursor % 60).padStart(2, '0');
-    const finishMinutes = cursor + duration;
-    const end = String(Math.floor(finishMinutes / 60)).padStart(2, '0') + ':' + String(finishMinutes % 60).padStart(2, '0');
-    proposals.push({ taskId: task.id, date: dateKey, startTime: start, endTime: end });
-    occupied.push([cursor, finishMinutes]);
+    if (chosenStart === null && cursor + duration <= untilMinutes) chosenStart = cursor;
+    if (chosenStart === null) {
+      skipped.push({ taskId: task.id, title: task.title, reason: 'No queda un espacio continuo de ' + duration + ' minutos dentro del horario habitual.' });
+      continue;
+    }
+    const finish = chosenStart + duration;
+    const reasons = [];
+    if (task.dueDate === dateKey) reasons.push('vence hoy');
+    else if (task.dueDate) reasons.push('se adelanta a su fecha límite');
+    if (task.priority === 'high') reasons.push('tiene prioridad alta');
+    else if (task.priority === 'medium') reasons.push('tiene prioridad media');
+    if (!reasons.length) reasons.push('ocupa el primer espacio disponible');
+    proposals.push({
+      taskId: task.id,
+      title: task.title,
+      date: dateKey,
+      startTime: formatTime(chosenStart),
+      endTime: formatTime(finish),
+      durationMinutes: duration,
+      priority: task.priority,
+      dueDate: task.dueDate || '',
+      reason: 'Se propone este horario porque ' + reasons.join(' y ') + '.'
+    });
+    occupied.push([chosenStart, finish]);
     occupied.sort((a, b) => a[0] - b[0]);
-    cursor = finishMinutes;
   }
-  return proposals;
+  const scheduledMinutes = proposals.reduce((total, item) => total + item.durationMinutes, 0);
+  return {
+    date: dateKey,
+    workday: { start: formatTime(fromMinutes), end: formatTime(untilMinutes) },
+    proposals,
+    skipped,
+    availableMinutes: Math.max(0, untilMinutes - fromMinutes - occupiedMinutes),
+    proposedMinutes: scheduledMinutes
+  };
 }
 
+function suggestSchedule(profile, dateKey) {
+  return analyzeSchedule(profile, dateKey).proposals;
+}
 function validateSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object' || snapshot.schemaVersion !== SCHEMA_VERSION) {
     throw new Error('El archivo no tiene una versión de O-Isym compatible.');
@@ -365,5 +445,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });
