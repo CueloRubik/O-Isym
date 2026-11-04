@@ -173,6 +173,8 @@ function updateShell() {
   });
   profileSelect.value = state.profile.id;
   root.style.setProperty('--accent', state.profile.color);
+  root.dataset.theme = state.profile.preferences.theme || 'classic';
+  root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
   $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   $$('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === state.view));
   const main = $('#main-content');
@@ -679,6 +681,23 @@ function renderSettings(main) {
   profileForm.append(element('h3', '', 'Tu perfil'));
   profileForm.append(field('Nombre', input('name', 'Nombre del perfil', 'text', state.profile.name)));
   profileForm.append(field('Color de acento', input('color', '', 'color', state.profile.color)));
+  const avatarOptions = [
+    { value: 'initials', label: 'Iniciales — sencillo' }, { value: 'leaf', label: 'Hoja — natural' },
+    { value: 'book', label: 'Libro — aprendizaje' }, { value: 'compass', label: 'Brújula — exploración' },
+    { value: 'spark', label: 'Destello — creativo' }, { value: 'wave', label: 'Onda — tranquilo' }
+  ];
+  profileForm.append(field('Avatar del perfil', select('avatarId', avatarOptions, state.profile.avatarId || 'initials')));
+  profileForm.append(field('Estilo visual', select('theme', [
+    { value: 'classic', label: 'Clásico — limpio y equilibrado' },
+    { value: 'warm', label: 'Cálido — tonos suaves' },
+    { value: 'sky', label: 'Cielo — acentos azulados' }
+  ], state.profile.preferences.theme || 'classic')));
+  const motionLabel = field('Movimiento de la interfaz', select('motionEnabled', [
+    { value: 'true', label: 'Activado — transiciones sutiles' },
+    { value: 'false', label: 'Reducido — priorizar menos movimiento' }
+  ], String(state.profile.preferences.motionEnabled !== false)));
+  profileForm.append(motionLabel);
+  profileForm.append(element('p', 'small-note', 'El estilo y el avatar son preferencias visuales: no cambian las funciones ni los datos del perfil.'));
   profileForm.append(field('Autonomía del planificador', select('autonomy', [
     { value: 'manual', label: 'Manual — yo organizo todo' },
     { value: 'suggested', label: 'Sugerido — O-Isym propone' },
@@ -800,6 +819,9 @@ async function handleSubmit(form) {
     } else if (form.dataset.form === 'profile-settings') {
       state.profile.name = String(data.name).trim().slice(0, 60) || state.profile.name;
       state.profile.color = /^#[0-9a-f]{6}$/i.test(data.color) ? data.color : state.profile.color;
+      state.profile.avatarId = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave'].includes(data.avatarId) ? data.avatarId : 'initials';
+      state.profile.preferences.theme = ['classic', 'warm', 'sky'].includes(data.theme) ? data.theme : 'classic';
+      state.profile.preferences.motionEnabled = data.motionEnabled !== 'false';
       state.profile.preferences.autonomy = data.autonomy;
       state.profile.preferences.focusMinutes = clampNumber(data.focusMinutes, 5, 180, 25);
       state.profile.preferences.breakMinutes = clampNumber(data.breakMinutes, 1, 60, 5);
