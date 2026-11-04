@@ -66,3 +66,12 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 5. Probar manualmente la recuperación de Focus, la alarma y los avisos al suspender el Mac, minimizar y reabrir O-Isym.
 6. Diseñar el sistema de avatares y personalización visual configurable por perfil.
 7. Completar accesibilidad, pruebas de integración y empaquetado.
+
+
+## Avance: Planificador 2.0
+- Motor de horarios que busca huecos continuos reales dentro de la jornada configurada.
+- Respeta tareas bloqueadas, tareas programadas en otros días y compromisos con hora.
+- Prioriza fechas límite cercanas y prioridad de tarea; explica cada horario propuesto.
+- Señala tareas vencidas y tareas que no caben en la jornada, en lugar de colocarlas fuera de contexto.
+- Presenta una vista previa editable por aceptación o descarte antes de guardar cambios.
+- Pruebas automáticas para huecos, colisiones, vencimientos, prioridades y horarios inválidos.
