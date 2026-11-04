@@ -962,8 +962,8 @@ root.addEventListener('click', async event => {
     if ($('#focus-duration') && (!$('#focus-duration').value || Number($('#focus-duration').value) < 5 || Number($('#focus-duration').value) > 180)) {
       return showToast('Elige una duración entre 5 y 180 minutos.', 'error');
     }
-    state.profile.preferences.focusSound = $('#focus-panel input[name="focusSound"]')?.checked !== false;
-    state.profile.preferences.focusNotifications = $('#focus-panel input[name="focusNotifications"]')?.checked !== false;
+    state.profile.preferences.focusSound = $('.focus-panel input[name="focusSound"]')?.checked !== false;
+    state.profile.preferences.focusNotifications = $('.focus-panel input[name="focusNotifications"]')?.checked !== false;
     await prepareFocusAlarm();
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
