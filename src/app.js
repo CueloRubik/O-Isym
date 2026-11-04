@@ -1057,6 +1057,30 @@ root.addEventListener('click', async event => {
   if (!target) return;
   const action = target.dataset.action;
   const id = target.dataset.id;
+  if (action === 'recovery-overwrite') {
+    if (!confirm('O-Isym guardará una copia exacta del archivo actual y después creará un espacio nuevo vacío. ¿Quieres continuar?')) return;
+    try {
+      const result = await window.oisym.storage.recovery.overwrite();
+      await initializeApp(await window.oisym.storage.read());
+      showToast(result.backupName ? 'Copia de emergencia guardada. O-Isym está listo.' : 'O-Isym está listo con un espacio nuevo.');
+    } catch (recoveryError) {
+      await showRecoveryScreen(recoveryError);
+    }
+    return;
+  }
+  if (action === 'recovery-restore') {
+    const backupName = $('#recovery-backup-select')?.value;
+    if (!backupName) return showToast('Selecciona una copia válida.', 'error');
+    if (!confirm('O-Isym conservará primero el archivo actual y después restaurará la copia seleccionada. ¿Continuar?')) return;
+    try {
+      await window.oisym.storage.recovery.restore(backupName);
+      await initializeApp(await window.oisym.storage.read());
+      showToast('Copia de seguridad restaurada correctamente.');
+    } catch (recoveryError) {
+      await showRecoveryScreen(recoveryError);
+    }
+    return;
+  }
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
   if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
   if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
@@ -1435,34 +1459,69 @@ root.addEventListener('change', event => {
   }
 });
 
+async function initializeApp(snapshot) {
+  state.snapshot = snapshot;
+  if (!Array.isArray(state.snapshot.profiles)) state.snapshot.profiles = [];
+  state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
+  if (!state.snapshot.profiles.length) {
+    const profile = createProfile('Mi espacio');
+    state.snapshot.profiles.push(profile);
+    state.snapshot.activeProfileId = profile.id;
+  }
+  state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
+  state.snapshot.activeProfileId = state.profile.id;
+  buildShell();
+  updateShell();
+  if (state.profile.activeFocus) {
+    if (getFocusRemainingSeconds(state.profile.activeFocus) <= 0) {
+      await finishFocus({ completed: true, silent: true });
+      showToast('La sesión terminó mientras O-Isym estaba cerrado. Se guardó en tu historial.');
+    } else if (!state.profile.activeFocus.pausedAt) {
+      startFocusTicker();
+    }
+  }
+  await save();
+}
+
+async function showRecoveryScreen(error) {
+  root.replaceChildren();
+  const panel = element('section', 'fatal-screen recovery-screen');
+  panel.append(
+    element('div', 'recovery-mark', 'O'),
+    element('h1', '', 'Necesitamos revisar tus datos'),
+    element('p', 'recovery-error', error.message),
+    element('p', 'muted', 'O-Isym no ha modificado el archivo original. Antes de reemplazarlo, guardará una copia íntegra en la carpeta de copias de seguridad.')
+  );
+  try {
+    const backups = await window.oisym.storage.recovery.listBackups();
+    if (backups.length) {
+      panel.append(element('h2', '', 'También encontramos copias anteriores'));
+      const picker = element('select', 'input recovery-select');
+      picker.id = 'recovery-backup-select';
+      backups.forEach(backup => {
+        const option = element('option', '', new Date(backup.updatedAt).toLocaleString('es-MX') + ' · ' + backup.profiles + ' perfiles');
+        option.value = backup.name;
+        picker.append(option);
+      });
+      panel.append(picker, button('Restaurar esta copia', 'recovery-restore', 'button secondary'));
+    } else {
+      panel.append(element('p', 'muted', 'No encontramos copias anteriores válidas.'));
+    }
+  } catch (backupError) {
+    panel.append(element('p', 'muted', 'No se pudieron consultar las copias anteriores: ' + backupError.message));
+  }
+  panel.append(
+    button('Guardar copia y sobrescribir', 'recovery-overwrite', 'button primary'),
+    element('p', 'recovery-note', 'Esta opción conserva el archivo actual como copia de emergencia y crea un espacio nuevo. Si tienes una copia anterior válida, es mejor restaurarla.')
+  );
+  root.append(panel);
+}
+
 async function boot() {
   try {
-    state.snapshot = await window.oisym.storage.read();
-    if (!Array.isArray(state.snapshot.profiles)) state.snapshot.profiles = [];
-    state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
-    if (!state.snapshot.profiles.length) {
-      const profile = createProfile('Mi espacio');
-      state.snapshot.profiles.push(profile);
-      state.snapshot.activeProfileId = profile.id;
-    }
-    state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
-    state.snapshot.activeProfileId = state.profile.id;
-    buildShell();
-    updateShell();
-    if (state.profile.activeFocus) {
-      if (getFocusRemainingSeconds(state.profile.activeFocus) <= 0) {
-        await finishFocus({ completed: true, silent: true });
-        showToast('La sesión terminó mientras O-Isym estaba cerrado. Se guardó en tu historial.');
-      } else if (!state.profile.activeFocus.pausedAt) {
-        startFocusTicker();
-      }
-    }
-    await save();
+    await initializeApp(await window.oisym.storage.read());
   } catch (error) {
-    root.replaceChildren();
-    const panel = element('div', 'fatal-screen');
-    panel.append(element('h1', '', 'No se pudieron abrir tus datos'), element('p', '', error.message), element('p', 'muted', 'O-Isym protegió el archivo y no lo sobrescribió. Revisa la carpeta de datos o restaura una copia de seguridad.'));
-    root.append(panel);
+    await showRecoveryScreen(error);
   }
 }
 
