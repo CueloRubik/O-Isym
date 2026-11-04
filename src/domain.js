@@ -69,13 +69,66 @@ function normalizeProfile(profile) {
     tasks: Array.isArray(value.tasks) ? value.tasks : [],
     goals: Array.isArray(value.goals) ? value.goals : [],
     focusSessions: Array.isArray(value.focusSessions) ? value.focusSessions : [],
-    activeFocus: value.activeFocus && typeof value.activeFocus === 'object' ? value.activeFocus : null
+    activeFocus: normalizeActiveFocus(value.activeFocus, preferences.focusMinutes)
   };
 }
 
 function clampNumber(value, min, max, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+function isValidTimestamp(value) {
+  return typeof value === 'string' && value.length > 0 && Number.isFinite(Date.parse(value));
+}
+
+function normalizeActiveFocus(focus, fallbackMinutes = 25) {
+  if (!focus || typeof focus !== 'object' || Array.isArray(focus)) return null;
+  if (!isValidTimestamp(focus.startedAt)) return null;
+  const durationSeconds = clampNumber(focus.durationSeconds, 300, 10800, clampNumber(fallbackMinutes, 5, 180, 25) * 60);
+  const sessionStartedAt = isValidTimestamp(focus.sessionStartedAt) ? focus.sessionStartedAt : focus.startedAt;
+  const pausedAt = isValidTimestamp(focus.pausedAt) ? focus.pausedAt : null;
+  return {
+    taskId: typeof focus.taskId === 'string' && focus.taskId ? focus.taskId : null,
+    startedAt: focus.startedAt,
+    sessionStartedAt,
+    pausedAt,
+    elapsedBeforePause: clampNumber(focus.elapsedBeforePause, 0, durationSeconds, 0),
+    durationSeconds
+  };
+}
+
+function getFocusElapsedSeconds(focus, now = Date.now()) {
+  if (!focus || typeof focus !== 'object') return 0;
+  const duration = clampNumber(focus.durationSeconds, 1, 10800, 0);
+  const beforePause = clampNumber(focus.elapsedBeforePause, 0, duration, 0);
+  const started = Date.parse(focus.startedAt);
+  const runningSeconds = focus.pausedAt || !Number.isFinite(started) ? 0 : Math.max(0, Math.floor((Number(now) - started) / 1000));
+  return Math.min(duration, beforePause + runningSeconds);
+}
+
+function getFocusRemainingSeconds(focus, now = Date.now()) {
+  if (!focus || typeof focus !== 'object') return 0;
+  return Math.max(0, clampNumber(focus.durationSeconds, 1, 10800, 0) - getFocusElapsedSeconds(focus, now));
+}
+
+function createFocusSession(focus, taskTitle = '', endedAt = new Date().toISOString()) {
+  const endedMs = Date.parse(endedAt);
+  const safeEndedAt = Number.isFinite(endedMs) ? new Date(endedMs).toISOString() : new Date().toISOString();
+  const elapsed = getFocusElapsedSeconds(focus, Date.parse(safeEndedAt));
+  let actualEnd = safeEndedAt;
+  if (!focus.pausedAt && elapsed >= focus.durationSeconds && isValidTimestamp(focus.startedAt)) {
+    const completionMs = Date.parse(focus.startedAt) + Math.max(0, focus.durationSeconds - clampNumber(focus.elapsedBeforePause, 0, focus.durationSeconds, 0)) * 1000;
+    actualEnd = new Date(completionMs).toISOString();
+  }
+  return {
+    id: makeId('focus'),
+    taskId: typeof focus.taskId === 'string' && focus.taskId ? focus.taskId : null,
+    taskTitle: String(taskTitle || '').slice(0, 140),
+    startedAt: isValidTimestamp(focus.sessionStartedAt) ? focus.sessionStartedAt : focus.startedAt,
+    endedAt: actualEnd,
+    durationSeconds: elapsed
+  };
 }
 
 function createActivity(input) {
@@ -296,5 +349,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, normalizeActiveFocus, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, validateSnapshot };
 });
