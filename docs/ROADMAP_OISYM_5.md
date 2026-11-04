@@ -23,7 +23,7 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | Etapa | Alcance | Estado |
 |---|---|---|
 | 0 | Inventario y conservación del prototipo | Completado |
-| 1 | Seguridad Electron y almacenamiento | Implementado; pruebas locales pendientes |
+| 1 | Seguridad Electron y almacenamiento | CI aprobada; validación manual en Mac pendiente |
 | 2 | Modelo de dominio y perfiles | Implementado en esta versión |
 | 3 | Sistema visual y navegación | Implementado en esta versión |
 | 4 | Catálogo de actividades | Implementado en esta versión |
@@ -51,7 +51,7 @@ Profile contiene preferencias y colecciones de Activity, Task, Goal y FocusSessi
 
 ## Criterio de aceptación
 
-Una función no se considera validada hasta comprobar su flujo completo, persistencia tras reiniciar, errores previsibles y pruebas automatizadas. Las pruebas locales y la revisión manual en macOS son obligatorias antes de fusionar a main.
+Una función no se considera validada hasta comprobar su flujo completo, persistencia tras reiniciar, errores previsibles y pruebas automatizadas. La suite automatizada debe pasar en CI y la revisión manual en macOS es obligatoria antes de fusionar a main.
 
 ## Trabajo pendiente
 

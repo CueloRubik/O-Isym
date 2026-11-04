@@ -19,4 +19,11 @@ jobs:
         with:
           node-version: 18
       - name: Run automated tests
-        run: npm test
+        run: |
+          npm test
+          node --check src/app.js
+          node --check src/domain.js
+          node --check electron/main.js
+          node --check electron/preload.js
+          node --check electron/ipc-handlers.js
+          node --check electron/storage.js
