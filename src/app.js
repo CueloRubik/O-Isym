@@ -645,35 +645,95 @@ function renderInsights(main) {
   const today = localDate();
   const weekStart = shiftDate(today, -((new Date().getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, index) => shiftDate(weekStart, index));
-  const completed = state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && days.includes(task.completedAt.slice(0, 10)));
+  const weekTasks = state.profile.tasks.filter(task => task.completedAt && days.includes(task.completedAt.slice(0, 10)));
+  const completed = weekTasks.filter(task => task.status === 'done');
   const created = state.profile.tasks.filter(task => task.createdAt && days.includes(task.createdAt.slice(0, 10)));
-  const minutes = state.profile.focusSessions.filter(session => days.includes(session.endedAt.slice(0, 10))).reduce((sum, session) => sum + session.durationSeconds, 0) / 60;
+  const validSessions = state.profile.focusSessions.filter(session => session && typeof session.endedAt === 'string' && Number.isFinite(Date.parse(session.endedAt)));
+  const weekSessions = validSessions.filter(session => days.includes(session.endedAt.slice(0, 10)));
+  const focusSeconds = weekSessions.reduce((sum, session) => sum + Math.max(0, Number(session.durationSeconds) || 0), 0);
+  const focusMinutes = Math.round(focusSeconds / 60);
+  const averageMinutes = weekSessions.length ? Math.round(focusSeconds / weekSessions.length / 60) : 0;
+  const activeGoals = state.profile.goals.filter(goal => !goal.archived);
+  const pendingDueSoon = state.profile.tasks.filter(task => task.status === 'pending' && task.dueDate && task.dueDate >= today && task.dueDate <= shiftDate(today, 7)).length;
   const metrics = element('div', 'metrics-grid');
-  [['Tareas completadas', completed.length], ['Tareas creadas', created.length], ['Tiempo de enfoque', Math.round(minutes) + ' min'], ['Objetivos activos', state.profile.goals.filter(goal => !goal.archived).length]].forEach(([label, value]) => {
+  [
+    ['Tareas completadas', completed.length],
+    ['Tareas creadas', created.length],
+    ['Tiempo de enfoque', focusMinutes + ' min'],
+    ['Duración media', averageMinutes + ' min']
+  ].forEach(([label, value]) => {
     const metric = card('metric-card');
     metric.append(element('span', 'muted', label), element('strong', '', value));
     metrics.append(metric);
   });
   main.append(metrics);
+
   const week = card();
-  week.append(heading('Actividad de la semana', 'Tareas completadas por día.'));
-  days.forEach(day => {
-    const count = state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && task.completedAt.slice(0, 10) === day).length;
+  week.append(heading('Actividad de la semana', 'Tareas completadas por día. Las barras se ajustan a tu propia semana.'));
+  const dailyCounts = days.map(day => state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && task.completedAt.slice(0, 10) === day).length);
+  const maxTasks = Math.max(1, ...dailyCounts);
+  days.forEach((day, index) => {
     const line = element('div', 'chart-line');
     line.append(element('span', '', dateLabel(day, { weekday: 'short', day: 'numeric' })));
     const track = element('div', 'chart-track');
     const fill = element('div', 'chart-fill');
-    fill.style.width = Math.min(100, count * 12) + '%';
+    fill.style.width = (dailyCounts[index] / maxTasks * 100) + '%';
     track.append(fill);
-    line.append(track, element('strong', '', count));
+    line.append(track, element('strong', '', dailyCounts[index]));
     week.append(line);
   });
   main.append(week);
-  const note = card('note-card');
-  note.append(element('strong', '', 'Las estadísticas son información, no una calificación.'), element('p', 'muted', 'Descansar, cambiar de prioridades o dejar espacio libre también forma parte de una buena organización.'));
-  main.append(note);
-}
 
+  const focusCard = card();
+  focusCard.append(heading('Tiempo de concentración', 'Minutos registrados en cada día de esta semana.'));
+  const dailyFocus = days.map(day => Math.round(weekSessions.filter(session => session.endedAt.slice(0, 10) === day).reduce((sum, session) => sum + Math.max(0, Number(session.durationSeconds) || 0), 0) / 60));
+  const maxFocus = Math.max(1, ...dailyFocus);
+  days.forEach((day, index) => {
+    const line = element('div', 'chart-line');
+    line.append(element('span', '', dateLabel(day, { weekday: 'short', day: 'numeric' })));
+    const track = element('div', 'chart-track');
+    const fill = element('div', 'chart-fill');
+    fill.style.width = (dailyFocus[index] / maxFocus * 100) + '%';
+    track.append(fill);
+    line.append(track, element('strong', '', dailyFocus[index] + 'm'));
+    focusCard.append(line);
+  });
+  main.append(focusCard);
+
+  const distribution = card();
+  distribution.append(heading('Actividades de enfoque', 'Dónde se ha concentrado tu tiempo durante los últimos 30 días.'));
+  const cutoff = shiftDate(today, -29);
+  const recentSessions = validSessions.filter(session => session.endedAt.slice(0, 10) >= cutoff && session.endedAt.slice(0, 10) <= today);
+  const totals = new Map();
+  recentSessions.forEach(session => {
+    const label = session.activityTitle || 'Sesión libre';
+    totals.set(label, (totals.get(label) || 0) + Math.max(0, Number(session.durationSeconds) || 0));
+  });
+  const ranked = Array.from(totals.entries()).sort((left, right) => right[1] - left[1]).slice(0, 5);
+  if (!ranked.length) distribution.append(empty('Aún no hay distribución', 'Cuando registres sesiones de enfoque, podrás ver cómo repartes tu tiempo.'));
+  else {
+    const totalSeconds = ranked.reduce((sum, item) => sum + item[1], 0);
+    ranked.forEach(([label, seconds]) => {
+      const line = element('div', 'chart-line');
+      line.append(element('span', '', label));
+      const track = element('div', 'chart-track');
+      const fill = element('div', 'chart-fill');
+      fill.style.width = (totalSeconds ? seconds / totalSeconds * 100 : 0) + '%';
+      track.append(fill);
+      line.append(track, element('strong', '', Math.round(seconds / 60) + 'm'));
+      distribution.append(line);
+    });
+  }
+  main.append(distribution);
+
+  const overview = card('note-card');
+  overview.append(element('strong', '', 'Panorama de tu organización'));
+  const dueText = pendingDueSoon ? 'Tienes ' + pendingDueSoon + ' tarea(s) pendiente(s) con fecha límite en los próximos siete días.' : 'No hay tareas pendientes con fecha límite en los próximas siete días.';
+  overview.append(element('p', 'muted', dueText));
+  overview.append(element('p', 'muted', activeGoals.length + ' objetivo(s) activo(s). Puedes ajustar tus planes cuando cambien tus prioridades.'));
+  overview.append(element('p', 'small-note', 'Las estadísticas son información, no una calificación. Descansar y dejar espacio libre también forma parte de una buena organización.'));
+  main.append(overview);
+}
 function renderSettings(main) {
   main.append(heading('Ajustes', 'Configura O-Isym para que trabaje a tu manera.'));
   const profileForm = element('form', 'form-card');
