@@ -94,6 +94,7 @@ function normalizeActiveFocus(focus, fallbackMinutes = 25) {
   const pausedAt = isValidTimestamp(focus.pausedAt) ? focus.pausedAt : null;
   return {
     taskId: typeof focus.taskId === 'string' && focus.taskId ? focus.taskId : null,
+    activityId: typeof focus.activityId === 'string' && focus.activityId ? focus.activityId : null,
     activityTitle: typeof focus.activityTitle === 'string' ? focus.activityTitle.slice(0, 90) : '',
     isBreak: focus.isBreak === true,
     startedAt: focus.startedAt,
