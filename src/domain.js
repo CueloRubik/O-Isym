@@ -95,6 +95,7 @@ function normalizeActiveFocus(focus, fallbackMinutes = 25) {
   return {
     taskId: typeof focus.taskId === 'string' && focus.taskId ? focus.taskId : null,
     activityTitle: typeof focus.activityTitle === 'string' ? focus.activityTitle.slice(0, 90) : '',
+    isBreak: focus.isBreak === true,
     startedAt: focus.startedAt,
     sessionStartedAt,
     pausedAt,
