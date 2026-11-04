@@ -94,11 +94,14 @@ test('guarda una copia exacta del archivo dañado antes de sobrescribirlo', asyn
 test('restaura una copia válida y conserva el archivo que estaba activo', async t => {
   const { storage } = await makeTemporaryStorage(t);
   const initial = await storage.read();
-  await storage.save({
+  const withProfile = await storage.save({
     ...initial,
     profiles: [{ id: 'profile-old', name: 'Perfil recuperable' }],
     activeProfileId: 'profile-old'
   });
+  // Cada guardado conserva la versión anterior; hacemos un segundo guardado
+  // para que la copia disponible contenga el perfil recuperable.
+  await storage.save({ ...withProfile, updatedAt: new Date().toISOString() });
   const backups = await storage.recovery.listBackups();
   assert.equal(backups.length, 1);
 
