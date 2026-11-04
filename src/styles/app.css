@@ -225,3 +225,10 @@ p { line-height: 1.55; }
 @media (max-width: 480px) {
   .planner-proposal-top { align-items: flex-start; flex-direction: column; gap: 5px; }
 }
+
+
+/* Indicadores de foco visibles para navegación por teclado */
+.button:focus-visible, .calendar-day:focus-visible, .week-day:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
