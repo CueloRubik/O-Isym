@@ -2,6 +2,7 @@
 node_modules/
 
 # Electron build output
+app.icns
 dist/
 out/
 release/
