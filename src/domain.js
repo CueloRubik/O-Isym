@@ -104,9 +104,10 @@ function normalizeActiveFocus(focus, fallbackMinutes = 25) {
   };
 }
 
-function getSuggestedFocusMinutes(profile, taskId) {
+function getSuggestedFocusMinutes(profile, taskId, activityId) {
   const task = (profile && Array.isArray(profile.tasks) ? profile.tasks : []).find(item => item.id === taskId);
-  const activity = task && (profile.activities || []).find(item => item.id === task.activityId && !item.archived);
+  const linkedActivityId = activityId || (task && task.activityId);
+  const activity = linkedActivityId && (profile.activities || []).find(item => item.id === linkedActivityId && !item.archived);
   const preferred = activity ? activity.durationMinutes : profile?.preferences?.focusMinutes;
   return clampNumber(preferred, 5, 180, 25);
 }
