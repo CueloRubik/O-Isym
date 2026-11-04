@@ -115,6 +115,7 @@ const activityById = id => state.profile.activities.find(activity => activity.id
 const goalById = id => state.profile.goals.find(goal => goal.id === id);
 const priorityLabel = value => ({ high: 'Alta', medium: 'Media', low: 'Baja' }[value] || 'Media');
 const priorityClass = value => 'priority-' + (value || 'medium');
+const avatarMark = (profile) => ({ leaf: '❧', book: '▤', compass: '⌖', spark: '✳', wave: '≈' }[profile.avatarId] || String(profile.name || 'O').trim().charAt(0).toUpperCase() || 'O');
 
 function buildShell() {
   root.replaceChildren();
@@ -172,6 +173,11 @@ function updateShell() {
     profileSelect.append(option);
   });
   profileSelect.value = state.profile.id;
+  const profileBox = $('.profile-switcher');
+  let avatar = $('.profile-avatar', profileBox);
+  if (!avatar) { avatar = element('div', 'profile-avatar'); profileBox.insertBefore(avatar, profileSelect); }
+  avatar.textContent = avatarMark(state.profile);
+  avatar.setAttribute('aria-label', 'Avatar del perfil ' + state.profile.name);
   root.style.setProperty('--accent', state.profile.color);
   root.dataset.theme = state.profile.preferences.theme || 'classic';
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
@@ -728,7 +734,7 @@ function renderInsights(main) {
 
   const overview = card('note-card');
   overview.append(element('strong', '', 'Panorama de tu organización'));
-  const dueText = pendingDueSoon ? 'Tienes ' + pendingDueSoon + ' tarea(s) pendiente(s) con fecha límite en los próximos siete días.' : 'No hay tareas pendientes con fecha límite en los próximas siete días.';
+  const dueText = pendingDueSoon ? 'Tienes ' + pendingDueSoon + ' tarea(s) pendiente(s) con fecha límite en los próximos siete días.' : 'No hay tareas pendientes con fecha límite en los próximos siete días.';
   overview.append(element('p', 'muted', dueText));
   overview.append(element('p', 'muted', activeGoals.length + ' objetivo(s) activo(s). Puedes ajustar tus planes cuando cambien tus prioridades.'));
   overview.append(element('p', 'small-note', 'Las estadísticas son información, no una calificación. Descansar y dejar espacio libre también forma parte de una buena organización.'));
