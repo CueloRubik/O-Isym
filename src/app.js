@@ -1,7 +1,7 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
-  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession
+  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge
 } = window.OIsymDomain;
 
 const root = document.getElementById('app');
@@ -118,13 +118,21 @@ const activityById = id => state.profile.activities.find(activity => activity.id
 const goalById = id => state.profile.goals.find(goal => goal.id === id);
 const priorityLabel = value => ({ high: 'Alta', medium: 'Media', low: 'Baja' }[value] || 'Media');
 const priorityClass = value => 'priority-' + (value || 'medium');
-const avatarMark = (profile) => ({ leaf: '❧', book: '▤', compass: '⌖', spark: '✳', wave: '≈' }[profile.avatarId] || String(profile.name || 'O').trim().charAt(0).toUpperCase() || 'O');
+const avatarMark = profile => ({ leaf: '❧', book: '▤', compass: '⌖', spark: '✳', wave: '≈' }[profile.avatarId] || String(profile.name || 'O').trim().charAt(0).toUpperCase() || 'O');
+const isImageAvatar = id => /^profile-(?:[1-9]|1[0-8])$/.test(String(id || ''));
+const makeAvatarImage = id => { const image=element('img','avatar-image'); image.src='profile('+String(id).replace('profile-','')+').png'; image.alt=''; image.draggable=false; image.onerror=()=>image.remove(); return image; };
 const updateProfilePreview = form => {
-  const preview = $('.profile-avatar-preview', form);
-  if (!preview) return;
-  preview.textContent = avatarMark({ avatarId: $('select[name="avatarId"]', form)?.value, name: $('input[name="name"]', form)?.value || 'O' });
-  const color = $('input[name="color"]', form)?.value;
-  if (/^#[0-9a-f]{6}$/i.test(color || '')) { preview.style.backgroundColor = color; preview.style.color = '#ffffff'; }
+  const preview=$('.profile-avatar-preview',form); if(!preview)return;
+  const avatarId=$('input[name="avatarId"]',form)?.value||'profile-1'; preview.replaceChildren();
+  if(isImageAvatar(avatarId))preview.append(makeAvatarImage(avatarId)); else preview.textContent=avatarMark({avatarId,name:$('input[name="name"]',form)?.value||'O'});
+  const color=$('input[name="color"]',form)?.value; if(/^#[0-9a-f]{6}$/i.test(color||'')){preview.style.backgroundColor=color;preview.style.color='#fff';}
+  $$('.avatar-choice',form).forEach(choice=>{const selected=choice.dataset.avatar===avatarId;choice.classList.toggle('selected',selected);choice.setAttribute('aria-pressed',String(selected));});
+};
+const buildAvatarPicker = (parent, selectedId='profile-1') => {
+  const hidden=input('avatarId','','hidden',selectedId);hidden.value=selectedId;parent.append(hidden);
+  const grid=element('div','avatar-picker');grid.setAttribute('role','group');grid.setAttribute('aria-label','Elige una foto de perfil');
+  for(let index=1;index<=18;index++){const id='profile-'+index;const choice=button('','choose-profile-avatar','avatar-choice'+(id===selectedId?' selected':''),{avatar:id});choice.setAttribute('aria-label','Avatar '+index);choice.setAttribute('aria-pressed',String(id===selectedId));choice.append(makeAvatarImage(id));grid.append(choice);}
+  parent.append(grid);return grid;
 };
 
 function buildShell() {
@@ -191,8 +199,11 @@ function updateShell() {
   const profileBox = $('.profile-switcher');
   let avatar = $('.profile-avatar', profileBox);
   if (!avatar) { avatar = element('div', 'profile-avatar'); profileBox.insertBefore(avatar, profileSelect); }
-  avatar.textContent = avatarMark(state.profile);
+  avatar.replaceChildren();
+  if (isImageAvatar(state.profile.avatarId)) avatar.append(makeAvatarImage(state.profile.avatarId));
+  else avatar.textContent = avatarMark(state.profile);
   avatar.setAttribute('aria-label', 'Avatar del perfil ' + state.profile.name);
+  root.dataset.audience = getAgeBand(state.profile.age);
   root.style.setProperty('--accent', state.profile.color);
   root.dataset.theme = state.profile.preferences.theme || 'classic';
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
@@ -289,7 +300,8 @@ function renderToday(main) {
   const done = state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && task.completedAt.slice(0, 10) === date);
   const hero = card('welcome-card');
   const greeting = new Date().getHours() < 12 ? 'Buenos días' : (new Date().getHours() < 19 ? 'Buenas tardes' : 'Buenas noches');
-  hero.append(element('div', 'eyebrow', dateLabel(date, { weekday: 'long', day: 'numeric', month: 'long' })), element('h1', '', greeting + ', ' + state.profile.name), element('p', '', 'Organiza lo importante. Deja espacio para lo inesperado.'));
+  const childMode=getAgeBand(state.profile.age)==='child';
+  hero.append(element('div','eyebrow',dateLabel(date,{weekday:'long',day:'numeric',month:'long'})),element('h1','',childMode?'¡Hola, '+state.profile.name+'!':greeting+', '+state.profile.name),element('p','',childMode?'Este es tu espacio para organizar tus ideas, juegos y actividades.':'Organiza lo importante. Deja espacio para lo inesperado.'));
   const progress = element('div', 'progress-wrap');
   const progressTop = element('div', 'progress-label');
   progressTop.append(element('span', '', 'Tu día'), element('strong', '', done.length + ' de ' + (done.length + tasks.length) + ' tareas'));
@@ -304,7 +316,7 @@ function renderToday(main) {
   const grid = element('div', 'dashboard-grid');
   const primary = element('div', 'dashboard-main');
   const taskCard = card();
-  taskCard.append(heading('Lo que tienes hoy', 'Una lista clara, sin presión.'));
+  taskCard.append(heading(childMode?'Mis tareas de hoy':'Lo que tienes hoy',childMode?'¡Puedes ir haciendo una cosa a la vez!':'Una lista clara, sin presión.'));
   renderTaskList(taskCard, tasks, { emptyTitle: 'Tu agenda está despejada', emptyDetail: 'Puedes agregar una tarea o reservar tiempo para algo importante.' });
   taskCard.append(button('+ Añadir tarea', 'quick-task', 'button primary'));
   primary.append(taskCard);
@@ -379,7 +391,9 @@ function renderTasks(main) {
 }
 
 function renderActivities(main) {
-  main.append(heading('Actividades', 'Crea plantillas reutilizables para las cosas que haces.'));
+  const band=getAgeBand(state.profile.age);
+  const ideas=band==='child'?[['Leer un cuento','Lectura','Leer o escuchar un cuento',15],['Dibujar','Creatividad','Dibujar, colorear o inventar personajes',20],['Jugar al aire libre','Movimiento','Un rato de juego y movimiento',30],['Ordenar mis cosas','Hogar','Guardar juguetes, libros o materiales',10],['Practicar música','Música','Tocar o escuchar música',15]]:band==='teen'?[['Estudiar una materia','Estudio','Repasar un tema o preparar una tarea',30],['Practicar una habilidad','Creatividad','Practicar música, dibujo o una habilidad',25],['Leer','Lectura','Leer por gusto o para clase',20],['Moverme un rato','Bienestar','Caminar, bailar o una actividad recreativa',20]]:[['Lectura','Personal','Tiempo para leer',25],['Aprendizaje','Estudio','Aprender o practicar una habilidad',30],['Movimiento','Bienestar','Actividad recreativa o paseo',30]];
+  main.append(heading(band==='child'?'Mis actividades':'Actividades',band==='child'?'Ideas sencillas para llenar tu espacio con cosas que te gustan.':'Crea plantillas reutilizables para las cosas que haces.'));
   const editing = state.editingActivityId ? activityById(state.editingActivityId) : null;
   const form = element('form', 'form-card');
   form.dataset.form = editing ? 'activity-edit' : 'activity';
@@ -390,7 +404,9 @@ function renderActivities(main) {
   form.append(field('Descripción', textarea('description', '¿En qué consiste?', editing?.description || '')));
   const row = element('div', 'form-grid');
   row.append(field('Duración orientativa (min)', input('durationMinutes', '30', 'number', editing?.durationMinutes || 30)), field('Frecuencia', input('frequency', 'Ej. Tres veces por semana', 'text', editing?.frequency || '')));
-  form.append(row, button(editing ? 'Guardar cambios' : 'Crear actividad', 'submit-form', 'button primary'));
+  form.append(row);
+  if(!editing){const ideasCard=element('div','activity-ideas');ideasCard.append(element('strong','','Ideas para empezar'));const ideaList=element('div','activity-idea-list');ideas.forEach(([name,category,description,minutes])=>ideaList.append(button(name,'use-activity-idea','activity-idea',{name,category,description,minutes})));ideasCard.append(ideaList,element('p','small-note','Son sugerencias opcionales: puedes cambiarlas o crear las tuyas.'));form.append(ideasCard);}
+  form.append(button(editing ? 'Guardar cambios' : 'Crear actividad', 'submit-form', 'button primary'));
   if (editing) form.append(button('Cancelar', 'cancel-edit-activity', 'button secondary'));
   main.append(form);
   const list = card();
@@ -766,17 +782,16 @@ function renderSettings(main) {
   profileForm.dataset.form = 'profile-settings';
   profileForm.append(element('h3', '', 'Tu perfil'));
   profileForm.append(field('Nombre', input('name', 'Nombre del perfil', 'text', state.profile.name)));
+  const ageField=input('age','Edad en años','number',state.profile.age==null?'':state.profile.age);ageField.min='1';ageField.max='120';ageField.step='1';
+  profileForm.append(field('Edad (opcional)',ageField),element('p','small-note','La edad adapta las sugerencias y el aspecto inicial. No se guarda fecha de nacimiento.'));
   profileForm.append(field('Color de acento', input('color', '', 'color', state.profile.color)));
-  const avatarOptions = [
-    { value: 'initials', label: 'Iniciales — sencillo' }, { value: 'leaf', label: 'Hoja — natural' },
-    { value: 'book', label: 'Libro — aprendizaje' }, { value: 'compass', label: 'Brújula — exploración' },
-    { value: 'spark', label: 'Destello — creativo' }, { value: 'wave', label: 'Onda — tranquilo' }
-  ];
-  profileForm.append(field('Avatar del perfil', select('avatarId', avatarOptions, state.profile.avatarId || 'initials')));
+  profileForm.append(element('span','field-label','Foto de perfil'));
+  buildAvatarPicker(profileForm,isImageAvatar(state.profile.avatarId)?state.profile.avatarId:'profile-1');
   profileForm.append(field('Estilo visual', select('theme', [
     { value: 'classic', label: 'Clásico — limpio y equilibrado' },
     { value: 'warm', label: 'Cálido — tonos suaves' },
-    { value: 'sky', label: 'Cielo — acentos azulados' }
+    { value: 'sky', label: 'Cielo — acentos azulados' },
+    { value: 'playful', label: 'Colorido — alegre y dinámico' }
   ], state.profile.preferences.theme || 'classic')));
   const motionLabel = field('Movimiento de la interfaz', select('motionEnabled', [
     { value: 'true', label: 'Activado — transiciones sutiles' },
@@ -861,10 +876,10 @@ async function handleSubmit(form) {
       if (state.snapshot.profiles.length >= 50) throw new Error('Has alcanzado el máximo de perfiles.');
       if (!String(data.name || '').trim()) throw new Error('Escribe un nombre para el perfil.');
       const previousProfileId = state.profile.id;
-      const profile = createProfile(data.name);
-      profile.avatarId = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave'].includes(data.avatarId) ? data.avatarId : 'initials';
-      profile.preferences.theme = ['classic', 'warm', 'sky'].includes(data.theme) ? data.theme : 'classic';
-      profile.color = /^#[0-9a-f]{6}$/i.test(data.color) ? data.color : '#27856b';
+      const age=Number(data.age);if(!Number.isInteger(age)||age<1||age>120)throw new Error('Escribe una edad válida entre 1 y 120 años.');
+      const profile=createProfile(data.name,'#27856b',age);profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:'profile-1';
+      profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(age);
+      profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:'#27856b';
       state.snapshot.profiles.push(profile);
       state.profile = profile;
       const saved = await save();
@@ -924,10 +939,12 @@ async function handleSubmit(form) {
       await save();
       showToast('Objetivo creado.');
     } else if (form.dataset.form === 'profile-settings') {
-      state.profile.name = String(data.name).trim().slice(0, 60) || state.profile.name;
-      state.profile.color = /^#[0-9a-f]{6}$/i.test(data.color) ? data.color : state.profile.color;
-      state.profile.avatarId = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave'].includes(data.avatarId) ? data.avatarId : 'initials';
-      state.profile.preferences.theme = ['classic', 'warm', 'sky'].includes(data.theme) ? data.theme : 'classic';
+      state.profile.name=String(data.name).trim().slice(0,60)||state.profile.name;
+      const ageValue=String(data.age||'').trim();if(ageValue&&(!Number.isInteger(Number(ageValue))||Number(ageValue)<1||Number(ageValue)>120))throw new Error('La edad debe estar entre 1 y 120 años.');
+      state.profile.age=ageValue?Number(ageValue):null;state.profile.preferences.ageBand=getAgeBand(state.profile.age);
+      state.profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:state.profile.color;
+      state.profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:state.profile.avatarId;
+      state.profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(state.profile.age);
       state.profile.preferences.motionEnabled = data.motionEnabled !== 'false';
       state.profile.preferences.autonomy = data.autonomy;
       state.profile.preferences.focusMinutes = clampNumber(data.focusMinutes, 5, 180, 25);
@@ -1039,45 +1056,23 @@ root.addEventListener('click', async event => {
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
   if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
   if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
+  if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
+  if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number(target.dataset.step||1);if(action==='profile-wizard-next'){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(!age.value||!age.checkValidity()){age.focus();return showToast('Escribe una edad válida entre 1 y 120 años.','error');}}const next=action==='profile-wizard-next'?current+1:current-1;$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
+  if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
   if (action === 'new-profile') {
-    if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de perfiles.', 'error');
-    const overlay = element('div', 'profile-modal-backdrop');
-    overlay.dataset.profileModal = 'true';
-    const dialog = element('section', 'profile-modal');
-    dialog.setAttribute('role', 'dialog');
-    dialog.setAttribute('aria-modal', 'true');
-    dialog.setAttribute('aria-labelledby', 'new-profile-title');
-    const form = element('form', 'form-card profile-modal-form');
-    form.dataset.form = 'profile-create';
-    const title = element('h2', '', 'Crear un espacio');
-    title.id = 'new-profile-title';
-    form.append(title, element('p', 'muted', 'Cada perfil tendrá sus propias tareas, objetivos y preferencias.'));
-    form.append(field('Nombre del perfil', input('name', 'Ej. Personal', 'text', '')));
-    form.append(field('Avatar', select('avatarId', [
-      { value: 'initials', label: 'Iniciales — sencillo' }, { value: 'leaf', label: 'Hoja — natural' },
-      { value: 'book', label: 'Libro — aprendizaje' }, { value: 'compass', label: 'Brújula — exploración' },
-      { value: 'spark', label: 'Destello — creativo' }, { value: 'wave', label: 'Onda — tranquilo' }
-    ], 'initials')));
-    const previewRow = element('div', 'profile-avatar-preview-row');
-    const preview = element('div', 'profile-avatar profile-avatar-preview', 'O');
-    preview.setAttribute('aria-hidden', 'true');
-    previewRow.append(preview, element('span', 'muted', 'Vista previa del avatar y su color'));
-    form.append(previewRow);
-    form.append(field('Estilo visual', select('theme', [
-      { value: 'classic', label: 'Clásico — limpio y equilibrado' },
-      { value: 'warm', label: 'Cálido — tonos suaves' },
-      { value: 'sky', label: 'Cielo — acentos azulados' }
-    ], 'classic')));
-    form.append(field('Color de acento', input('color', '', 'color', '#27856b')));
-    const actions = element('div', 'form-actions');
-    actions.append(button('Cancelar', 'cancel-new-profile', 'button secondary'), button('Crear perfil', 'submit-form', 'button primary'));
-    form.append(actions);
-    dialog.append(form);
-    overlay.append(dialog);
-    root.append(overlay);
-    updateProfilePreview(form);
-    const nameInput = $('input[name="name"]', form);
-    if (nameInput) nameInput.focus();
+    if(state.snapshot.profiles.length>=50)return showToast('Has alcanzado el máximo de perfiles.','error');
+    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';
+    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','new-profile-title');
+    const form=element('form','form-card profile-modal-form');form.dataset.form='profile-create';
+    const title=element('h2','','Vamos a crear tu espacio');title.id='new-profile-title';form.append(title,element('p','muted','Primero te conoceremos un poquito y después podrás personalizarlo.'));
+    const one=element('div','profile-wizard-step');one.dataset.profileStep='1';one.append(element('h3','','1. ¿Cómo te llamas?'),field('Nombre del perfil',input('name','Escribe un nombre','text','')));
+    const age=input('age','Tu edad','number','');age.min='1';age.max='120';age.step='1';age.required=true;one.append(field('¿Cuántos años tienes?',age),element('p','small-note','Usamos tu edad para adaptar las ideas y el estilo inicial. No pedimos tu fecha de nacimiento.'));
+    const two=element('div','profile-wizard-step');two.dataset.profileStep='2';two.hidden=true;two.append(element('h3','','2. ¡Elige tu foto!'),element('p','muted','Puedes cambiarla cuando quieras desde los ajustes del perfil.'));buildAvatarPicker(two,'profile-1');
+    const three=element('div','profile-wizard-step');three.dataset.profileStep='3';three.hidden=true;three.append(element('h3','','3. Dale tu estilo'));
+    three.append(field('Estilo visual',select('theme',[{value:'playful',label:'Colorido — alegre y dinámico'},{value:'sky',label:'Cielo — azul y tranquilo'},{value:'warm',label:'Cálido — tonos suaves'},{value:'classic',label:'Clásico — limpio y equilibrado'}],'playful')),field('Color de acento',input('color','','color','#27856b')));
+    const previewRow=element('div','profile-avatar-preview-row'),preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');previewRow.append(preview,element('span','muted','Así se verá tu perfil'));three.append(previewRow);
+    const actions=element('div','form-actions profile-wizard-actions');actions.append(button('Cancelar','cancel-new-profile','button secondary'),button('Atrás','profile-wizard-back','button secondary',{step:'2'}),button('Siguiente','profile-wizard-next','button primary',{step:'1'}),button('Crear mi perfil','submit-form','button primary'));
+    form.append(one,two,three,actions);dialog.append(form);overlay.append(dialog);root.append(overlay);updateProfilePreview(form);$('input[name="name"]',form).focus();
   }
   if (action === 'quick-task') {
     state.view = 'tasks'; updateShell();
