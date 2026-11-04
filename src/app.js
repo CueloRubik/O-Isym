@@ -122,11 +122,11 @@ const avatarMark = profile => ({ leaf: '❧', book: '▤', compass: '⌖', spark
 const isImageAvatar = id => /^profile-(?:[1-9]|1[0-8])$/.test(String(id || ''));
 const makeAvatarImage = id => { const image=element('img','avatar-image'); image.src='profile('+String(id).replace('profile-','')+').png'; image.alt=''; image.draggable=false; image.onerror=()=>image.remove(); return image; };
 const updateProfilePreview = form => {
-  const preview=$('.profile-avatar-preview',form); if(!preview)return;
-  const avatarId=$('input[name="avatarId"]',form)?.value||'profile-1'; preview.replaceChildren();
+  const avatarId=$('input[name="avatarId"]',form)?.value||'profile-1';
+  $$('.avatar-choice',form).forEach(choice=>{const selected=choice.dataset.avatar===avatarId;choice.classList.toggle('selected',selected);choice.setAttribute('aria-pressed',String(selected));});
+  const preview=$('.profile-avatar-preview',form); if(!preview)return; preview.replaceChildren();
   if(isImageAvatar(avatarId))preview.append(makeAvatarImage(avatarId)); else preview.textContent=avatarMark({avatarId,name:$('input[name="name"]',form)?.value||'O'});
   const color=$('input[name="color"]',form)?.value; if(/^#[0-9a-f]{6}$/i.test(color||'')){preview.style.backgroundColor=color;preview.style.color='#fff';}
-  $$('.avatar-choice',form).forEach(choice=>{const selected=choice.dataset.avatar===avatarId;choice.classList.toggle('selected',selected);choice.setAttribute('aria-pressed',String(selected));});
 };
 const buildAvatarPicker = (parent, selectedId='profile-1') => {
   const hidden=input('avatarId','','hidden',selectedId);hidden.value=selectedId;parent.append(hidden);
@@ -1057,7 +1057,7 @@ root.addEventListener('click', async event => {
   if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
   if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
-  if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number(target.dataset.step||1);if(action==='profile-wizard-next'){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(!age.value||!age.checkValidity()){age.focus();return showToast('Escribe una edad válida entre 1 y 120 años.','error');}}const next=action==='profile-wizard-next'?current+1:current-1;$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
+  if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(!age.value||!age.checkValidity()){age.focus();return showToast('Escribe una edad válida entre 1 y 120 años.','error');}}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
   if (action === 'new-profile') {
     if(state.snapshot.profiles.length>=50)return showToast('Has alcanzado el máximo de perfiles.','error');
@@ -1071,8 +1071,10 @@ root.addEventListener('click', async event => {
     const three=element('div','profile-wizard-step');three.dataset.profileStep='3';three.hidden=true;three.append(element('h3','','3. Dale tu estilo'));
     three.append(field('Estilo visual',select('theme',[{value:'playful',label:'Colorido — alegre y dinámico'},{value:'sky',label:'Cielo — azul y tranquilo'},{value:'warm',label:'Cálido — tonos suaves'},{value:'classic',label:'Clásico — limpio y equilibrado'}],'playful')),field('Color de acento',input('color','','color','#27856b')));
     const previewRow=element('div','profile-avatar-preview-row'),preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');previewRow.append(preview,element('span','muted','Así se verá tu perfil'));three.append(previewRow);
-    const actions=element('div','form-actions profile-wizard-actions');actions.append(button('Cancelar','cancel-new-profile','button secondary'),button('Atrás','profile-wizard-back','button secondary',{step:'2'}),button('Siguiente','profile-wizard-next','button primary',{step:'1'}),button('Crear mi perfil','submit-form','button primary'));
-    form.append(one,two,three,actions);dialog.append(form);overlay.append(dialog);root.append(overlay);updateProfilePreview(form);$('input[name="name"]',form).focus();
+    const actions=element('div','form-actions profile-wizard-actions');actions.append(button('Cancelar','cancel-new-profile','button secondary'),button('Atrás','profile-wizard-back','button secondary',{step:'2'}),button('Siguiente','profile-wizard-next','button primary'),button('Crear mi perfil','submit-form','button primary'));
+    form.append(one,two,three,actions);dialog.append(form);overlay.append(dialog);root.append(overlay);
+    $('[data-action="profile-wizard-back"]',form).hidden=true;$('[data-action="submit-form"]',form).hidden=true;
+    updateProfilePreview(form);$('input[name="name"]',form).focus();
   }
   if (action === 'quick-task') {
     state.view = 'tasks'; updateShell();
