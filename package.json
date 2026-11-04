@@ -7,9 +7,39 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "build:mac": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto. Coloca ahí tu icono y vuelve a ejecutar npm run build:mac.'); process.exit(1); }\" && electron-builder --mac dmg --x64",
+    "build:mac:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto. Coloca ahí tu icono y vuelve a ejecutar npm run build:mac:dir.'); process.exit(1); }\" && electron-builder --mac dir --x64"
   },
   "devDependencies": {
-    "electron": "28.3.3"
+    "electron": "28.3.3",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.oisym.app",
+    "productName": "O-Isym",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "assets/**/*",
+      "index.html",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "app.icns",
+      "identity": null,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
   }
 }
