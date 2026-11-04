@@ -232,3 +232,9 @@ p { line-height: 1.55; }
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+
+
+/* Temas personales: paletas claras y discretas, sin alterar la jerarquía visual */
+#app[data-theme="warm"] { --page: #f8f5ef; --surface-soft: #fbf8f2; --line: #ece5d9; --blue: #f0f1f7; }
+#app[data-theme="sky"] { --page: #f2f6fa; --surface-soft: #f5f8fc; --line: #e1e9f1; --blue: #e8f1fb; }
+#app.reduce-motion *, #app.reduce-motion *::before, #app.reduce-motion *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
