@@ -36,6 +36,8 @@ function createProfile(name, color = '#27856b') {
       weekStartsOn: 1,
       focusMinutes: 25,
       breakMinutes: 5,
+      focusSound: true,
+      focusNotifications: true,
       workingDayStart: '09:00',
       workingDayEnd: '17:00'
     },
@@ -63,7 +65,9 @@ function normalizeProfile(profile) {
       ...preferences,
       autonomy: AUTONOMY_MODES.includes(preferences.autonomy) ? preferences.autonomy : 'suggested',
       focusMinutes: clampNumber(preferences.focusMinutes, 5, 180, 25),
-      breakMinutes: clampNumber(preferences.breakMinutes, 1, 60, 5)
+      breakMinutes: clampNumber(preferences.breakMinutes, 1, 60, 5),
+      focusSound: preferences.focusSound !== false,
+      focusNotifications: preferences.focusNotifications !== false
     },
     activities: Array.isArray(value.activities) ? value.activities : [],
     tasks: Array.isArray(value.tasks) ? value.tasks : [],
@@ -98,6 +102,13 @@ function normalizeActiveFocus(focus, fallbackMinutes = 25) {
   };
 }
 
+function getSuggestedFocusMinutes(profile, taskId) {
+  const task = (profile && Array.isArray(profile.tasks) ? profile.tasks : []).find(item => item.id === taskId);
+  const activity = task && (profile.activities || []).find(item => item.id === task.activityId && !item.archived);
+  const preferred = activity ? activity.durationMinutes : profile?.preferences?.focusMinutes;
+  return clampNumber(preferred, 5, 180, 25);
+}
+
 function getFocusElapsedSeconds(focus, now = Date.now()) {
   if (!focus || typeof focus !== 'object') return 0;
   const duration = clampNumber(focus.durationSeconds, 1, 10800, 0);
@@ -125,6 +136,7 @@ function createFocusSession(focus, taskTitle = '', endedAt = new Date().toISOStr
     id: makeId('focus'),
     taskId: typeof focus.taskId === 'string' && focus.taskId ? focus.taskId : null,
     taskTitle: String(taskTitle || '').slice(0, 140),
+    activityTitle: String(focus.activityTitle || '').slice(0, 90),
     startedAt: isValidTimestamp(focus.sessionStartedAt) ? focus.sessionStartedAt : focus.startedAt,
     endedAt: actualEnd,
     durationSeconds: elapsed
@@ -349,5 +361,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, normalizeActiveFocus, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, validateSnapshot };
 });
