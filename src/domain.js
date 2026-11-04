@@ -1,25 +1,29 @@
-export const SCHEMA_VERSION = 1;
-export const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.OIsymDomain = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : window, function () {
+const SCHEMA_VERSION = 1;
+const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
 
-export function makeId(prefix = 'id') {
+function makeId(prefix = 'id') {
   const random = Math.random().toString(36).slice(2, 10);
   return prefix + '-' + Date.now().toString(36) + '-' + random;
 }
 
-export function localDate(date = new Date()) {
+function localDate(date = new Date()) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return y + '-' + m + '-' + d;
 }
 
-export function shiftDate(dateKey, amount) {
+function shiftDate(dateKey, amount) {
   const parts = dateKey.split('-').map(Number);
   const date = new Date(parts[0], parts[1] - 1, parts[2] + amount);
   return localDate(date);
 }
 
-export function createProfile(name, color = '#27856b') {
+function createProfile(name, color = '#27856b') {
   const now = new Date().toISOString();
   return {
     id: makeId('profile'),
@@ -44,7 +48,7 @@ export function createProfile(name, color = '#27856b') {
   };
 }
 
-export function normalizeProfile(profile) {
+function normalizeProfile(profile) {
   const base = createProfile(profile && profile.name ? profile.name : 'Mi espacio');
   const value = profile && typeof profile === 'object' ? profile : {};
   const preferences = value.preferences && typeof value.preferences === 'object' ? value.preferences : {};
@@ -69,12 +73,12 @@ export function normalizeProfile(profile) {
   };
 }
 
-export function clampNumber(value, min, max, fallback) {
+function clampNumber(value, min, max, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 }
 
-export function createActivity(input) {
+function createActivity(input) {
   const name = String(input.name || '').trim();
   if (!name) throw new Error('Escribe un nombre para la actividad.');
   return {
@@ -89,7 +93,7 @@ export function createActivity(input) {
   };
 }
 
-export function createTask(input) {
+function createTask(input) {
   const title = String(input.title || '').trim();
   if (!title) throw new Error('Escribe un título para la tarea.');
   const date = input.scheduledDate || input.dueDate || '';
@@ -112,7 +116,7 @@ export function createTask(input) {
   };
 }
 
-export function updateTask(task, patch) {
+function updateTask(task, patch) {
   const next = { ...task, ...patch, updatedAt: new Date().toISOString() };
   if (patch.title !== undefined) {
     next.title = String(patch.title).trim().slice(0, 140);
@@ -123,7 +127,7 @@ export function updateTask(task, patch) {
   return next;
 }
 
-export function createGoal(input) {
+function createGoal(input) {
   const title = String(input.title || '').trim();
   if (!title) throw new Error('Escribe un nombre para el objetivo.');
   return {
@@ -139,7 +143,7 @@ export function createGoal(input) {
   };
 }
 
-export function getRecommendations(profile, today = localDate()) {
+function getRecommendations(profile, today = localDate()) {
   const mode = profile.preferences.autonomy;
   if (mode === 'manual') return [];
   const suggestions = [];
@@ -168,7 +172,7 @@ export function getRecommendations(profile, today = localDate()) {
   return suggestions.slice(0, 5);
 }
 
-export function suggestSchedule(profile, dateKey) {
+function suggestSchedule(profile, dateKey) {
   const startAt = profile.preferences.workingDayStart || '09:00';
   const endAt = profile.preferences.workingDayEnd || '17:00';
   const toMinutes = value => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
@@ -201,7 +205,7 @@ export function suggestSchedule(profile, dateKey) {
   return proposals;
 }
 
-export function validateSnapshot(snapshot) {
+function validateSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object' || snapshot.schemaVersion !== SCHEMA_VERSION) {
     throw new Error('El archivo no tiene una versión de O-Isym compatible.');
   }
@@ -223,3 +227,6 @@ export function validateSnapshot(snapshot) {
   }
   return true;
 }
+
+return { SCHEMA_VERSION, AUTONOMY_MODES, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, createActivity, createTask, updateTask, createGoal, getRecommendations, suggestSchedule, validateSnapshot };
+});

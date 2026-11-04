@@ -1,8 +1,8 @@
-import {
+const {
   createProfile, normalizeProfile, createActivity, createTask, updateTask,
   createGoal, localDate, shiftDate, getRecommendations, suggestSchedule,
   validateSnapshot, clampNumber
-} from './domain.mjs';
+} = window.OIsymDomain;
 
 const root = document.getElementById('app');
 const state = {

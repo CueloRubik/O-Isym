@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-test('profile defaults include isolated collections and safe autonomy', async () => {
-  const { createProfile, normalizeProfile } = await import('../src/domain.mjs');
+test('profile defaults include isolated collections and safe autonomy', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
   const profile = createProfile('Prueba');
   assert.equal(profile.name, 'Prueba');
   assert.deepEqual(profile.tasks, []);
@@ -12,7 +12,7 @@ test('profile defaults include isolated collections and safe autonomy', async ()
 });
 
 test('tasks validate titles and completion is reversible', async () => {
-  const { createTask, updateTask } = await import('../src/domain.mjs');
+  const { createTask, updateTask } = require('../src/domain.js');
   assert.throws(() => createTask({ title: ' ' }), /título/);
   const task = createTask({ title: 'Estudiar', priority: 'high' });
   const done = updateTask(task, { status: 'done' });
@@ -22,7 +22,7 @@ test('tasks validate titles and completion is reversible', async () => {
 });
 
 test('automatic scheduling never includes locked or already scheduled tasks', async () => {
-  const { createProfile, createTask, suggestSchedule } = await import('../src/domain.mjs');
+  const { createProfile, createTask, suggestSchedule } = require('../src/domain.js');
   const profile = createProfile('Agenda');
   profile.tasks.push(createTask({ title: 'Flexible', estimatedMinutes: 30 }));
   profile.tasks.push(createTask({ title: 'Compromiso', estimatedMinutes: 60, locked: true }));
@@ -33,7 +33,7 @@ test('automatic scheduling never includes locked or already scheduled tasks', as
 });
 
 test('snapshot rejects duplicate profiles and invalid active profile', async () => {
-  const { createProfile, validateSnapshot } = await import('../src/domain.mjs');
+  const { createProfile, validateSnapshot } = require('../src/domain.js');
   const profile = createProfile('Uno');
   const snapshot = { schemaVersion: 1, activeProfileId: profile.id, profiles: [profile, profile] };
   assert.throws(() => validateSnapshot(snapshot), /repetidos/);
