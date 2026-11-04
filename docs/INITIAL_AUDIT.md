@@ -36,6 +36,7 @@ El archivo `legacy/renderer.js` sigue conservado como código antiguo no conecta
 
 - El almacenamiento nuevo está preparado, pero todavía no contiene perfiles ni datos de producción.
 - La interfaz heredada aún utiliza `localStorage`; la migración se hará en una etapa posterior con respaldo, vista previa y confirmación.
+- La vista heredada todavía contiene inserciones HTML dinámicas y manejadores inline. Por eso la Content Security Policy estricta se activará al sustituir/refactorizar esa vista, no antes de forma que rompa controles actuales.
 - La interfaz visual final todavía no se ha construido.
 - No se han añadido frameworks ni dependencias nuevas. Electron sigue fijado en 28.3.3.
 
