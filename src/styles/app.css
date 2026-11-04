@@ -240,3 +240,6 @@ p { line-height: 1.55; }
 #app.reduce-motion *, #app.reduce-motion *::before, #app.reduce-motion *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 
 #app[data-theme="classic"], #app[data-theme="warm"], #app[data-theme="sky"] { background: var(--page); min-height: 100vh; }
+
+/* Insights: etiquetas largas y barras adaptables */
+.chart-line > span { min-width: 0; overflow-wrap: anywhere; }
