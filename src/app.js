@@ -1,7 +1,7 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, suggestSchedule,
-  validateSnapshot, clampNumber
+  validateSnapshot, clampNumber, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession
 } = window.OIsymDomain;
 
 const root = document.getElementById('app');
@@ -13,6 +13,7 @@ const state = {
   calendarDate: new Date(),
   calendarMode: 'month',
   focusTick: null,
+  focusFinishing: false,
   toastTimer: null,
   editingTaskId: null,
   editingActivityId: null,
@@ -487,8 +488,8 @@ function renderFocus(main) {
   const focus = state.profile.activeFocus;
   const focusCard = card('focus-panel');
   const duration = state.profile.preferences.focusMinutes;
-  const elapsed = focus ? Math.min(focus.durationSeconds, focus.elapsedBeforePause + (focus.pausedAt ? 0 : Math.floor((Date.now() - new Date(focus.startedAt).getTime()) / 1000))) : 0;
-  const remaining = focus ? Math.max(0, focus.durationSeconds - elapsed) : duration * 60;
+  const elapsed = focus ? getFocusElapsedSeconds(focus) : 0;
+  const remaining = focus ? getFocusRemainingSeconds(focus) : duration * 60;
   const display = element('div', 'focus-clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0'));
   display.id = 'focus-clock';
   focusCard.append(element('div', 'eyebrow', focus ? (focus.pausedAt ? 'SESIÓN EN PAUSA' : 'SESIÓN EN CURSO') : 'TIEMPO PARA TI'), display);
@@ -728,35 +729,36 @@ async function handleSubmit(form) {
   }
 }
 
+function refreshFocusClock() {
+  const focus = state.profile?.activeFocus;
+  if (!focus || focus.pausedAt) return;
+  const remaining = getFocusRemainingSeconds(focus);
+  const display = $('#focus-clock');
+  if (display) display.textContent = String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
+  if (remaining <= 0) finishFocus({ completed: true });
+}
 function startFocusTicker() {
   stopFocusTicker();
-  state.focusTick = setInterval(() => {
-    const focus = state.profile.activeFocus;
-    if (!focus || focus.pausedAt) return;
-    const elapsed = focus.elapsedBeforePause + Math.floor((Date.now() - new Date(focus.startedAt).getTime()) / 1000);
-    const remaining = Math.max(0, focus.durationSeconds - elapsed);
-    const display = $('#focus-clock');
-    if (display) display.textContent = String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
-    if (remaining <= 0) finishFocus();
-  }, 500);
+  refreshFocusClock();
+  if (!state.profile.activeFocus || state.profile.activeFocus.pausedAt) return;
+  state.focusTick = setInterval(refreshFocusClock, 500);
 }
 function stopFocusTicker() {
   if (state.focusTick) clearInterval(state.focusTick);
   state.focusTick = null;
 }
-async function finishFocus() {
-  const focus = state.profile.activeFocus;
-  if (!focus) return;
-  const elapsed = Math.min(focus.durationSeconds, focus.elapsedBeforePause + (focus.pausedAt ? 0 : Math.floor((Date.now() - new Date(focus.startedAt).getTime()) / 1000)));
+async function finishFocus(options = {}) {
+  const focus = state.profile?.activeFocus;
+  if (!focus || state.focusFinishing) return;
+  state.focusFinishing = true;
+  const now = new Date().toISOString();
   const task = taskById(focus.taskId);
-  state.profile.focusSessions.push({
-    id: 'session-' + Date.now(), taskId: focus.taskId, taskTitle: task ? task.title : '',
-    startedAt: focus.sessionStartedAt, endedAt: new Date().toISOString(), durationSeconds: elapsed
-  });
+  state.profile.focusSessions.push(createFocusSession(focus, task ? task.title : '', now));
   state.profile.activeFocus = null;
   stopFocusTicker();
-  await save();
-  showToast('Sesión guardada. Buen trabajo.');
+  const saved = await save();
+  state.focusFinishing = false;
+  if (!options.silent) showToast(saved ? (options.completed ? '¡Tiempo completado! Tu sesión quedó guardada.' : 'Sesión guardada.') : 'La sesión terminó, pero no se pudo guardar. Revisa el almacenamiento.', saved ? 'success' : 'error');
   updateShell();
 }
 
@@ -875,7 +877,7 @@ root.addEventListener('click', async event => {
       await save(); updateShell(); showToast('Plan actualizado.');
     }
   }
-  if (action === 'focus-start') {
+  if (action === 'focus-start' && !state.profile.activeFocus) {
     const taskId = $('#focus-task')?.value || null;
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId, startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: state.profile.preferences.focusMinutes * 60 };
@@ -1021,7 +1023,14 @@ async function boot() {
     state.snapshot.activeProfileId = state.profile.id;
     buildShell();
     updateShell();
-    if (state.profile.activeFocus && !state.profile.activeFocus.pausedAt) startFocusTicker();
+    if (state.profile.activeFocus) {
+      if (getFocusRemainingSeconds(state.profile.activeFocus) <= 0) {
+        await finishFocus({ completed: true, silent: true });
+        showToast('La sesión terminó mientras O-Isym estaba cerrado. Se guardó en tu historial.');
+      } else if (!state.profile.activeFocus.pausedAt) {
+        startFocusTicker();
+      }
+    }
     await save();
   } catch (error) {
     root.replaceChildren();
@@ -1032,3 +1041,12 @@ async function boot() {
 }
 
 boot();
+
+
+// Recalcular con el reloj real al volver de suspensión o al recuperar la ventana.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.profile?.activeFocus) refreshFocusClock();
+});
+window.addEventListener('focus', () => {
+  if (state.profile?.activeFocus) refreshFocusClock();
+});
