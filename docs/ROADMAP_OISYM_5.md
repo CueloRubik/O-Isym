@@ -27,7 +27,7 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | 2 | Modelo de dominio y perfiles | Implementado en esta versión |
 | 3 | Sistema visual y navegación | Implementado en esta versión |
 | 4 | Catálogo de actividades | Implementado en esta versión |
-| 5 | Tareas y captura rápida | Implementado en esta versión |
+| 5 | Tareas y captura rápida | Mejorado: edición completa, búsqueda y validación de fechas/horas |
 | 6 | Panel Hoy | Implementado en esta versión |
 | 7 | Calendario y agenda | Implementación inicial; mensual + diaria |
 | 8 | Planificador | Implementación inicial; huecos y compromisos bloqueados |
