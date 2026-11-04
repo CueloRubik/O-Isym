@@ -485,6 +485,7 @@ function renderPlanner(main) {
 
 function renderFocus(main) {
   main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.'));
+  const isBreak = Boolean(state.profile.activeFocus?.isBreak);
   const focus = state.profile.activeFocus;
   const focusCard = card('focus-panel');
   const selectedTask = focus ? taskById(focus.taskId) : null;
@@ -494,7 +495,7 @@ function renderFocus(main) {
   const remaining = focus ? getFocusRemainingSeconds(focus) : duration * 60;
   const display = element('div', 'focus-clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0'));
   display.id = 'focus-clock';
-  focusCard.append(element('div', 'eyebrow', focus ? (focus.pausedAt ? 'SESIÓN EN PAUSA' : 'SESIÓN EN CURSO') : 'LISTO PARA CONCENTRARTE'), display);
+  focusCard.append(element('div', 'eyebrow', focus ? (focus.isBreak ? (focus.pausedAt ? 'DESCANSO EN PAUSA' : 'DESCANSO EN CURSO') : (focus.pausedAt ? 'SESIÓN EN PAUSA' : 'SESIÓN EN CURSO')) : 'LISTO PARA CONCENTRARTE'), display);
   const taskSelect = select('taskId', [{ value: '', label: 'Sesión libre' }, ...state.profile.tasks.filter(task => task.status === 'pending').map(task => ({ value: task.id, label: task.title }))], focus ? focus.taskId || '' : '');
   taskSelect.id = 'focus-task';
   taskSelect.disabled = Boolean(focus);
@@ -503,7 +504,7 @@ function renderFocus(main) {
   durationInput.id = 'focus-duration';
   durationInput.min = '5'; durationInput.max = '180'; durationInput.step = '5';
   durationInput.disabled = Boolean(focus);
-  focusCard.append(field('Duración de esta sesión (5–180 min)', durationInput));
+  focusCard.append(field(focus?.isBreak ? 'Duración del descanso' : 'Duración de esta sesión (5–180 min)', durationInput));
   const durationHint = activity ? 'Sugerencia de la actividad «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
   focusCard.append(element('p', 'muted focus-hint', durationHint));
   const alarmOptions = element('div', 'focus-options');
@@ -516,7 +517,10 @@ function renderFocus(main) {
   alarmOptions.append(soundLabel, notificationLabel);
   focusCard.append(alarmOptions);
   const actions = element('div', 'button-group center');
-  if (!focus) actions.append(button('Comenzar a concentrarme', 'focus-start', 'button primary large'));
+  if (!focus) {
+    actions.append(button('Comenzar a concentrarme', 'focus-start', 'button primary large'));
+    actions.append(button('Tomar descanso · ' + state.profile.preferences.breakMinutes + ' min', 'focus-break', 'button secondary'));
+  }
   else {
     actions.append(button(focus.pausedAt ? 'Reanudar' : 'Pausar', 'focus-toggle', 'button primary large'));
     actions.append(button('Terminar sesión', 'focus-stop', 'button secondary'));
@@ -525,7 +529,7 @@ function renderFocus(main) {
   focusCard.append(actions);
   if (focus) {
     const elapsed = getFocusElapsedSeconds(focus);
-    focusCard.append(element('p', 'muted center-text', 'Tiempo concentrado: ' + Math.floor(elapsed / 60) + ' min · Al terminar recibirás un aviso.'));
+    focusCard.append(element('p', 'muted center-text', (focus.isBreak ? 'Tiempo de descanso: ' : 'Tiempo concentrado: ') + Math.floor(elapsed / 60) + ' min · Al terminar recibirás un aviso.'));
   } else {
     focusCard.append(element('p', 'muted center-text', 'Al comenzar, puedes dejar esta pantalla y dedicarte a tu actividad. O-Isym te avisará al terminar.'));
   }
@@ -799,10 +803,12 @@ function playFocusAlarm() {
     });
   } catch (error) {}
 }
-function notifyFocusFinished(taskTitle) {
+function notifyFocusFinished(taskTitle, isBreak = false) {
   playFocusAlarm();
   if (state.profile.preferences.focusNotifications !== false && 'Notification' in window && Notification.permission === 'granted') {
-    try { new Notification('Focus terminado', { body: taskTitle ? 'Terminaste tu sesión de ' + taskTitle + '. Toca para volver a O-Isym.' : 'Terminaste tu sesión de concentración. Tómate un descanso.' }); } catch (error) {}
+    const title = isBreak ? 'Descanso terminado' : 'Focus terminado';
+    const body = isBreak ? 'Tu descanso terminó. Cuando quieras, puedes comenzar otra sesión.' : (taskTitle ? 'Terminaste tu sesión de ' + taskTitle + '. Tómate un descanso.' : 'Terminaste tu sesión de concentración. Tómate un descanso.');
+    try { new Notification(title, { body }); } catch (error) {}
   }
 }
 function refreshFocusClock() {
@@ -829,13 +835,13 @@ async function finishFocus(options = {}) {
   state.focusFinishing = true;
   const now = new Date().toISOString();
   const task = taskById(focus.taskId);
-  state.profile.focusSessions.push(createFocusSession(focus, task ? task.title : '', now));
+  if (!focus.isBreak) state.profile.focusSessions.push(createFocusSession(focus, task ? task.title : '', now));
   state.profile.activeFocus = null;
   stopFocusTicker();
   const saved = await save();
   state.focusFinishing = false;
-  if (options.completed && !options.silent) notifyFocusFinished(task ? task.title : '');
-  if (!options.silent) showToast(saved ? (options.completed ? '¡Tiempo completado! Tu sesión quedó guardada. Es buen momento para descansar.' : 'Sesión guardada.') : 'La sesión terminó, pero no se pudo guardar. Revisa el almacenamiento.', saved ? 'success' : 'error');
+  if (options.completed && !options.silent) notifyFocusFinished(task ? task.title : '', Boolean(focus.isBreak));
+  if (!options.silent) showToast(saved ? (options.completed ? (focus.isBreak ? 'Descanso terminado. Cuando quieras, puedes volver a concentrarte.' : '¡Tiempo completado! Tu sesión quedó guardada. Es buen momento para descansar.') : (focus.isBreak ? 'Descanso finalizado.' : 'Sesión guardada.')) : 'La sesión terminó, pero no se pudo guardar. Revisa el almacenamiento.', saved ? 'success' : 'error');
   updateShell();
 }
 
@@ -967,6 +973,12 @@ root.addEventListener('click', async event => {
     await prepareFocusAlarm();
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
+    await save(); updateShell();
+  }
+  if (action === 'focus-break' && !state.profile.activeFocus) {
+    await prepareFocusAlarm();
+    const now = new Date().toISOString();
+    state.profile.activeFocus = { taskId: null, activityTitle: '', isBreak: true, startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: state.profile.preferences.breakMinutes * 60 };
     await save(); updateShell();
   }
   if (action === 'focus-toggle') {
