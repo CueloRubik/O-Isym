@@ -2,7 +2,7 @@
   "name": "o-isym",
   "version": "5.0.0",
   "description": "O-Isym — sistema personal de organización y planificación",
-  "main": "main.js",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
