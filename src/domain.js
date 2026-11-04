@@ -321,7 +321,7 @@ function analyzeSchedule(profile, dateKey) {
   const requestedEnd = parseTime(preferences.workingDayEnd);
   const fromMinutes = requestedStart === null ? 540 : requestedStart;
   const untilMinutes = requestedEnd === null || requestedEnd <= fromMinutes ? 1020 : requestedEnd;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || ''))) {
+  if (!isValidDateKey(dateKey) || !dateKey) {
     return { date: dateKey, workday: { start: formatTime(fromMinutes), end: formatTime(untilMinutes) }, proposals: [], skipped: [], availableMinutes: untilMinutes - fromMinutes };
   }
   const tasks = Array.isArray(profile.tasks) ? profile.tasks : [];
