@@ -210,3 +210,18 @@ p { line-height: 1.55; }
   .focus-panel { padding: 28px 16px; }
   .focus-stats-grid { grid-template-columns: 1fr; }
 }
+
+
+/* Planificador 2.0: vista previa explicable de horarios */
+.planner-proposals { display: grid; gap: 10px; margin: 14px 0; }
+.planner-proposal { padding: 13px 15px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
+.planner-proposal-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.planner-proposal-top strong { min-width: 0; }
+.planner-time { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent-dark); }
+.planner-proposal p { margin: 6px 0 0; }
+.planner-skipped { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.planner-skipped h4 { margin: 0 0 8px; font-size: 13px; }
+.planner-skipped p { margin: 7px 0; }
+@media (max-width: 480px) {
+  .planner-proposal-top { align-items: flex-start; flex-direction: column; gap: 5px; }
+}
