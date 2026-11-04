@@ -9,6 +9,9 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 ## Decisiones de producto
 
 - Interfaz luminosa, moderna, clara, colorida con intención y sin gradientes decorativos.
+- Personalización por perfil: experiencias visuales apropiadas para niños, adolescentes y adultos, siempre configurables y sin limitar funciones.
+- Avatares predeterminados seleccionables al crear perfiles, con posibilidad de cambiarlos después.
+- Temas, ilustraciones y animaciones opcionales; respetar preferencias de accesibilidad y rendimiento.
 - Un perfil principal y perfiles adicionales opcionales, con datos independientes.
 - Actividades como definiciones reutilizables; tareas como instancias concretas.
 - Calendario y planificador conectados a las mismas tareas.
@@ -24,7 +27,7 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 |---|---|---|
 | 0 | Inventario y conservación del prototipo | Completado |
 | 1 | Seguridad Electron y almacenamiento | CI aprobada; validación manual en Mac pendiente |
-| 2 | Modelo de dominio y perfiles | Implementado en esta versión |
+| 2 | Modelo de dominio y perfiles | Implementado; edición de actividades y objetivos añadida |
 | 3 | Sistema visual y navegación | Implementado en esta versión |
 | 4 | Catálogo de actividades | Implementado en esta versión |
 | 5 | Tareas y captura rápida | Mejorado: edición completa, búsqueda y validación de fechas/horas |
@@ -35,6 +38,7 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | 10 | Objetivos e Insights | Implementación inicial |
 | 11 | Recomendaciones y autonomía | Implementación inicial; reglas locales explicables |
 | 12 | Calidad, accesibilidad y publicación | Pendiente de pruebas y empaquetado |
+| 13 | Identidad visual personalizable | Planificado: avatares, temas por etapa/preferencia y animaciones opcionales |
 
 ## Modelo principal
 
@@ -57,7 +61,8 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 
 1. Ejecutar \`npm test\` y resolver cualquier fallo.
 2. Validar instalación y apertura en el Mac.
-3. Añadir edición avanzada de actividades y tareas, búsqueda y filtros.
+3. Completar búsqueda y filtros, y validar edición de actividades y objetivos.
 4. Incorporar vistas semanal y accesos de teclado.
 5. Mejorar recuperación del temporizador tras suspensión y pruebas de restauración.
-6. Completar accesibilidad, pruebas de integración y empaquetado.
+6. Diseñar el sistema de avatares y personalización visual configurable por perfil.
+7. Completar accesibilidad, pruebas de integración y empaquetado.
