@@ -93,11 +93,37 @@ function createActivity(input) {
   };
 }
 
+function isValidDateKey(value) {
+  if (!value) return true;
+  if (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
+function isValidTimeKey(value) {
+  return !value || (typeof value === 'string' && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value));
+}
+
+function validateTaskSchedule(task) {
+  if (!isValidDateKey(task.scheduledDate) || !isValidDateKey(task.dueDate)) {
+    throw new Error('Las fechas de la tarea no son válidas.');
+  }
+  if (!isValidTimeKey(task.startTime) || !isValidTimeKey(task.endTime)) {
+    throw new Error('La hora debe tener un formato válido.');
+  }
+  if (Boolean(task.startTime) !== Boolean(task.endTime)) {
+    throw new Error('Indica tanto la hora de inicio como la de fin.');
+  }
+  if (task.startTime && task.endTime <= task.startTime) {
+    throw new Error('La hora de fin debe ser posterior al inicio.');
+  }
+}
+
 function createTask(input) {
   const title = String(input.title || '').trim();
   if (!title) throw new Error('Escribe un título para la tarea.');
-  const date = input.scheduledDate || input.dueDate || '';
-  return {
+  const task = {
     id: makeId('task'),
     title: title.slice(0, 140),
     description: String(input.description || '').trim().slice(0, 1000),
@@ -114,6 +140,8 @@ function createTask(input) {
     updatedAt: new Date().toISOString(),
     completedAt: null
   };
+  validateTaskSchedule(task);
+  return task;
 }
 
 function updateTask(task, patch) {
@@ -122,6 +150,16 @@ function updateTask(task, patch) {
     next.title = String(patch.title).trim().slice(0, 140);
     if (!next.title) throw new Error('El título no puede quedar vacío.');
   }
+  if (patch.status !== undefined && !['pending', 'done'].includes(patch.status)) {
+    throw new Error('El estado de la tarea no es válido.');
+  }
+  if (patch.priority !== undefined && !['low', 'medium', 'high'].includes(patch.priority)) {
+    throw new Error('La prioridad de la tarea no es válida.');
+  }
+  if (patch.estimatedMinutes !== undefined) next.estimatedMinutes = clampNumber(patch.estimatedMinutes, 5, 1440, 30);
+  if (patch.locked !== undefined) next.locked = Boolean(patch.locked);
+  if (patch.activityId !== undefined) next.activityId = patch.activityId || null;
+  validateTaskSchedule(next);
   if (patch.status === 'done') next.completedAt = new Date().toISOString();
   if (patch.status === 'pending') next.completedAt = null;
   return next;

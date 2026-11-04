@@ -41,3 +41,22 @@ test('snapshot rejects duplicate profiles and invalid active profile', async () 
   snapshot.activeProfileId = 'missing';
   assert.throws(() => validateSnapshot(snapshot), /no existe/);
 });
+
+test('task schedule validation rejects impossible dates and incomplete time ranges', () => {
+  const { createTask, updateTask } = require('../src/domain.js');
+  assert.throws(() => createTask({ title: 'Fecha', scheduledDate: '2026-02-30' }), /fechas/);
+  assert.throws(() => createTask({ title: 'Hora', startTime: '09:00' }), /tanto la hora/);
+  const task = createTask({ title: 'Válida', scheduledDate: '2026-11-04', startTime: '09:00', endTime: '10:00' });
+  assert.throws(() => updateTask(task, { endTime: '08:00' }), /posterior/);
+});
+
+test('task edits normalize numeric fields and reject invalid state', () => {
+  const { createTask, updateTask } = require('../src/domain.js');
+  const task = createTask({ title: 'Tarea' });
+  const edited = updateTask(task, { estimatedMinutes: '45', locked: true, activityId: '' });
+  assert.equal(edited.estimatedMinutes, 45);
+  assert.equal(edited.locked, true);
+  assert.equal(edited.activityId, null);
+  assert.throws(() => updateTask(task, { status: 'archived' }), /estado/);
+  assert.throws(() => updateTask(task, { priority: 'urgent' }), /prioridad/);
+});
