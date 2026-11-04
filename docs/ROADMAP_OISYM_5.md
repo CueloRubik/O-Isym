@@ -59,13 +59,12 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 
 ## Trabajo pendiente
 
-1. Ejecutar \`npm test\` y resolver cualquier fallo.
-2. Validar instalación y apertura en el Mac.
-3. Completar búsqueda y filtros, y validar edición de actividades y objetivos.
-4. Accesos de teclado y navegación del calendario implementados; pruebas de cambio de fecha y límites de año añadidas.
-5. Probar manualmente la recuperación de Focus, la alarma y los avisos al suspender el Mac, minimizar y reabrir O-Isym.
-6. Diseñar el sistema de avatares y personalización visual configurable por perfil.
-7. Completar accesibilidad, pruebas de integración y empaquetado.
+1. Ejecutar \`npm test\` en un entorno compatible y resolver cualquier fallo.
+2. Validar en macOS los flujos completos de perfiles, tareas, actividades, objetivos y persistencia tras reiniciar.
+3. Probar manualmente la recuperación de Focus, la alarma y los avisos al suspender el Mac, minimizar y reabrir O-Isym.
+4. Completar la revisión visual y de accesibilidad en macOS, incluyendo ventanas estrechas y la galería de avatares.
+5. Añadir pruebas de integración para los flujos principales y los errores previsibles.
+6. Preparar y validar el empaquetado para macOS antes de fusionar a \`main\`.
 
 
 ## Avance: Planificador 2.0
