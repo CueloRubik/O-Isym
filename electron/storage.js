@@ -98,6 +98,64 @@ function createStorage(userDataPath) {
     await writeAtomically(validateSnapshot(next));
     return next;
   }
-  return Object.freeze({ read, save, storePath, backupsPath });
+  function makeBackupName(prefix) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-') + '-' + crypto.randomUUID().slice(0, 8);
+    return prefix + '-' + stamp + '.json';
+  }
+  async function backupCurrentFile() {
+    await fs.mkdir(backupsPath, { recursive: true });
+    const name = makeBackupName('oisym-recovery');
+    await fs.copyFile(storePath, path.join(backupsPath, name), fsConstants.COPYFILE_EXCL);
+    return name;
+  }
+  async function listBackups() {
+    let names = [];
+    try { names = await fs.readdir(backupsPath); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const result = [];
+    for (const name of names.filter(item => /^oisym-data-[\w.-]+\.json$/.test(item)).sort().reverse()) {
+      try {
+        const raw = await fs.readFile(path.join(backupsPath, name), 'utf8');
+        const snapshot = JSON.parse(raw);
+        validateSnapshot(snapshot);
+        result.push({ name, updatedAt: snapshot.updatedAt, profiles: snapshot.profiles.length });
+      } catch {}
+    }
+    return result;
+  }
+  async function overwriteWithFreshData() {
+    await fs.mkdir(userDataPath, { recursive: true });
+    let backupName = null;
+    try { backupName = await backupCurrentFile(); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const fresh = createInitialSnapshot();
+    await writeAtomically(validateSnapshot(fresh));
+    return { backupName };
+  }
+  async function restoreBackup(name) {
+    if (typeof name !== 'string' || !/^oisym-data-[\w.-]+\.json$/.test(name) || path.basename(name) !== name) {
+      throw new TypeError('El nombre de la copia de seguridad no es válido.');
+    }
+    const backupPath = path.join(backupsPath, name);
+    const raw = await fs.readFile(backupPath, 'utf8');
+    let snapshot;
+    try {
+      snapshot = JSON.parse(raw);
+      validateSnapshot(snapshot);
+    } catch {
+      const error = new Error('La copia seleccionada también está dañada y no se puede restaurar.');
+      error.code = 'OISYM_BACKUP_INVALID';
+      throw error;
+    }
+    let emergencyBackup = null;
+    try { emergencyBackup = await backupCurrentFile(); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    await writeAtomically(validateSnapshot(snapshot));
+    return { emergencyBackup };
+  }
+  return Object.freeze({
+    read, save, storePath, backupsPath,
+    recovery: Object.freeze({ listBackups, overwriteWithFreshData, restoreBackup })
+  });
 }
 module.exports = { SCHEMA_VERSION, createInitialSnapshot, createStorage, validateSnapshot };
