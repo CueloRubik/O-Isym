@@ -32,7 +32,7 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | 4 | Catálogo de actividades | Implementado en esta versión |
 | 5 | Tareas y captura rápida | Mejorado: edición completa, búsqueda y validación de fechas/horas |
 | 6 | Panel Hoy | Implementado en esta versión |
-| 7 | Calendario y agenda | Implementación inicial; mensual + diaria |
+| 7 | Calendario y agenda | Vista mensual y semanal; selección de día y acceso rápido a tareas |
 | 8 | Planificador | Implementación inicial; huecos y compromisos bloqueados |
 | 9 | Focus | Implementado; validación de suspensión pendiente |
 | 10 | Objetivos e Insights | Implementación inicial |
@@ -62,7 +62,7 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 1. Ejecutar \`npm test\` y resolver cualquier fallo.
 2. Validar instalación y apertura en el Mac.
 3. Completar búsqueda y filtros, y validar edición de actividades y objetivos.
-4. Incorporar vistas semanal y accesos de teclado.
+4. Añadir accesos de teclado y pruebas de navegación del calendario.
 5. Mejorar recuperación del temporizador tras suspensión y pruebas de restauración.
 6. Diseñar el sistema de avatares y personalización visual configurable por perfil.
 7. Completar accesibilidad, pruebas de integración y empaquetado.
