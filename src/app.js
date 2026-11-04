@@ -787,6 +787,10 @@ function renderSettings(main) {
   profileForm.append(field('Color de acento', input('color', '', 'color', state.profile.color)));
   profileForm.append(element('span','field-label','Foto de perfil'));
   buildAvatarPicker(profileForm,state.profile.avatarId || 'profile-1');
+  const avatarPreviewRow=element('div','profile-avatar-preview-row');
+  const avatarPreview=element('div','profile-avatar profile-avatar-preview','');avatarPreview.setAttribute('aria-hidden','true');
+  avatarPreviewRow.append(avatarPreview,element('span','muted','Vista previa de tu foto de perfil'));
+  profileForm.append(avatarPreviewRow);updateProfilePreview(profileForm);
   profileForm.append(field('Estilo visual', select('theme', [
     { value: 'classic', label: 'Clásico — limpio y equilibrado' },
     { value: 'warm', label: 'Cálido — tonos suaves' },
@@ -1405,10 +1409,10 @@ root.addEventListener('submit', event => {
   handleSubmit(form);
 });
 root.addEventListener('input', event => {
-  if ((event.target.name === 'name' || event.target.name === 'color') && event.target.closest('[data-profile-modal]')) updateProfilePreview(event.target.closest('form'));
+  if ((event.target.name === 'name' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
 });
 root.addEventListener('change', event => {
-  if ((event.target.name === 'avatarId' || event.target.name === 'color') && event.target.closest('[data-profile-modal]')) updateProfilePreview(event.target.closest('form'));
+  if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
     if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(updateShell); }
