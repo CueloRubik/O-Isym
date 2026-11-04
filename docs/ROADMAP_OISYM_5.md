@@ -27,13 +27,13 @@ Por tanto, esas tareas dejan de figurar como pendientes. El trabajo restante cor
 
 Objetivo: convertir las alarmas de Focus en un sistema configurable, claro y consistente.
 
-- [ ] Diseñar varios tipos de sonido/alarma, con identidad diferenciada y propósito claro.
-- [ ] Permitir elegir el sonido de finalización de Focus.
-- [ ] Permitir configurar por separado avisos de inicio, finalización y recordatorios, cuando corresponda.
-- [ ] Añadir controles de volumen o intensidad si la plataforma lo permite.
-- [ ] Incluir una vista previa para escuchar cada sonido antes de seleccionarlo.
-- [ ] Guardar las preferencias sin afectar perfiles existentes.
-- [ ] Definir comportamiento cuando la aplicación está minimizada, cerrada o el sistema está en reposo; documentar límites de macOS.
+- [x] Crear cuatro tonos diferenciados: campanillas, campana, suave y digital.
+- [x] Permitir elegir por separado el sonido de inicio de Focus, finalización de Focus y finalización del descanso.
+- [x] Añadir control de volumen independiente de los controles del sistema.
+- [x] Incluir una vista previa para escuchar cada sonido, incluso si las alarmas de sesión están silenciadas.
+- [x] Guardar las preferencias por perfil y asignar valores seguros a perfiles antiguos.
+- [ ] Diseñar e implementar recordatorios configurables durante sesiones largas.
+- [ ] Definir el comportamiento cuando la aplicación está minimizada, cerrada o el sistema está en reposo; documentar límites de macOS y notificaciones nativas.
 
 Criterio de aceptación: el usuario puede elegir y probar sus alarmas, guardar la configuración y comprobar que se respeta en sesiones posteriores.
 
