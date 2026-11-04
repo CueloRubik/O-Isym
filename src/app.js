@@ -837,7 +837,21 @@ function inspectLegacyData() {
 async function handleSubmit(form) {
   const data = formData(form);
   try {
-    if (form.dataset.form === 'task' || form.dataset.form === 'planner-task' || form.dataset.form === 'task-edit') {
+    if (form.dataset.form === 'profile-create') {
+      if (state.snapshot.profiles.length >= 50) throw new Error('Has alcanzado el máximo de perfiles.');
+      const profile = createProfile(data.name || '');
+      profile.avatarId = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave'].includes(data.avatarId) ? data.avatarId : 'initials';
+      profile.preferences.theme = ['classic', 'warm', 'sky'].includes(data.theme) ? data.theme : 'classic';
+      profile.color = /^#[0-9a-f]{6}$/i.test(data.color) ? data.color : '#27856b';
+      state.snapshot.profiles.push(profile);
+      state.profile = profile;
+      const saved = await save();
+      if (!saved) { state.snapshot.profiles = state.snapshot.profiles.filter(item => item.id !== profile.id); throw new Error('No se pudo guardar el perfil.'); }
+      state.view = 'today';
+      const modal = $('[data-profile-modal]');
+      if (modal) modal.remove();
+      showToast('Perfil creado.');
+    } else if (form.dataset.form === 'task' || form.dataset.form === 'planner-task' || form.dataset.form === 'task-edit') {
       data.locked = data.locked === 'true';
       if (data.startTime || data.endTime) {
         if (!data.startTime || !data.endTime || data.endTime <= data.startTime) throw new Error('Si asignas un horario, la hora de fin debe ser posterior al inicio.');
@@ -995,15 +1009,41 @@ root.addEventListener('click', async event => {
   const action = target.dataset.action;
   const id = target.dataset.id;
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
+  if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); }
+  if (action === 'cancel-new-profile') return;
   if (action === 'new-profile') {
-    const name = prompt('Nombre del nuevo perfil:');
-    if (name && name.trim()) {
-      if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de perfiles.', 'error');
-      const profile = createProfile(name);
-      state.snapshot.profiles.push(profile);
-      state.profile = profile;
-      await save(); state.view = 'today'; updateShell(); showToast('Perfil creado.');
-    }
+    if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de perfiles.', 'error');
+    const overlay = element('div', 'profile-modal-backdrop');
+    overlay.dataset.profileModal = 'true';
+    const dialog = element('section', 'profile-modal');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'new-profile-title');
+    const form = element('form', 'form-card profile-modal-form');
+    form.dataset.form = 'profile-create';
+    const title = element('h2', '', 'Crear un espacio');
+    title.id = 'new-profile-title';
+    form.append(title, element('p', 'muted', 'Cada perfil tendrá sus propias tareas, objetivos y preferencias.'));
+    form.append(field('Nombre del perfil', input('name', 'Ej. Personal', 'text', '')));
+    form.append(field('Avatar', select('avatarId', [
+      { value: 'initials', label: 'Iniciales — sencillo' }, { value: 'leaf', label: 'Hoja — natural' },
+      { value: 'book', label: 'Libro — aprendizaje' }, { value: 'compass', label: 'Brújula — exploración' },
+      { value: 'spark', label: 'Destello — creativo' }, { value: 'wave', label: 'Onda — tranquilo' }
+    ], 'initials')));
+    form.append(field('Estilo visual', select('theme', [
+      { value: 'classic', label: 'Clásico — limpio y equilibrado' },
+      { value: 'warm', label: 'Cálido — tonos suaves' },
+      { value: 'sky', label: 'Cielo — acentos azulados' }
+    ], 'classic')));
+    form.append(field('Color de acento', input('color', '', 'color', '#27856b')));
+    const actions = element('div', 'form-actions');
+    actions.append(button('Cancelar', 'cancel-new-profile', 'button secondary'), button('Crear perfil', 'submit-form', 'button primary'));
+    form.append(actions);
+    dialog.append(form);
+    overlay.append(dialog);
+    root.append(overlay);
+    const nameInput = $('input[name="name"]', form);
+    if (nameInput) nameInput.focus();
   }
   if (action === 'quick-task') {
     state.view = 'tasks'; updateShell();
