@@ -395,7 +395,7 @@ function renderCalendar(main) {
   if (state.calendarMode === 'month') {
     const year = state.calendarDate.getFullYear();
     const month = state.calendarDate.getMonth();
-    title.append(element('h1', '', state.calendarDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })), element('p', 'muted', 'Selecciona un día para revisar su agenda.'));
+    title.append(element('h1', '', state.calendarDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })), element('p', 'muted', 'Selecciona un día para revisar su agenda. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
     controls.append(button('‹', 'calendar-prev', 'button secondary'), button('Hoy', 'calendar-today', 'button secondary'), button('›', 'calendar-next', 'button secondary'));
     header.append(title, controls);
     main.append(header);
@@ -409,6 +409,8 @@ function renderCalendar(main) {
     for (let day = 1; day <= count; day++) {
       const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
       const cell = button('', 'select-date', 'calendar-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
+      cell.setAttribute('aria-label', dateLabel(key, { weekday: 'long', day: 'numeric', month: 'long' }) + (countTasks ? ', ' + countTasks + ' tareas' : ', sin tareas'));
+      cell.setAttribute('aria-pressed', String(key === selected));
       cell.append(element('span', 'calendar-number', day));
       const countTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key)).length;
       if (countTasks) cell.append(element('span', 'calendar-count', countTasks + (countTasks === 1 ? ' tarea' : ' tareas')));
@@ -419,7 +421,7 @@ function renderCalendar(main) {
   } else {
     const weekStart = shiftDate(selected, -((selectedDate.getDay() + 6) % 7));
     const weekEnd = shiftDate(weekStart, 6);
-    title.append(element('h1', '', dateLabel(weekStart, { day: 'numeric', month: 'long' }) + ' – ' + dateLabel(weekEnd, { day: 'numeric', month: 'long', year: 'numeric' })), element('p', 'muted', 'Elige un día para consultar sus tareas.'));
+    title.append(element('h1', '', dateLabel(weekStart, { day: 'numeric', month: 'long' }) + ' – ' + dateLabel(weekEnd, { day: 'numeric', month: 'long', year: 'numeric' })), element('p', 'muted', 'Elige un día para consultar sus tareas. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
     controls.append(button('‹ Semana', 'calendar-week-prev', 'button secondary'), button('Esta semana', 'calendar-today', 'button secondary'), button('Semana ›', 'calendar-week-next', 'button secondary'));
     header.append(title, controls);
     main.append(header);
@@ -430,6 +432,8 @@ function renderCalendar(main) {
       const dayButton = button('', 'select-date', 'week-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
       const top = element('div', 'week-day-top');
       top.append(element('strong', '', dateLabel(key, { weekday: 'short' })), element('span', '', key.slice(-2)));
+      dayButton.setAttribute('aria-label', dateLabel(key, { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + dayTasks.length + ' tareas');
+      dayButton.setAttribute('aria-pressed', String(key === selected));
       dayButton.append(top, element('span', 'week-day-count', dayTasks.length ? dayTasks.length + (dayTasks.length === 1 ? ' pendiente' : ' pendientes') : 'Sin pendientes'));
       dayTasks.slice(0, 2).forEach(task => dayButton.append(element('span', 'week-day-task', task.title)));
       if (dayTasks.length > 2) dayButton.append(element('span', 'week-day-more', '+' + (dayTasks.length - 2) + ' más'));
@@ -449,7 +453,7 @@ function renderCalendar(main) {
 function renderPlanner(main) {
   const dateBar = element('div', 'calendar-heading');
   const title = element('div', '');
-  title.append(element('h1', '', 'Planificador'), element('p', 'muted', dateLabel(state.selectedDate) + ' · Los compromisos bloqueados se respetan.'));
+  title.append(element('h1', '', 'Planificador'), element('p', 'muted', dateLabel(state.selectedDate) + ' · Los compromisos bloqueados se respetan. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
   const dateInput = input('selectedDate', '', 'date', state.selectedDate);
   dateInput.id = 'planner-date';
   dateBar.append(title, dateInput);
@@ -690,6 +694,11 @@ function renderSettings(main) {
   hours.append(field('Fin habitual', input('workingDayEnd', '', 'time', state.profile.preferences.workingDayEnd || '17:00')));
   profileForm.append(hours, button('Guardar preferencias', 'submit-form', 'button primary'));
   main.append(profileForm);
+
+  const shortcutsCard = card();
+  shortcutsCard.append(heading('Atajos de teclado', 'Navega sin tener que usar siempre el ratón.'));
+  shortcutsCard.append(element('p', 'muted', 'N: nueva tarea · T: ir a Hoy · ← / →: día anterior o siguiente en Calendario y Planificador · [ / ]: semana o mes anterior/siguiente · ?: mostrar ayuda rápida.'));
+  main.append(shortcutsCard);
 
   const dataCard = card();
   dataCard.append(heading('Tus datos', 'Exporta una copia o recupera un archivo.'));
@@ -1159,6 +1168,58 @@ root.addEventListener('click', async event => {
     state.profile = normalizeProfile(state.snapshot.profiles[0]);
     state.snapshot.activeProfileId = state.profile.id;
     await save(); updateShell();
+  }
+});
+
+document.addEventListener('keydown', event => {
+  if (!state.profile || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+  const target = event.target;
+  if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+  const key = event.key.toLowerCase();
+  if (key === '?') {
+    event.preventDefault();
+    showToast('Atajos: N nueva tarea · T Hoy · ←/→ cambiar día · [ / ] semana o mes.');
+    return;
+  }
+  if (key === 'n') {
+    event.preventDefault();
+    state.view = 'tasks';
+    state.editingTaskId = null;
+    updateShell();
+    const titleField = $('.task-form input[name="title"]');
+    if (titleField) titleField.focus();
+    return;
+  }
+  if (key === 't') {
+    event.preventDefault();
+    state.view = 'today';
+    state.selectedDate = localDate();
+    state.calendarDate = new Date();
+    state.plannerAnalysis = null;
+    updateShell();
+    return;
+  }
+  if (state.view === 'planner' && (key === 'arrowleft' || key === 'arrowright')) {
+    event.preventDefault();
+    state.selectedDate = shiftDate(state.selectedDate, key === 'arrowleft' ? -1 : 1);
+    state.plannerAnalysis = null;
+    updateShell();
+    return;
+  }
+  if (state.view === 'calendar' && (key === 'arrowleft' || key === 'arrowright')) {
+    event.preventDefault();
+    state.selectedDate = shiftDate(state.selectedDate, key === 'arrowleft' ? -1 : 1);
+    state.calendarDate = new Date(state.selectedDate + 'T12:00:00');
+    updateShell();
+    return;
+  }
+  if (state.view === 'calendar' && (key === '[' || key === ']')) {
+    event.preventDefault();
+    const amount = key === '[' ? -1 : 1;
+    if (state.calendarMode === 'week') state.selectedDate = shiftDate(state.selectedDate, amount * 7);
+    else state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() + amount, 1);
+    state.plannerAnalysis = null;
+    updateShell();
   }
 });
 
