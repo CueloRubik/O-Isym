@@ -105,6 +105,9 @@ const showToast = (message, type = 'success') => {
   const existing = $('.toast');
   if (existing) existing.remove();
   const toast = element('div', 'toast ' + type, message);
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+  toast.setAttribute('aria-atomic', 'true');
   root.append(toast);
   clearTimeout(state.toastTimer);
   state.toastTimer = setTimeout(() => toast.remove(), 3600);
@@ -119,8 +122,11 @@ const avatarMark = (profile) => ({ leaf: '❧', book: '▤', compass: '⌖', spa
 
 function buildShell() {
   root.replaceChildren();
+  const skipLink = element('a', 'skip-link', 'Saltar al contenido');
+  skipLink.href = '#main-content';
   const shell = element('div', 'shell');
   const sidebar = element('aside', 'sidebar');
+  sidebar.setAttribute('aria-label', 'Barra lateral');
   const brand = element('div', 'brand');
   brand.append(element('div', 'brand-mark', 'O'), element('div', 'brand-copy'));
   brand.lastChild.append(element('strong', '', 'O-Isym'), element('span', '', 'tu espacio, a tu ritmo'));
@@ -133,6 +139,7 @@ function buildShell() {
   sidebar.append(profileBox);
 
   const nav = element('nav', 'navigation');
+  nav.setAttribute('aria-label', 'Navegación principal');
   const items = [
     ['today', 'Hoy', '◷'], ['tasks', 'Tareas', '▤'], ['activities', 'Actividades', '◇'],
     ['calendar', 'Calendario', '▦'], ['planner', 'Planificador', '⌁'], ['focus', 'Enfoque', '◉'],
@@ -158,9 +165,10 @@ function buildShell() {
   topbar.append(topLeft, topRight);
   const main = element('main', 'main-content');
   main.id = 'main-content';
+  main.tabIndex = -1;
   workspace.append(topbar, main);
   shell.append(sidebar, workspace);
-  root.append(shell);
+  root.append(skipLink, shell);
 }
 
 function updateShell() {
@@ -182,7 +190,12 @@ function updateShell() {
   root.dataset.theme = state.profile.preferences.theme || 'classic';
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
   $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  $$('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === state.view));
+  $('.nav-item').forEach(item => {
+    const active = item.dataset.view === state.view;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
   const main = $('#main-content');
   main.replaceChildren();
   const renderers = {
@@ -1011,13 +1024,14 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
+  if (event.target.matches('[data-profile-modal]')) { event.target.remove(); return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
   const id = target.dataset.id;
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
-  if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); }
-  if (action === 'cancel-new-profile') return;
+  if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
+  if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
   if (action === 'new-profile') {
     if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de perfiles.', 'error');
     const overlay = element('div', 'profile-modal-backdrop');
@@ -1037,6 +1051,11 @@ root.addEventListener('click', async event => {
       { value: 'book', label: 'Libro — aprendizaje' }, { value: 'compass', label: 'Brújula — exploración' },
       { value: 'spark', label: 'Destello — creativo' }, { value: 'wave', label: 'Onda — tranquilo' }
     ], 'initials')));
+    const previewRow = element('div', 'profile-avatar-preview-row');
+    const preview = element('div', 'profile-avatar profile-avatar-preview', 'O');
+    preview.setAttribute('aria-hidden', 'true');
+    previewRow.append(preview, element('span', 'muted', 'Vista previa del avatar'));
+    form.append(previewRow);
     form.append(field('Estilo visual', select('theme', [
       { value: 'classic', label: 'Clásico — limpio y equilibrado' },
       { value: 'warm', label: 'Cálido — tonos suaves' },
@@ -1307,6 +1326,14 @@ root.addEventListener('click', async event => {
 });
 
 document.addEventListener('keydown', event => {
+  const profileModal = $('[data-profile-modal]');
+  if (profileModal && event.key === 'Escape') {
+    event.preventDefault();
+    profileModal.remove();
+    const trigger = $('.profile-add');
+    if (trigger) trigger.focus();
+    return;
+  }
   if (!state.profile || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
   const target = event.target;
   if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
@@ -1365,6 +1392,10 @@ root.addEventListener('submit', event => {
   handleSubmit(form);
 });
 root.addEventListener('change', event => {
+  if (event.target.name === 'avatarId' && event.target.closest('[data-profile-modal]')) {
+    const preview = $('.profile-avatar-preview');
+    if (preview) preview.textContent = avatarMark({ avatarId: event.target.value, name: $('input[name="name"]')?.value || 'O' });
+  }
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
     if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(updateShell); }
