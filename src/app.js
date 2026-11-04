@@ -208,7 +208,7 @@ function updateShell() {
   root.dataset.theme = state.profile.preferences.theme || 'classic';
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
   $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  $('.nav-item').forEach(item => {
+  $$('.nav-item').forEach(item => {
     const active = item.dataset.view === state.view;
     item.classList.toggle('active', active);
     if (active) item.setAttribute('aria-current', 'page');
