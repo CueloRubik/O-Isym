@@ -1,75 +1,63 @@
-# Auditoría inicial del repositorio
+# Auditoría y registro de construcción
 
 Fecha: 2026-11-04  
 Rama: `oisym-5-development`
 
-## Estado de la estructura
+## Estado del prototipo heredado
 
-La aplicación está organizada de esta manera:
+La interfaz que todavía se abre desde `index.html` pertenece al prototipo anterior. Se conserva temporalmente para no borrar ni cambiar de origen los datos que pudiera tener guardados en `localStorage`. No se utilizará como arquitectura del producto nuevo ni se ampliará con módulos nuevos.
 
-```text
-O-Isym/
-├── electron/
-│   └── main.js
-├── src/
-│   ├── scripts/
-│   │   ├── app.js
-│   │   ├── calendar.js
-│   │   ├── planner.js
-│   │   ├── timer.js
-│   │   └── settings.js
-│   └── styles/
-│       └── styles.css
-├── docs/
-├── legacy/
-│   └── renderer.js
-├── index.html
-├── package.json
-└── .gitignore
+Archivos heredados actualmente activos:
+- `index.html`
+- `src/scripts/app.js`
+- `src/scripts/calendar.js`
+- `src/scripts/planner.js`
+- `src/scripts/timer.js`
+- `src/scripts/settings.js`
+- `src/styles/styles.css`
+
+El archivo `legacy/renderer.js` sigue conservado como código antiguo no conectado al HTML principal.
+
+## Paso 1 — Fundamentos técnicos
+
+### Implementado en esta rama
+
+- `electron/main.js` ahora usa `preload.js`, desactiva Node Integration y activa Context Isolation y sandbox.
+- `electron/preload.js` expone únicamente dos operaciones específicas de almacenamiento; no expone `ipcRenderer` ni APIs generales de Electron.
+- `electron/ipc-handlers.js` valida que las solicitudes provengan del frame principal de la ventana local de O-Isym.
+- `electron/storage.js` crea un archivo JSON con esquema versionado dentro del directorio de datos de usuario de Electron.
+- El almacenamiento valida el esquema y el tamaño, escribe mediante archivo temporal y renombrado, crea copias de respaldo antes de reemplazar datos válidos y conserva hasta cinco respaldos.
+- Si encuentra un archivo dañado o incompatible, se niega a sobrescribirlo silenciosamente.
+- `package.json` incorpora `npm test` usando el módulo integrado `node:test`.
+- `tests/storage.test.js` cubre inicialización, guardado/lectura, creación de respaldo, rechazo de esquema desconocido y protección de archivos dañados.
+- README y roadmap actualizados para dejar claro que el prototipo no es la base del producto nuevo.
+
+### Límites deliberados de esta etapa
+
+- El almacenamiento nuevo está preparado, pero todavía no contiene perfiles ni datos de producción.
+- La interfaz heredada aún utiliza `localStorage`; la migración se hará en una etapa posterior con respaldo, vista previa y confirmación.
+- La interfaz visual final todavía no se ha construido.
+- No se han añadido frameworks ni dependencias nuevas. Electron sigue fijado en 28.3.3.
+
+## Validaciones
+
+- Revisión estática de las rutas de Electron, preload e IPC.
+- Pruebas automatizadas añadidas, pendientes de ejecución en el entorno del usuario.
+- No se pudo ejecutar el repositorio en este entorno de revisión; por tanto, no se afirma que `npm test` ni `npm start` hayan pasado aquí.
+- La validación manual en el Mac sigue pendiente.
+
+## Próxima comprobación manual
+
+En la carpeta del proyecto, ejecutar:
+
+```bash
+npm install
+npm test
+npm start
 ```
 
-## Hallazgos confirmados
+Comprobar que la ventana sigue abriendo y que calendario, planificador, temporizador y preferencias heredadas siguen funcionando. La seguridad nueva no debe alterar las funciones del renderer porque este ya no necesita acceso directo a Node.
 
-1. Electron inicia desde `electron/main.js`, según el campo `main` de `package.json`.
-2. `electron/main.js` carga el `index.html` de la raíz.
-3. El HTML carga la hoja de estilos y los cinco scripts desde sus nuevas ubicaciones en `src/`.
-4. `legacy/renderer.js` se conserva como código antiguo no referenciado por el HTML actual; no se elimina hasta revisar si contiene lógica recuperable.
-5. Electron permanece fijado en la versión `28.3.3`, sin añadir dependencias.
-6. `index.html` permanece en la raíz para no cambiar innecesariamente el origen del almacenamiento local usado por la versión anterior.
+## Próximo paso de producto
 
-## Primera corrección funcional
-
-Se corrigió el calendario mensual:
-
-- Los días ahora aparecen bajo el día de la semana correcto, con celdas vacías antes del día 1.
-- La navegación entre meses construye cada fecha desde el día 1, evitando saltos de mes cuando se navega desde meses con distinta cantidad de días.
-- Las celdas de día pueden abrirse con ratón o teclado.
-- El número del día y el rendimiento se insertan como texto, no como HTML.
-
-La corrección conserva las claves de rendimiento existentes (`score_YYYY-MM-DD`) y la acción de abrir el planificador para cada fecha.
-
-## Validaciones realizadas
-
-- Revisión estática de las rutas entre `package.json`, Electron, HTML, scripts y CSS.
-- Revisión de sintaxis JavaScript del cambio del calendario.
-- Confirmación de que la rama de trabajo es `oisym-5-development`; `main` no se modifica.
-
-## Pendiente de validar localmente
-
-La aplicación todavía no se ha ejecutado en el Mac del usuario. Antes de migrar almacenamiento o seguridad, hace falta confirmar:
-
-- Que `npm install` termina correctamente.
-- Que `npm start` abre la ventana de Electron.
-- Que el calendario, el planificador, el temporizador y los colores funcionan.
-- Que las actividades y preferencias siguen presentes después de cerrar y volver a abrir la app.
-
-## Riesgos técnicos para las siguientes etapas
-
-- La ventana aún usa `nodeIntegration: true` y `contextIsolation: false`. No cambiar estos valores hasta implementar y probar una capa `preload`/IPC que reemplace los accesos existentes.
-- La aplicación usa `localStorage`. Antes de migrarlo hay que preservar los datos ya guardados.
-- El planificador todavía inserta algunos valores del usuario mediante plantillas HTML; debe migrarse a creación segura de nodos y `textContent`.
-- El temporizador actual depende de `setInterval`; deberá evolucionar a cálculo basado en marcas de tiempo para tolerar suspensión o cierre de la ventana.
-
-## Estado
-
-**Reorganización y primera corrección de calendario completadas mediante revisión estática. Prueba de ejecución en el Mac pendiente.** No se afirma que la aplicación completa esté probada en tiempo de ejecución.
+Después de validar esta base, el Paso 2 será diseñar e implementar el modelo de perfiles y preferencias sobre el almacenamiento nuevo. La importación de datos antiguos se hará antes de retirar la interfaz heredada o su `localStorage`.
