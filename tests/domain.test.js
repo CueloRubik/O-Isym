@@ -83,3 +83,40 @@ test('goal edits preserve progress, clamp it to the new target, and validate dat
   assert.throws(() => updateGoal(goal, { title: '' }), /nombre/);
   assert.throws(() => updateGoal(goal, { dueDate: '2026-02-30' }), /fecha objetivo/);
 });
+
+
+test('focus timer calculates elapsed and remaining time from wall clock after suspension', () => {
+  const { getFocusElapsedSeconds, getFocusRemainingSeconds } = require('../src/domain.js');
+  const focus = { startedAt: '2026-11-04T10:00:00.000Z', pausedAt: null, elapsedBeforePause: 120, durationSeconds: 1500 };
+  const now = Date.parse('2026-11-04T10:10:00.000Z');
+  assert.equal(getFocusElapsedSeconds(focus, now), 720);
+  assert.equal(getFocusRemainingSeconds(focus, now), 780);
+  assert.equal(getFocusRemainingSeconds(focus, Date.parse('2026-11-04T10:30:00.000Z')), 0);
+});
+
+test('paused focus sessions do not accumulate time while the app is closed', () => {
+  const { getFocusElapsedSeconds, getFocusRemainingSeconds } = require('../src/domain.js');
+  const focus = { startedAt: '2026-11-04T10:00:00.000Z', pausedAt: '2026-11-04T10:05:00.000Z', elapsedBeforePause: 300, durationSeconds: 1500 };
+  assert.equal(getFocusElapsedSeconds(focus, Date.parse('2026-11-04T11:00:00.000Z')), 300);
+  assert.equal(getFocusRemainingSeconds(focus, Date.parse('2026-11-04T11:00:00.000Z')), 1200);
+});
+
+test('active focus recovery normalizes old or malformed optional fields safely', () => {
+  const { normalizeActiveFocus, normalizeProfile } = require('../src/domain.js');
+  const recovered = normalizeActiveFocus({ startedAt: '2026-11-04T10:00:00.000Z', durationSeconds: 900 });
+  assert.equal(recovered.sessionStartedAt, recovered.startedAt);
+  assert.equal(recovered.elapsedBeforePause, 0);
+  assert.equal(recovered.durationSeconds, 900);
+  assert.equal(normalizeActiveFocus({ startedAt: 'not-a-date' }), null);
+  const profile = normalizeProfile({ name: 'Focus', preferences: { focusMinutes: 40 }, activeFocus: { startedAt: '2026-11-04T10:00:00.000Z' } });
+  assert.equal(profile.activeFocus.durationSeconds, 2400);
+});
+
+test('completed focus sessions preserve their actual completion time after delayed recovery', () => {
+  const { createFocusSession } = require('../src/domain.js');
+  const focus = { taskId: 'task-1', startedAt: '2026-11-04T10:00:00.000Z', sessionStartedAt: '2026-11-04T10:00:00.000Z', pausedAt: null, elapsedBeforePause: 0, durationSeconds: 1500 };
+  const session = createFocusSession(focus, 'Estudiar', '2026-11-04T10:40:00.000Z');
+  assert.equal(session.durationSeconds, 1500);
+  assert.equal(session.endedAt, '2026-11-04T10:25:00.000Z');
+  assert.equal(session.taskTitle, 'Estudiar');
+});
