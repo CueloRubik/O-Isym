@@ -33,11 +33,11 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | 5 | Tareas y captura rápida | Mejorado: edición completa, búsqueda y validación de fechas/horas |
 | 6 | Panel Hoy | Implementado en esta versión |
 | 7 | Calendario y agenda | Vista mensual y semanal; selección de día y acceso rápido a tareas |
-| 8 | Planificador | Implementación inicial; huecos y compromisos bloqueados |
+| 8 | Planificador | Planificador 2.0: huecos reales, fechas límite, prioridades, explicaciones y vista previa segura |
 | 9 | Focus | Duración por sesión y actividad, alarma configurable, aviso del sistema, resumen diario y recuperación al reabrir |
 | 10 | Objetivos e Insights | Implementación inicial |
 | 11 | Recomendaciones y autonomía | Implementación inicial; reglas locales explicables |
-| 12 | Calidad, accesibilidad y publicación | Pendiente de pruebas y empaquetado |
+| 12 | Calidad, accesibilidad y publicación | Atajos y navegación accesible implementados; faltan validación manual en Mac, integración y empaquetado |
 | 13 | Identidad visual personalizable | Planificado: avatares, temas por etapa/preferencia y animaciones opcionales |
 
 ## Modelo principal
