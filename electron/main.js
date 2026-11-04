@@ -5,7 +5,6 @@ const { createStorage } = require('./storage');
 const { registerIpcHandlers } = require('./ipc-handlers');
 
 const indexPath = path.join(__dirname, '..', 'index.html');
-const storage = createStorage(app.getPath('userData'));
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -39,6 +38,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const storage = createStorage(app.getPath('userData'));
   registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath });
   createWindow();
 
