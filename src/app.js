@@ -408,11 +408,11 @@ function renderCalendar(main) {
     for (let i = 0; i < offset; i++) grid.append(element('div', 'calendar-blank'));
     for (let day = 1; day <= count; day++) {
       const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      const countTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key)).length;
       const cell = button('', 'select-date', 'calendar-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
       cell.setAttribute('aria-label', dateLabel(key, { weekday: 'long', day: 'numeric', month: 'long' }) + (countTasks ? ', ' + countTasks + ' tareas' : ', sin tareas'));
       cell.setAttribute('aria-pressed', String(key === selected));
       cell.append(element('span', 'calendar-number', day));
-      const countTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key)).length;
       if (countTasks) cell.append(element('span', 'calendar-count', countTasks + (countTasks === 1 ? ' tarea' : ' tareas')));
       grid.append(cell);
     }
