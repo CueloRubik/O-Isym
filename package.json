@@ -1,12 +1,14 @@
 {
   "name": "o-isym",
-  "version": "4.0.0",
-  "description": "O-Isym Professional Life Manager",
+  "version": "5.0.0",
+  "description": "O-Isym — sistema personal de organización y planificación",
   "main": "main.js",
+  "private": true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "electron ."
   },
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "28.3.3"
   }
 }

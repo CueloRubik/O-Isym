@@ -14,7 +14,8 @@ function createWindow() {
     }
   });
 
-  win.loadFile(path.join(__dirname, 'src/index.html'));
+  // index.html is currently stored in the repository root.
+  win.loadFile(path.join(__dirname, 'index.html'));
 }
 
 app.whenReady().then(createWindow);
