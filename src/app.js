@@ -1012,8 +1012,8 @@ async function prepareFocusAlarm() {
     // La sesión sigue funcionando aunque el sistema no permita audio o notificaciones.
   }
 }
-function playFocusAlarm(kind = 'focus-end') {
-  if (state.profile.preferences.focusSound === false || !focusAudioContext || focusAudioContext.state !== 'running') return;
+function playFocusAlarm(kind = 'focus-end', preview = false) {
+  if ((!preview && state.profile.preferences.focusSound === false) || !focusAudioContext || focusAudioContext.state !== 'running') return;
   const preferences = state.profile.preferences;
   const tone = kind === 'start' ? preferences.focusStartTone : kind === 'break-end' ? preferences.breakEndTone : preferences.focusEndTone;
   if (!tone || tone === 'off') return;
@@ -1310,7 +1310,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'preview-focus-alarm') {
     await prepareFocusAlarm();
-    playFocusAlarm(target.dataset.alarm || 'focus-end');
+    playFocusAlarm(target.dataset.alarm || 'focus-end', true);
   }
   if (action === 'focus-stop') await finishFocus();
   if (action === 'focus-reset') {
