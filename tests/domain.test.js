@@ -60,3 +60,26 @@ test('task edits normalize numeric fields and reject invalid state', () => {
   assert.throws(() => updateTask(task, { status: 'archived' }), /estado/);
   assert.throws(() => updateTask(task, { priority: 'urgent' }), /prioridad/);
 });
+
+
+test('activity edits validate names and normalize editable fields', () => {
+  const { createActivity, updateActivity } = require('../src/domain.js');
+  const activity = createActivity({ name: 'Lectura', durationMinutes: 20 });
+  const edited = updateActivity(activity, { name: 'Lectura diaria', durationMinutes: '45', frequency: 'Cada día' });
+  assert.equal(edited.name, 'Lectura diaria');
+  assert.equal(edited.durationMinutes, 45);
+  assert.equal(edited.frequency, 'Cada día');
+  assert.throws(() => updateActivity(activity, { name: ' ' }), /nombre/);
+});
+
+test('goal edits preserve progress, clamp it to the new target, and validate dates', () => {
+  const { createGoal, updateGoal } = require('../src/domain.js');
+  const goal = createGoal({ title: 'Practicar', target: 10, dueDate: '2026-12-01' });
+  const progressed = { ...goal, progress: 8 };
+  const edited = updateGoal(progressed, { title: 'Practicar guitarra', target: '5', unit: 'sesiones' });
+  assert.equal(edited.title, 'Practicar guitarra');
+  assert.equal(edited.progress, 5);
+  assert.equal(edited.unit, 'sesiones');
+  assert.throws(() => updateGoal(goal, { title: '' }), /nombre/);
+  assert.throws(() => updateGoal(goal, { dueDate: '2026-02-30' }), /fecha objetivo/);
+});
