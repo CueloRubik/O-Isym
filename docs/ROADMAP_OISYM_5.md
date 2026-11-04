@@ -91,3 +91,11 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 - La opción de movimiento reducido desactiva transiciones y animaciones no esenciales.
 - Los perfiles antiguos reciben valores predeterminados seguros; no se altera su contenido.
 - Pendiente: selector de avatares con vista previa, personalización durante la creación de perfiles y revisión visual completa en macOS.
+
+
+## Avance: Insights 2.0
+- Métricas semanales de tareas, tiempo total de enfoque y duración media por sesión.
+- Gráficas diarias de tareas completadas y minutos de concentración, escaladas según los datos reales.
+- Distribución de tiempo por actividad durante los últimos 30 días.
+- Panorama de fechas límite próximas y objetivos activos, con lenguaje neutral y sin rachas ni puntuaciones.
+- Se ignoran sesiones con fechas inválidas para evitar errores al mostrar estadísticas.
