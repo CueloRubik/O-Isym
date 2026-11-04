@@ -41,6 +41,8 @@ function createProfile(name, color = '#27856b') {
       breakMinutes: 5,
       focusSound: true,
       focusNotifications: true,
+      theme: 'classic',
+      motionEnabled: true,
       workingDayStart: '09:00',
       workingDayEnd: '17:00'
     },
