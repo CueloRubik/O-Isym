@@ -100,3 +100,12 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 - Distribución de tiempo por actividad durante los últimos 30 días.
 - Panorama de fechas límite próximas y objetivos activos, con lenguaje neutral y sin rachas ni puntuaciones.
 - Se ignoran sesiones con fechas inválidas para evitar errores al mostrar estadísticas.
+
+
+## Avance: navegación adaptable y accesibilidad
+- Se eliminó la región viva que envolvía toda la aplicación; ahora solo los avisos anuncian cambios a lectores de pantalla.
+- Enlace para saltar directamente al contenido principal.
+- Navegación identifica la sección actual mediante aria-current.
+- Diálogo de perfil cerrable con Escape o al pulsar fuera, con vista previa del avatar.
+- La interfaz ya no impone un ancho mínimo global de 780 px: sidebar, navegación, formularios y calendario se adaptan a ventanas estrechas.
+- Preferencia del sistema para reducir movimiento respetada en CSS.
