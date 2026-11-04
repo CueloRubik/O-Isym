@@ -34,7 +34,7 @@ function createProfile(name, color = '#27856b', age = null) {
     name: String(name).trim().slice(0, 60),
     age: Number.isInteger(Number(age)) && Number(age)>=1 && Number(age)<=120 ? Number(age) : null,
     color,
-    avatarId: 'profile-1',
+    avatarId: 'initials',
     createdAt: now,
     updatedAt: now,
     preferences: {
