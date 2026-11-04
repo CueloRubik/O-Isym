@@ -1057,6 +1057,7 @@ root.addEventListener('click', async event => {
   if (!target) return;
   const action = target.dataset.action;
   const id = target.dataset.id;
+  if (action === 'retry-boot') { await boot(); return; }
   if (action === 'recovery-overwrite') {
     if (!confirm('O-Isym guardará una copia exacta del archivo actual y después creará un espacio nuevo vacío. ¿Quieres continuar?')) return;
     try {
@@ -1521,7 +1522,19 @@ async function boot() {
   try {
     await initializeApp(await window.oisym.storage.read());
   } catch (error) {
-    await showRecoveryScreen(error);
+    if (['OISYM_STORE_CORRUPT', 'OISYM_STORE_INVALID', 'OISYM_STORE_PROTECTED'].includes(error.code)) {
+      await showRecoveryScreen(error);
+      return;
+    }
+    root.replaceChildren();
+    const panel = element('section', 'fatal-screen recovery-screen');
+    panel.append(
+      element('h1', '', 'O-Isym no pudo iniciar'),
+      element('p', 'recovery-error', error.message),
+      element('p', 'muted', 'No se ha ejecutado ninguna acción de recuperación ni se han sobrescrito tus datos. Cierra O-Isym y revisa la versión de la aplicación.')
+    );
+    panel.append(button('Volver a intentar', 'retry-boot', 'button secondary'));
+    root.append(panel);
   }
 }
 
