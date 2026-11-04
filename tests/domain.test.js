@@ -283,3 +283,28 @@ test('profile normalization keeps valid age and avatar image ids and safely fall
   const invalid=normalizeProfile({name:'Inválido',age:999,avatarId:'profile-19',preferences:{}});
   assert.equal(invalid.age,null); assert.equal(invalid.avatarId,'initials'); assert.equal(invalid.preferences.ageBand,'general');
 });
+
+
+test('Focus alarm preferences normalize tone choices and volume safely', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
+  const fresh = createProfile('Alarmas');
+  assert.equal(fresh.preferences.focusStartTone, 'off');
+  assert.equal(fresh.preferences.focusEndTone, 'chime');
+  assert.equal(fresh.preferences.breakEndTone, 'bell');
+  assert.equal(fresh.preferences.focusAlarmVolume, 60);
+  const restored = normalizeProfile({ name: 'Antiguo', preferences: { focusSound: true, focusNotifications: true } });
+  assert.equal(restored.preferences.focusStartTone, 'off');
+  assert.equal(restored.preferences.focusEndTone, 'chime');
+  assert.equal(restored.preferences.breakEndTone, 'bell');
+  assert.equal(restored.preferences.focusAlarmVolume, 60);
+  const customized = normalizeProfile({ name: 'Personalizado', preferences: { focusStartTone: 'digital', focusEndTone: 'soft', breakEndTone: 'bell', focusAlarmVolume: 135 } });
+  assert.equal(customized.preferences.focusStartTone, 'digital');
+  assert.equal(customized.preferences.focusEndTone, 'soft');
+  assert.equal(customized.preferences.breakEndTone, 'bell');
+  assert.equal(customized.preferences.focusAlarmVolume, 100);
+  const invalid = normalizeProfile({ name: 'Inválido', preferences: { focusStartTone: 'loud', focusEndTone: 'unknown', breakEndTone: null, focusAlarmVolume: -5 } });
+  assert.equal(invalid.preferences.focusStartTone, 'off');
+  assert.equal(invalid.preferences.focusEndTone, 'chime');
+  assert.equal(invalid.preferences.breakEndTone, 'bell');
+  assert.equal(invalid.preferences.focusAlarmVolume, 0);
+});
