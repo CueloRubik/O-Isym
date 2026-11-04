@@ -304,3 +304,29 @@ p { line-height: 1.55; }
 @media (prefers-reduced-motion: reduce) {
   #app:not(.motion-allowed) *, #app:not(.motion-allowed) *::before, #app:not(.motion-allowed) *::after { scroll-behavior: auto; animation-duration: 0.01ms; animation-iteration-count: 1; transition-duration: 0.01ms; }
 }
+
+
+/* Perfiles: galería de avatares e incorporación guiada */
+.avatar-image { display:block; width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+.profile-avatar { overflow:hidden; }
+.avatar-picker { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:9px; }
+.avatar-choice { display:grid; place-items:center; width:100%; aspect-ratio:1; min-width:0; padding:4px; overflow:hidden; border:2px solid transparent; border-radius:13px; background:#f3f6f4; transition:border-color .15s,background .15s,transform .15s; }
+.avatar-choice img { width:100%; height:100%; object-fit:cover; border-radius:9px; }
+.avatar-choice:hover { background:var(--accent-soft); transform:translateY(-1px); }
+.avatar-choice.selected { border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 2px rgba(39,133,107,.12); }
+.profile-modal { width:min(520px,100%); }
+.profile-modal-form { gap:16px; }
+.profile-wizard-step { display:flex; flex-direction:column; gap:13px; }
+.profile-wizard-step[hidden], .profile-wizard-actions [hidden] { display:none !important; }
+.profile-wizard-step h3 { font-size:16px; }
+.profile-wizard-actions { justify-content:space-between; flex-wrap:wrap; }
+.profile-wizard-actions .button.primary { margin-left:auto; }
+.activity-ideas { display:flex; flex-direction:column; gap:9px; padding:13px; border-radius:12px; background:var(--surface-soft); border:1px solid var(--line); }
+.activity-idea-list { display:flex; flex-wrap:wrap; gap:7px; }
+.activity-idea { border:1px solid #dce8e1; border-radius:20px; padding:7px 11px; color:var(--accent-dark); background:white; font-size:12px; font-weight:650; }
+.activity-idea:hover { border-color:var(--accent); background:var(--accent-soft); }
+#app[data-audience="child"] .welcome-card { background:#eff7e9; border-color:#dcebd0; }
+#app[data-audience="child"] .nav-item.active { border-radius:13px; }
+#app[data-audience="child"][data-theme="playful"] { --accent:#438b70; --accent-dark:#286d56; --accent-soft:#e6f3df; --page:#f5f8ef; --surface-soft:#f8faf3; --line:#e5ecdc; }
+#app[data-audience="teen"] .welcome-card { background:#edf4fb; border-color:#dce8f5; }
+@media (max-width:560px) { .avatar-picker { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; } .profile-wizard-actions { justify-content:flex-start; } .profile-wizard-actions .button.primary { margin-left:0; } }
