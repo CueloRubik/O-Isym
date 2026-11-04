@@ -12,7 +12,8 @@ const state = {
   selectedDate: localDate(),
   calendarDate: new Date(),
   focusTick: null,
-  toastTimer: null
+  toastTimer: null,
+  editingTaskId: null
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -179,24 +180,32 @@ function updateShell() {
 }
 
 function addTaskForm(parent, defaults = {}) {
+  const editing = Boolean(state.editingTaskId);
   const form = element('form', 'form-card task-form');
-  form.dataset.form = 'task';
-  form.append(element('h3', '', 'Añadir tarea'));
-  form.append(field('¿Qué necesitas hacer?', input('title', 'Ej. Leer 20 páginas')));
+  form.dataset.form = editing ? 'task-edit' : 'task';
+  form.append(element('h3', '', editing ? 'Editar tarea' : 'Añadir tarea'));
+  form.append(field('¿Qué necesitas hacer?', input('title', 'Ej. Leer 20 páginas', 'text', defaults.title || '')));
   const row = element('div', 'form-grid');
   row.append(field('Programar para (opcional)', input('scheduledDate', '', 'date', defaults.scheduledDate || '')));
-  row.append(field('Prioridad', select('priority', [
+  row.append(field('Fecha límite (opcional)', input('dueDate', '', 'date', defaults.dueDate || '')));
+  form.append(row);
+  const row2 = element('div', 'form-grid');
+  row2.append(field('Prioridad', select('priority', [
     { value: 'low', label: 'Baja' }, { value: 'medium', label: 'Media' }, { value: 'high', label: 'Alta' }
   ], defaults.priority || 'medium')));
-  form.append(row);
-  form.append(field('Fecha límite (opcional)', input('dueDate', '', 'date', defaults.dueDate || '')));
-  const row2 = element('div', 'form-grid');
   row2.append(field('Duración estimada (min)', input('estimatedMinutes', '30', 'number', defaults.estimatedMinutes || 30)));
-  row2.append(field('Vincular actividad', activitySelect('activityId', defaults.activityId || '')));
   form.append(row2);
-  form.append(field('Notas (opcional)', textarea('description', 'Detalles o contexto…')));
+  const row3 = element('div', 'form-grid');
+  row3.append(field('Hora de inicio (opcional)', input('startTime', '', 'time', defaults.startTime || '')));
+  row3.append(field('Hora de fin (opcional)', input('endTime', '', 'time', defaults.endTime || '')));
+  form.append(row3);
+  form.append(field('Vincular actividad', activitySelect('activityId', defaults.activityId || '')));
+  form.append(field('Notas (opcional)', textarea('description', 'Detalles o contexto…', defaults.description || '')));
+  const locked = select('locked', [{ value: 'false', label: 'Tarea flexible' }, { value: 'true', label: 'Compromiso bloqueado' }], String(Boolean(defaults.locked)));
+  form.append(field('Tipo de tarea', locked));
   const actions = element('div', 'form-actions');
-  actions.append(button('Guardar tarea', 'submit-form', 'button primary'));
+  actions.append(button(editing ? 'Guardar cambios' : 'Guardar tarea', 'submit-form', 'button primary'));
+  if (editing) actions.append(button('Cancelar', 'cancel-edit-task', 'button secondary'));
   form.append(actions);
   parent.append(form);
   return form;
@@ -310,20 +319,29 @@ function renderTasks(main) {
     { value: 'active', label: 'Pendientes' }, { value: 'all', label: 'Todas' }, { value: 'done', label: 'Completadas' }
   ], 'active');
   filter.id = 'task-filter';
-  toolbar.append(filter);
+  const search = input('task-search', 'Buscar por nombre o notas…');
+  search.id = 'task-search';
+  toolbar.append(filter, search);
   main.append(toolbar);
   const list = card();
   list.id = 'tasks-results';
   const render = () => {
     list.replaceChildren();
     const mode = filter.value;
-    const tasks = state.profile.tasks.filter(task => mode === 'all' || (mode === 'done' ? task.status === 'done' : task.status === 'pending'));
-    renderTaskList(list, tasks, { emptyTitle: 'Todavía no hay tareas', emptyDetail: 'Crea tu primera tarea y aparecerá aquí.' });
+    const query = search.value.trim().toLocaleLowerCase('es');
+    const tasks = state.profile.tasks.filter(task => {
+      const statusMatches = mode === 'all' || (mode === 'done' ? task.status === 'done' : task.status === 'pending');
+      const textMatches = !query || (task.title + ' ' + task.description).toLocaleLowerCase('es').includes(query);
+      return statusMatches && textMatches;
+    });
+    renderTaskList(list, tasks, { emptyTitle: query ? 'No hay coincidencias' : 'Todavía no hay tareas', emptyDetail: query ? 'Prueba con otras palabras.' : 'Crea tu primera tarea y aparecerá aquí.' });
   };
   filter.addEventListener('change', render);
+  search.addEventListener('input', render);
   render();
   main.append(list);
-  addTaskForm(main);
+  const editing = state.editingTaskId ? taskById(state.editingTaskId) : null;
+  addTaskForm(main, editing || {});
 }
 
 function renderActivities(main) {
@@ -605,17 +623,29 @@ function inspectLegacyData() {
 async function handleSubmit(form) {
   const data = formData(form);
   try {
-    if (form.dataset.form === 'task' || form.dataset.form === 'planner-task') {
+    if (form.dataset.form === 'task' || form.dataset.form === 'planner-task' || form.dataset.form === 'task-edit') {
+      data.locked = data.locked === 'true';
+      if (data.startTime || data.endTime) {
+        if (!data.startTime || !data.endTime || data.endTime <= data.startTime) throw new Error('Si asignas un horario, la hora de fin debe ser posterior al inicio.');
+      }
       if (form.dataset.form === 'planner-task') {
         data.scheduledDate = state.selectedDate;
         if (!data.startTime || !data.endTime || data.endTime <= data.startTime) throw new Error('El horario debe tener una hora de fin posterior al inicio.');
-        data.locked = data.locked === 'true';
         data.estimatedMinutes = (Number(data.endTime.slice(0, 2)) * 60 + Number(data.endTime.slice(3))) - (Number(data.startTime.slice(0, 2)) * 60 + Number(data.startTime.slice(3)));
       }
-      state.profile.tasks.unshift(createTask(data));
+      if (form.dataset.form === 'task-edit') {
+        const editingId = state.editingTaskId;
+        const current = taskById(editingId);
+        if (!current) throw new Error('La tarea que intentas editar ya no existe.');
+        state.profile.tasks = state.profile.tasks.map(item => item.id === editingId ? updateTask(item, data) : item);
+        state.editingTaskId = null;
+        showToast('Cambios guardados.');
+      } else {
+        state.profile.tasks.unshift(createTask(data));
+        showToast('Tarea guardada.');
+      }
       await save();
       state.view = form.dataset.form === 'planner-task' ? 'planner' : state.view;
-      showToast('Tarea guardada.');
     } else if (form.dataset.form === 'activity') {
       state.profile.activities.unshift(createActivity(data));
       await save();
@@ -710,12 +740,16 @@ root.addEventListener('click', async event => {
     if (task) { state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { status: item.status === 'done' ? 'pending' : 'done' }) : item); await save(); updateShell(); }
   }
   if (action === 'edit-task') {
-    const task = taskById(id);
-    if (!task) return;
-    const title = prompt('Editar tarea:', task.title);
-    if (title === null) return;
-    try { state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { title }) : item); await save(); updateShell(); }
-    catch (error) { showToast(error.message, 'error'); }
+    if (!taskById(id)) return;
+    state.editingTaskId = id;
+    state.view = 'tasks';
+    updateShell();
+    const titleInput = $('.task-form input[name="title"]');
+    if (titleInput) { titleInput.focus(); titleInput.select(); }
+  }
+  if (action === 'cancel-edit-task') {
+    state.editingTaskId = null;
+    updateShell();
   }
   if (action === 'task-menu') {
     const task = taskById(id);
