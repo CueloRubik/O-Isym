@@ -264,3 +264,22 @@ test('profile normalization preserves supported visual customization', () => {
   assert.equal(profile.preferences.theme, 'sky');
   assert.equal(profile.preferences.motionEnabled, false);
 });
+
+
+test('profiles store age bands and choose an age-appropriate starting theme', () => {
+  const { createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge } = require('../src/domain.js');
+  const child=createProfile('Peque','#27856b',10), teen=createProfile('Joven','#27856b',15), adult=createProfile('Adulto','#27856b',28);
+  assert.equal(child.age,10); assert.equal(child.preferences.ageBand,'child'); assert.equal(child.preferences.theme,'playful');
+  assert.equal(teen.preferences.ageBand,'teen'); assert.equal(teen.preferences.theme,'sky');
+  assert.equal(adult.preferences.ageBand,'adult'); assert.equal(adult.preferences.theme,'classic');
+  assert.equal(getAgeBand(0),'general'); assert.equal(getAgeBand(121),'general'); assert.equal(getDefaultThemeForAge(8),'playful');
+  const restored=normalizeProfile({name:'Antiguo',age:11,avatarId:'profile-18',preferences:{}});
+  assert.equal(restored.age,11); assert.equal(restored.avatarId,'profile-18'); assert.equal(restored.preferences.ageBand,'child');
+});
+test('profile normalization keeps valid age and avatar image ids and safely falls back for invalid values', () => {
+  const { normalizeProfile }=require('../src/domain.js');
+  const valid=normalizeProfile({name:'Foto',age:17,avatarId:'profile-7',preferences:{theme:'playful'}});
+  assert.equal(valid.avatarId,'profile-7'); assert.equal(valid.age,17); assert.equal(valid.preferences.theme,'playful');
+  const invalid=normalizeProfile({name:'Inválido',age:999,avatarId:'profile-19',preferences:{}});
+  assert.equal(invalid.age,null); assert.equal(invalid.avatarId,'initials'); assert.equal(invalid.preferences.ageBand,'general');
+});
