@@ -1,4 +1,5 @@
 const fs = require('node:fs/promises');
+const { constants: fsConstants } = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
@@ -96,7 +97,7 @@ function createStorage(userDataPath) {
     await fs.mkdir(backupsPath, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path.join(backupsPath, `oisym-data-${stamp}.json`);
-    await fs.copyFile(storePath, backupPath, fs.constants.COPYFILE_EXCL);
+    await fs.copyFile(storePath, backupPath, fsConstants.COPYFILE_EXCL);
 
     const entries = (await fs.readdir(backupsPath))
       .filter(name => name.startsWith('oisym-data-') && name.endsWith('.json'))
