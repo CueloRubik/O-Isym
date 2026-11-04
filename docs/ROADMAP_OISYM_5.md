@@ -38,7 +38,7 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | 10 | Objetivos e Insights | Implementación inicial |
 | 11 | Recomendaciones y autonomía | Implementación inicial; reglas locales explicables |
 | 12 | Calidad, accesibilidad y publicación | Atajos y navegación accesible implementados; faltan validación manual en Mac, integración y empaquetado |
-| 13 | Identidad visual personalizable | Planificado: avatares, temas por etapa/preferencia y animaciones opcionales |
+| 13 | Identidad visual personalizable | Primera entrega: avatar, tres temas claros y reducción de movimiento por perfil; selector visual más completo y prueba de creación de perfiles pendientes |
 
 ## Modelo principal
 
@@ -83,3 +83,11 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 - Etiquetas accesibles y estado seleccionado en las celdas del calendario.
 - Indicadores de foco visibles para controles interactivos.
 - Pruebas de navegación en años nuevos y días bisiestos.
+
+
+## Avance: personalización visual inicial
+- Cada perfil conserva su propio avatar, tema claro y preferencia de movimiento.
+- Temas Clásico, Cálido y Cielo mantienen contraste y jerarquía profesional.
+- La opción de movimiento reducido desactiva transiciones y animaciones no esenciales.
+- Los perfiles antiguos reciben valores predeterminados seguros; no se altera su contenido.
+- Pendiente: selector de avatares con vista previa, personalización durante la creación de perfiles y revisión visual completa en macOS.
