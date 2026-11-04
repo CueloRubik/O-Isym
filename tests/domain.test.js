@@ -153,3 +153,74 @@ test('active Focus recovery preserves whether the timer is a break', () => {
   assert.equal(restored.activityId, 'activity-1');
   assert.equal(restored.activityTitle, 'Piano');
 });
+
+
+test('planner fills real gaps without overlapping existing appointments', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Huecos');
+  profile.preferences.workingDayStart = '09:00';
+  profile.preferences.workingDayEnd = '12:00';
+  profile.tasks.push(createTask({ title: 'Cita', scheduledDate: '2026-11-05', startTime: '10:00', endTime: '11:00', locked: true }));
+  profile.tasks.push(createTask({ title: 'Estudio', estimatedMinutes: 60, priority: 'high' }));
+  profile.tasks.push(createTask({ title: 'Lectura', estimatedMinutes: 60 }));
+  const result = analyzeSchedule(profile, '2026-11-05');
+  assert.deepEqual(result.proposals.map(item => [item.title, item.startTime, item.endTime]), [
+    ['Estudio', '09:00', '10:00'],
+    ['Lectura', '11:00', '12:00']
+  ]);
+  assert.ok(result.proposals.every(item => item.reason.length > 10));
+});
+
+test('planner orders by nearest due date before priority and explains the choice', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Fechas');
+  profile.preferences.workingDayStart = '09:00';
+  profile.preferences.workingDayEnd = '11:00';
+  profile.tasks.push(createTask({ title: 'Alta sin fecha', priority: 'high', estimatedMinutes: 60 }));
+  profile.tasks.push(createTask({ title: 'Vence mañana', priority: 'low', dueDate: '2026-11-06', estimatedMinutes: 60 }));
+  const result = analyzeSchedule(profile, '2026-11-05');
+  assert.equal(result.proposals[0].title, 'Vence mañana');
+  assert.match(result.proposals[0].reason, /fecha límite/);
+  assert.equal(result.proposals[1].title, 'Alta sin fecha');
+});
+
+test('planner reports overdue tasks instead of scheduling them after their deadline', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Atrasadas');
+  profile.tasks.push(createTask({ title: 'Vencida', dueDate: '2026-11-03' }));
+  const result = analyzeSchedule(profile, '2026-11-05');
+  assert.equal(result.proposals.length, 0);
+  assert.match(result.skipped[0].reason, /Ya venció/);
+});
+
+test('planner reports tasks that cannot fit in the remaining workday', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Sin espacio');
+  profile.preferences.workingDayStart = '09:00';
+  profile.preferences.workingDayEnd = '10:00';
+  profile.tasks.push(createTask({ title: 'Muy larga', estimatedMinutes: 90 }));
+  const result = analyzeSchedule(profile, '2026-11-05');
+  assert.equal(result.proposals.length, 0);
+  assert.match(result.skipped[0].reason, /No queda un espacio/);
+});
+
+test('planner does not move tasks already scheduled on another date or locked tasks', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Protección');
+  profile.tasks.push(createTask({ title: 'Otro día', scheduledDate: '2026-11-06' }));
+  profile.tasks.push(createTask({ title: 'Bloqueada', locked: true }));
+  const result = analyzeSchedule(profile, '2026-11-05');
+  assert.equal(result.proposals.length, 0);
+  assert.equal(result.skipped.length, 0);
+});
+
+test('planner uses safe default working hours when saved preferences are invalid', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Horario inválido');
+  profile.preferences.workingDayStart = 'bad';
+  profile.preferences.workingDayEnd = 'bad';
+  profile.tasks.push(createTask({ title: 'Tarea' }));
+  const result = analyzeSchedule(profile, '2026-11-05');
+  assert.equal(result.proposals[0].startTime, '09:00');
+  assert.equal(result.workday.end, '17:00');
+});
