@@ -2,7 +2,7 @@ import {
   createProfile, normalizeProfile, createActivity, createTask, updateTask,
   createGoal, localDate, shiftDate, getRecommendations, suggestSchedule,
   validateSnapshot, clampNumber
-} from './domain.js';
+} from './domain.mjs';
 
 const root = document.getElementById('app');
 const state = {
@@ -165,6 +165,7 @@ function updateShell() {
     profileSelect.append(option);
   });
   profileSelect.value = state.profile.id;
+  root.style.setProperty('--accent', state.profile.color);
   $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   $$('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === state.view));
   const main = $('#main-content');

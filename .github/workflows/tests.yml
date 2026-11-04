@@ -1,0 +1,22 @@
+name: O-Isym tests
+
+on:
+  push:
+    branches:
+      - oisym-5-development
+  pull_request:
+    branches:
+      - oisym-5-development
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Run automated tests
+        run: npm test

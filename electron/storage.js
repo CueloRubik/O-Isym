@@ -56,7 +56,7 @@ function createStorage(userDataPath) {
   }
   async function createBackup() {
     await fs.mkdir(backupsPath, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-') + '-' + crypto.randomUUID().slice(0, 8);
     await fs.copyFile(storePath, path.join(backupsPath, 'oisym-data-' + stamp + '.json'), fsConstants.COPYFILE_EXCL);
     const entries = (await fs.readdir(backupsPath)).filter(name => name.startsWith('oisym-data-') && name.endsWith('.json')).sort().reverse();
     await Promise.all(entries.slice(MAX_BACKUPS).map(name => fs.unlink(path.join(backupsPath, name)).catch(() => {})));
