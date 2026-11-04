@@ -1,6 +1,6 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
-  createGoal, updateGoal, localDate, shiftDate, getRecommendations, suggestSchedule, analyzeSchedule,
+  createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
   validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession
 } = window.OIsymDomain;
 
@@ -1003,6 +1003,15 @@ root.addEventListener('click', async event => {
   if (action === 'apply-plan') {
     const analysis = state.plannerAnalysis;
     if (!analysis || analysis.date !== state.selectedDate) return showToast('Vuelve a analizar el día antes de aplicar.', 'error');
+    const refreshed = analyzeSchedule(state.profile, state.selectedDate);
+    const samePreview = refreshed.proposals.length === analysis.proposals.length &&
+      refreshed.proposals.every((item, index) => item.taskId === analysis.proposals[index].taskId &&
+        item.startTime === analysis.proposals[index].startTime && item.endTime === analysis.proposals[index].endTime);
+    if (!samePreview) {
+      state.plannerAnalysis = refreshed;
+      updateShell();
+      return showToast('La agenda cambió. Revisa la vista previa actualizada antes de aplicar.', 'error');
+    }
     const map = new Map(analysis.proposals.map(item => [item.taskId, item]));
     let applied = 0;
     state.profile.tasks = state.profile.tasks.map(task => {
