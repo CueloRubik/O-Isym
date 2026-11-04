@@ -352,7 +352,7 @@ function analyzeSchedule(profile, dateKey) {
   const candidates = tasks.filter(task =>
     task.status === 'pending' &&
     !task.locked &&
-    (!task.scheduledDate || (task.scheduledDate === dateKey && (!task.startTime || !task.endTime)))
+    !task.scheduledDate
   );
   const eligible = [];
   for (const task of candidates) {
