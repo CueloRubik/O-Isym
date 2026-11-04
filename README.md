@@ -12,6 +12,27 @@ npm test
 npm start
 \`\`\`
 
+## Crear la aplicación para macOS
+
+La build está preparada para macOS Intel (x64), incluido el MacBook Pro Intel. Antes de compilar, coloca tu archivo **`app.icns`** directamente en la raíz del proyecto, al mismo nivel que `package.json`. No hace falta añadirlo al repositorio: Git lo ignora, pero el empaquetador lo encuentra en tu copia local.
+
+Desde la carpeta del proyecto, ejecuta:
+
+```bash
+npm install
+npm run build:mac
+```
+
+El resultado será un instalador **`O-Isym-5.0.0.dmg`** dentro de `dist/`. El icono de la aplicación se toma de `app.icns`. Si el archivo no está en la raíz, el comando se detiene y muestra un aviso claro en lugar de generar una aplicación sin el icono esperado.
+
+Para generar solamente la carpeta de la aplicación sin crear el DMG:
+
+```bash
+npm run build:mac:dir
+```
+
+La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración apunta a Intel x64; no cambia la versión de Electron ni las dependencias de ejecución de la aplicación.
+
 ## Funciones implementadas en esta versión de desarrollo
 
 - Perfiles independientes y preferencias por perfil.
