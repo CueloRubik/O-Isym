@@ -839,14 +839,21 @@ async function handleSubmit(form) {
   try {
     if (form.dataset.form === 'profile-create') {
       if (state.snapshot.profiles.length >= 50) throw new Error('Has alcanzado el máximo de perfiles.');
-      const profile = createProfile(data.name || '');
+      if (!String(data.name || '').trim()) throw new Error('Escribe un nombre para el perfil.');
+      const previousProfileId = state.profile.id;
+      const profile = createProfile(data.name);
       profile.avatarId = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave'].includes(data.avatarId) ? data.avatarId : 'initials';
       profile.preferences.theme = ['classic', 'warm', 'sky'].includes(data.theme) ? data.theme : 'classic';
       profile.color = /^#[0-9a-f]{6}$/i.test(data.color) ? data.color : '#27856b';
       state.snapshot.profiles.push(profile);
       state.profile = profile;
       const saved = await save();
-      if (!saved) { state.snapshot.profiles = state.snapshot.profiles.filter(item => item.id !== profile.id); throw new Error('No se pudo guardar el perfil.'); }
+      if (!saved) {
+        state.snapshot.profiles = state.snapshot.profiles.filter(item => item.id !== profile.id);
+        state.profile = state.snapshot.profiles.find(item => item.id === previousProfileId) || state.snapshot.profiles[0];
+        state.snapshot.activeProfileId = state.profile.id;
+        throw new Error('No se pudo guardar el perfil.');
+      }
       state.view = 'today';
       const modal = $('[data-profile-modal]');
       if (modal) modal.remove();
