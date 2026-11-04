@@ -6,6 +6,7 @@ const SCHEMA_VERSION = 1;
 const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
 const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...Array.from({ length: 18 }, (_, index) => 'profile-' + (index + 1))];
 const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
+const FOCUS_ALARM_TONES = ['chime', 'bell', 'soft', 'digital'];
 function getAgeBand(age) { const value=Number(age); if(!Number.isInteger(value)||value<1||value>120)return 'general'; if(value<=12)return 'child'; if(value<=17)return 'teen'; return 'adult'; }
 function getDefaultThemeForAge(age) { const band=getAgeBand(age); return band==='child'?'playful':band==='teen'?'sky':'classic'; }
 
@@ -44,6 +45,10 @@ function createProfile(name, color = '#27856b', age = null) {
       breakMinutes: 5,
       focusSound: true,
       focusNotifications: true,
+      focusStartTone: 'off',
+      focusEndTone: 'chime',
+      breakEndTone: 'bell',
+      focusAlarmVolume: 60,
       theme: getDefaultThemeForAge(age),
       ageBand: getAgeBand(age),
       motionEnabled: true,
@@ -79,6 +84,10 @@ function normalizeProfile(profile) {
       breakMinutes: clampNumber(preferences.breakMinutes, 1, 60, 5),
       focusSound: preferences.focusSound !== false,
       focusNotifications: preferences.focusNotifications !== false,
+      focusStartTone: ['off', ...FOCUS_ALARM_TONES].includes(preferences.focusStartTone) ? preferences.focusStartTone : 'off',
+      focusEndTone: FOCUS_ALARM_TONES.includes(preferences.focusEndTone) ? preferences.focusEndTone : 'chime',
+      breakEndTone: FOCUS_ALARM_TONES.includes(preferences.breakEndTone) ? preferences.breakEndTone : 'bell',
+      focusAlarmVolume: clampNumber(preferences.focusAlarmVolume, 0, 100, 60),
       theme: THEME_IDS.includes(preferences.theme) ? preferences.theme : getDefaultThemeForAge(value.age),
       ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
@@ -459,5 +468,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });
