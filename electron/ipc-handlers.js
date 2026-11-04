@@ -29,6 +29,21 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath }) {
     assertTrusted(event);
     return storage.save(snapshot);
   });
+
+  ipcMain.handle('oisym:storage:recovery:list', async event => {
+    assertTrusted(event);
+    return storage.recovery.listBackups();
+  });
+
+  ipcMain.handle('oisym:storage:recovery:overwrite', async event => {
+    assertTrusted(event);
+    return storage.recovery.overwriteWithFreshData();
+  });
+
+  ipcMain.handle('oisym:storage:recovery:restore', async (event, name) => {
+    assertTrusted(event);
+    return storage.recovery.restoreBackup(name);
+  });
 }
 
 module.exports = { isTrustedMainFrame, registerIpcHandlers };
