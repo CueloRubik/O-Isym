@@ -243,3 +243,24 @@ test('calendar date navigation handles leap days and year boundaries', () => {
   assert.equal(shiftDate('2026-12-31', 1), '2027-01-01');
   assert.equal(shiftDate('2027-01-01', -1), '2026-12-31');
 });
+
+
+test('profile visual preferences have safe defaults and normalize unknown values', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
+  const profile = createProfile('Personal');
+  assert.equal(profile.avatarId, 'initials');
+  assert.equal(profile.preferences.theme, 'classic');
+  assert.equal(profile.preferences.motionEnabled, true);
+  const normalized = normalizeProfile({ name: 'Antiguo', avatarId: 'unknown', preferences: { theme: 'neon', motionEnabled: false } });
+  assert.equal(normalized.avatarId, 'initials');
+  assert.equal(normalized.preferences.theme, 'classic');
+  assert.equal(normalized.preferences.motionEnabled, false);
+});
+
+test('profile normalization preserves supported visual customization', () => {
+  const { normalizeProfile } = require('../src/domain.js');
+  const profile = normalizeProfile({ name: 'Personalizado', avatarId: 'compass', preferences: { theme: 'sky', motionEnabled: false } });
+  assert.equal(profile.avatarId, 'compass');
+  assert.equal(profile.preferences.theme, 'sky');
+  assert.equal(profile.preferences.motionEnabled, false);
+});
