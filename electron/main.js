@@ -1,32 +1,52 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('node:path');
+
+const { createStorage } = require('./storage');
+const { registerIpcHandlers } = require('./ipc-handlers');
+
+const indexPath = path.join(__dirname, '..', 'index.html');
+const storage = createStorage(app.getPath('userData'));
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 950,
-    minHeight: 700,
+    minWidth: 900,
+    minHeight: 650,
     resizable: true,
+    show: false,
     webPreferences: {
-      // Se conserva la configuración actual durante esta reorganización.
-      // La migración a preload/contextIsolation se hará en una etapa separada.
-      nodeIntegration: true,
-      contextIsolation: false
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false
     }
   });
 
-  // index.html permanece en la raíz para conservar el origen de almacenamiento
-  // local que utiliza la versión original de O-Isym.
-  win.loadFile(path.join(__dirname, '..', 'index.html'));
+  win.once('ready-to-show', () => win.show());
+
+  // La aplicación es local: no permitir navegar a páginas externas ni abrir ventanas nuevas.
+  win.webContents.on('will-navigate', (event, destination) => {
+    if (destination !== require('node:url').pathToFileURL(indexPath).toString()) {
+      event.preventDefault();
+    }
+  });
+
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.loadFile(indexPath);
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath });
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
