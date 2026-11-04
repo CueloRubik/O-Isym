@@ -224,3 +224,13 @@ test('planner uses safe default working hours when saved preferences are invalid
   assert.equal(result.proposals[0].startTime, '09:00');
   assert.equal(result.workday.end, '17:00');
 });
+
+
+test('planner rejects impossible calendar dates without producing proposals', () => {
+  const { createProfile, createTask, analyzeSchedule } = require('../src/domain.js');
+  const profile = createProfile('Fecha imposible');
+  profile.tasks.push(createTask({ title: 'Tarea' }));
+  const result = analyzeSchedule(profile, '2026-02-30');
+  assert.equal(result.proposals.length, 0);
+  assert.equal(result.skipped.length, 0);
+});
