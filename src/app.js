@@ -485,12 +485,12 @@ function renderPlanner(main) {
 
 function renderFocus(main) {
   main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.'));
-  const isBreak = Boolean(state.profile.activeFocus?.isBreak);
   const focus = state.profile.activeFocus;
   const focusCard = card('focus-panel');
   const selectedTask = focus ? taskById(focus.taskId) : null;
-  const activity = selectedTask ? activityById(selectedTask.activityId) : null;
-  const suggestedMinutes = focus ? Math.round(focus.durationSeconds / 60) : getSuggestedFocusMinutes(state.profile, $('#focus-task')?.value || null);
+  const activity = activityById(focus ? focus.activityId : (selectedTask?.activityId || ''));
+  const selectedActivityId = focus ? (focus.activityId || '') : (selectedTask?.activityId || '');
+  const suggestedMinutes = focus ? Math.round(focus.durationSeconds / 60) : getSuggestedFocusMinutes(state.profile, $('#focus-task')?.value || null, $('#focus-activity')?.value || null);
   const duration = focus ? Math.round(focus.durationSeconds / 60) : suggestedMinutes;
   const remaining = focus ? getFocusRemainingSeconds(focus) : duration * 60;
   const display = element('div', 'focus-clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0'));
@@ -499,7 +499,11 @@ function renderFocus(main) {
   const taskSelect = select('taskId', [{ value: '', label: 'Sesión libre' }, ...state.profile.tasks.filter(task => task.status === 'pending').map(task => ({ value: task.id, label: task.title }))], focus ? focus.taskId || '' : '');
   taskSelect.id = 'focus-task';
   taskSelect.disabled = Boolean(focus);
-  focusCard.append(field('¿En qué te vas a concentrar?', taskSelect));
+  focusCard.append(field('Tarea (opcional)', taskSelect));
+  const activitySelectControl = select('activityId', [{ value: '', label: 'Sin actividad específica' }, ...state.profile.activities.filter(item => !item.archived).map(item => ({ value: item.id, label: item.name }))], selectedActivityId);
+  activitySelectControl.id = 'focus-activity';
+  activitySelectControl.disabled = Boolean(focus);
+  focusCard.append(field('Actividad', activitySelectControl));
   const durationInput = input('durationMinutes', 'Minutos', 'number', duration);
   durationInput.id = 'focus-duration';
   durationInput.min = '5'; durationInput.max = '180'; durationInput.step = '5';
@@ -811,6 +815,15 @@ function notifyFocusFinished(taskTitle, isBreak = false) {
     try { new Notification(title, { body }); } catch (error) {}
   }
 }
+function updateFocusDurationSuggestion() {
+  const taskId = $('#focus-task')?.value || null;
+  const activityId = $('#focus-activity')?.value || null;
+  const duration = $('#focus-duration');
+  if (duration) duration.value = getSuggestedFocusMinutes(state.profile, taskId, activityId);
+  const activity = activityById(activityId);
+  const hint = $('.focus-hint');
+  if (hint) hint.textContent = activity ? 'Duración sugerida de «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla solo para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
+}
 function refreshFocusClock() {
   const focus = state.profile?.activeFocus;
   if (!focus || focus.pausedAt) return;
@@ -963,8 +976,9 @@ root.addEventListener('click', async event => {
   if (action === 'focus-start' && !state.profile.activeFocus) {
     const taskId = $('#focus-task')?.value || null;
     const task = taskById(taskId);
-    const activity = task ? activityById(task.activityId) : null;
-    const requestedMinutes = clampNumber($('#focus-duration')?.value, 5, 180, getSuggestedFocusMinutes(state.profile, taskId));
+    const activityId = $('#focus-activity')?.value || (task ? task.activityId : null);
+    const activity = activityById(activityId);
+    const requestedMinutes = clampNumber($('#focus-duration')?.value, 5, 180, getSuggestedFocusMinutes(state.profile, taskId, activityId));
     if ($('#focus-duration') && (!$('#focus-duration').value || Number($('#focus-duration').value) < 5 || Number($('#focus-duration').value) > 180)) {
       return showToast('Elige una duración entre 5 y 180 minutos.', 'error');
     }
@@ -972,7 +986,7 @@ root.addEventListener('click', async event => {
     state.profile.preferences.focusNotifications = $('.focus-panel input[name="focusNotifications"]')?.checked !== false;
     await prepareFocusAlarm();
     const now = new Date().toISOString();
-    state.profile.activeFocus = { taskId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
+    state.profile.activeFocus = { taskId, activityId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
     await save(); updateShell();
   }
   if (action === 'focus-break' && !state.profile.activeFocus) {
@@ -1106,13 +1120,12 @@ root.addEventListener('change', event => {
     updateShell();
   }
   if (event.target.id === 'focus-task') {
-    const duration = $('#focus-duration');
-    if (duration) duration.value = getSuggestedFocusMinutes(state.profile, event.target.value || null);
-    const hint = $('.focus-hint');
     const task = taskById(event.target.value);
-    const activity = task ? activityById(task.activityId) : null;
-    if (hint) hint.textContent = activity ? 'Sugerencia de la actividad «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
+    const activityControl = $('#focus-activity');
+    if (activityControl) activityControl.value = task?.activityId || '';
+    updateFocusDurationSuggestion();
   }
+  if (event.target.id === 'focus-activity') updateFocusDurationSuggestion();
   if (event.target.name === 'focusSound' || event.target.name === 'focusNotifications') {
     state.profile.preferences[event.target.name] = event.target.checked;
     save();
