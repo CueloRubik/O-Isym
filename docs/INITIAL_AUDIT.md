@@ -1,64 +1,43 @@
 # Auditoría y registro de construcción
 
 Fecha: 2026-11-04  
-Rama: `oisym-5-development`
+Rama: \`oisym-5-development\`
 
-## Estado del prototipo heredado
+## Reconstrucción de la interfaz
 
-La interfaz que todavía se abre desde `index.html` pertenece al prototipo anterior. Se conserva temporalmente para no borrar ni cambiar de origen los datos que pudiera tener guardados en `localStorage`. No se utilizará como arquitectura del producto nuevo ni se ampliará con módulos nuevos.
+La interfaz nueva sustituye al prototipo anterior desde \`index.html\`. Los scripts antiguos de \`src/scripts/\` se conservan en el repositorio, pero ya no se ejecutan. El origen del documento se mantiene en la raíz para no perder acceso al localStorage anterior.
 
-Archivos heredados actualmente activos:
-- `index.html`
-- `src/scripts/app.js`
-- `src/scripts/calendar.js`
-- `src/scripts/planner.js`
-- `src/scripts/timer.js`
-- `src/scripts/settings.js`
-- `src/styles/styles.css`
+## Funciones incorporadas
 
-El archivo `legacy/renderer.js` sigue conservado como código antiguo no conectado al HTML principal.
+- Arquitectura renderer sin Node Integration, con preload limitado y almacenamiento JSON local.
+- Validación de perfiles y snapshots, escritura atómica y respaldos.
+- Perfiles independientes con preferencias y colecciones separadas.
+- Actividades reutilizables, tareas y estados.
+- Panel Hoy, calendario mensual y agenda diaria.
+- Propuestas de planificación que excluyen tareas bloqueadas.
+- Temporizador Focus con pausa y recuperación del estado activo.
+- Objetivos, Insights y sugerencias locales.
+- Exportación/importación JSON e importación opcional del prototipo.
+- Interfaz clara, luminosa, adaptable y sin dependencias de UI.
 
-## Paso 1 — Fundamentos técnicos
+## Pruebas
 
-### Implementado en esta rama
+Se añadieron pruebas para almacenamiento y dominio. No se afirma que estén ejecutadas en esta sesión: el entorno de edición de GitHub no proporciona un runtime Node local. Deben ejecutarse con \`npm test\`. La comprobación de ventana, IPC y compatibilidad final debe realizarse en el Mac con \`npm start\`.
 
-- `electron/main.js` ahora usa `preload.js`, desactiva Node Integration y activa Context Isolation y sandbox.
-- `electron/preload.js` expone únicamente dos operaciones específicas de almacenamiento; no expone `ipcRenderer` ni APIs generales de Electron.
-- `electron/ipc-handlers.js` valida que las solicitudes provengan del frame principal de la ventana local de O-Isym.
-- `electron/storage.js` crea un archivo JSON con esquema versionado dentro del directorio de datos de usuario de Electron.
-- El almacenamiento valida el esquema y el tamaño, escribe mediante archivo temporal y renombrado, crea copias de respaldo antes de reemplazar datos válidos y conserva hasta cinco respaldos.
-- Si encuentra un archivo dañado o incompatible, se niega a sobrescribirlo silenciosamente.
-- `package.json` incorpora `npm test` usando el módulo integrado `node:test`.
-- `tests/storage.test.js` cubre inicialización, guardado/lectura, creación de respaldo, rechazo de esquema desconocido y protección de archivos dañados.
-- README y roadmap actualizados para dejar claro que el prototipo no es la base del producto nuevo.
+## Riesgos y limitaciones conocidos
 
-### Límites deliberados de esta etapa
+- La planificación es una primera versión determinista por huecos de horario; todavía no es un optimizador avanzado.
+- El calendario actual es mensual y la agenda diaria; las vistas semanal y anual quedan para una iteración posterior.
+- El temporizador guarda la sesión activa, pero no puede garantizar precisión si el sistema suspende el proceso durante largos periodos.
+- El importador antiguo reconoce las claves de agenda \`acts_*\` y la paleta \`oisym_colors\`; conserva el localStorage original.
+- La importación de un backup reemplaza el conjunto de perfiles después de la confirmación y genera respaldo del archivo actual.
 
-- El almacenamiento nuevo está preparado, pero todavía no contiene perfiles ni datos de producción.
-- La interfaz heredada aún utiliza `localStorage`; la migración se hará en una etapa posterior con respaldo, vista previa y confirmación.
-- La vista heredada todavía contiene inserciones HTML dinámicas y manejadores inline. Por eso la Content Security Policy estricta se activará al sustituir/refactorizar esa vista, no antes de forma que rompa controles actuales.
-- La interfaz visual final todavía no se ha construido.
-- No se han añadido frameworks ni dependencias nuevas. Electron sigue fijado en 28.3.3.
+## Comprobación local pendiente
 
-## Validaciones
-
-- Revisión estática de las rutas de Electron, preload e IPC.
-- Pruebas automatizadas añadidas, pendientes de ejecución en el entorno del usuario.
-- No se pudo ejecutar el repositorio en este entorno de revisión; por tanto, no se afirma que `npm test` ni `npm start` hayan pasado aquí.
-- La validación manual en el Mac sigue pendiente.
-
-## Próxima comprobación manual
-
-En la carpeta del proyecto, ejecutar:
-
-```bash
+\`\`\`bash
 npm install
 npm test
 npm start
-```
+\`\`\`
 
-Comprobar que la ventana sigue abriendo y que calendario, planificador, temporizador y preferencias heredadas siguen funcionando. La seguridad nueva no debe alterar las funciones del renderer porque este ya no necesita acceso directo a Node.
-
-## Próximo paso de producto
-
-Después de validar esta base, el Paso 2 será diseñar e implementar el modelo de perfiles y preferencias sobre el almacenamiento nuevo. La importación de datos antiguos se hará antes de retirar la interfaz heredada o su `localStorage`.
+Revisar cambio de perfiles, cierre/reapertura, calendario, completar tareas, propuestas de planificación, temporizador, exportación y migración. No fusionar a \`main\` hasta validar estos flujos.

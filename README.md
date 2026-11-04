@@ -1,45 +1,43 @@
 # O-Isym 5
 
-Sistema personal de organización de la vida diaria. El desarrollo del producto nuevo se realiza en la rama `oisym-5-development`; la interfaz anterior se conserva temporalmente como prototipo heredado.
-
-## Requisitos
-
-- Node.js 18.x
-- npm 10.x
-- Electron 28.3.3 (se instala mediante npm)
+O-Isym es un espacio personal para organizar tareas, actividades, calendario, planificación y concentración. La construcción principal se realiza en \`oisym-5-development\`; \`main\` permanece separada.
 
 ## Instalar y ejecutar
 
-Desde la carpeta raíz del proyecto:
+Requisitos: Node.js 18.x, npm 10.x y Electron 28.3.3 (instalado con npm).
 
-```bash
+\`\`\`bash
 npm install
-npm start
-```
-
-No ejecutes `npm init -y`: el proyecto ya incluye su `package.json`.
-No actualices Electron a otra versión durante esta etapa.
-
-## Pruebas
-
-```bash
 npm test
-```
+npm start
+\`\`\`
 
-Las pruebas usan el módulo integrado `node:test`; no requieren dependencias adicionales.
+## Funciones implementadas en esta versión de desarrollo
 
-## Arquitectura en construcción
+- Perfiles independientes y preferencias por perfil.
+- Catálogo de actividades reutilizables.
+- Tareas con prioridad, fechas, duración, notas, estado y bloqueo.
+- Panel Hoy, calendario mensual y agenda diaria.
+- Planificador con propuestas de horarios; no modifica compromisos bloqueados.
+- Temporizador Focus con pausa, reanudación e historial persistente.
+- Objetivos con progreso e Insights semanales.
+- Recomendaciones locales, configurables y descartables.
+- Exportación e importación de copias JSON.
+- Importación opcional de registros del prototipo sin borrar el localStorage original.
 
-- `electron/main.js`: ventana y ciclo de vida de Electron.
-- `electron/preload.js`: API limitada que se expone a la interfaz.
-- `electron/ipc-handlers.js`: validación de solicitudes entre procesos.
-- `electron/storage.js`: almacenamiento JSON versionado, escritura atómica y respaldos.
-- `src/`: la nueva interfaz y los módulos se irán incorporando por etapas.
-- `tests/`: pruebas automatizadas.
-- `legacy/`: prototipo anterior, conservado como referencia.
+## Datos y seguridad
 
-Los datos nuevos se guardan en el directorio de datos de usuario de Electron, en el archivo `oisym-data.json`, con copias de seguridad en la carpeta `backups`. No se borran automáticamente los datos antiguos de `localStorage`; la importación se implementará después de definir y probar su migración.
+Los datos nuevos se guardan en el directorio de usuario de Electron, en \`oisym-data.json\`, con copias de seguridad rotativas. El renderer no tiene acceso directo a Node.js. El almacenamiento valida el esquema y protege archivos dañados. La aplicación no envía datos a servicios externos.
 
-## Estado
+La importación del prototipo es manual y no elimina sus claves antiguas. Exporta una copia antes de importar archivos externos.
 
-La capa técnica inicial está en construcción. La interfaz que se abre todavía es el prototipo anterior y no representa el diseño final de O-Isym 5. Consulta `docs/ROADMAP_OISYM_5.md` para el orden y los criterios de aceptación de cada etapa.
+## Desarrollo
+
+- \`electron/\`: proceso principal, preload, IPC y almacenamiento.
+- \`src/domain.js\`: modelos y reglas de dominio.
+- \`src/app.js\`: interfaz y flujos de aplicación.
+- \`src/styles/app.css\`: sistema visual.
+- \`tests/\`: pruebas automatizadas.
+- \`docs/ROADMAP_OISYM_5.md\`: plan y estado.
+
+Los archivos antiguos de \`src/scripts/\` se conservan como referencia y ya no se cargan desde la nueva interfaz.
