@@ -4,8 +4,10 @@
 })(typeof globalThis !== 'undefined' ? globalThis : window, function () {
 const SCHEMA_VERSION = 1;
 const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
-const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave'];
-const THEME_IDS = ['classic', 'warm', 'sky'];
+const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...Array.from({ length: 18 }, (_, index) => 'profile-' + (index + 1))];
+const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
+function getAgeBand(age) { const value=Number(age); if(!Number.isInteger(value)||value<1||value>120)return 'general'; if(value<=12)return 'child'; if(value<=17)return 'teen'; return 'adult'; }
+function getDefaultThemeForAge(age) { const band=getAgeBand(age); return band==='child'?'playful':band==='teen'?'sky':'classic'; }
 
 function makeId(prefix = 'id') {
   const random = Math.random().toString(36).slice(2, 10);
@@ -25,13 +27,14 @@ function shiftDate(dateKey, amount) {
   return localDate(date);
 }
 
-function createProfile(name, color = '#27856b') {
+function createProfile(name, color = '#27856b', age = null) {
   const now = new Date().toISOString();
   return {
     id: makeId('profile'),
     name: String(name).trim().slice(0, 60),
+    age: Number.isInteger(Number(age)) && Number(age)>=1 && Number(age)<=120 ? Number(age) : null,
     color,
-    avatarId: 'initials',
+    avatarId: 'profile-1',
     createdAt: now,
     updatedAt: now,
     preferences: {
@@ -41,7 +44,8 @@ function createProfile(name, color = '#27856b') {
       breakMinutes: 5,
       focusSound: true,
       focusNotifications: true,
-      theme: 'classic',
+      theme: getDefaultThemeForAge(age),
+      ageBand: getAgeBand(age),
       motionEnabled: true,
       workingDayStart: '09:00',
       workingDayEnd: '17:00'
@@ -64,6 +68,7 @@ function normalizeProfile(profile) {
     ...value,
     id: typeof value.id === 'string' && value.id ? value.id : base.id,
     name: typeof value.name === 'string' && value.name.trim() ? value.name.trim().slice(0, 60) : base.name,
+    age: Number.isInteger(Number(value.age)) && Number(value.age)>=1 && Number(value.age)<=120 ? Number(value.age) : null,
     color: /^#[0-9a-f]{6}$/i.test(value.color || '') ? value.color : base.color,
     avatarId: AVATAR_IDS.includes(value.avatarId) ? value.avatarId : 'initials',
     preferences: {
@@ -74,7 +79,8 @@ function normalizeProfile(profile) {
       breakMinutes: clampNumber(preferences.breakMinutes, 1, 60, 5),
       focusSound: preferences.focusSound !== false,
       focusNotifications: preferences.focusNotifications !== false,
-      theme: THEME_IDS.includes(preferences.theme) ? preferences.theme : 'classic',
+      theme: THEME_IDS.includes(preferences.theme) ? preferences.theme : getDefaultThemeForAge(value.age),
+      ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
     },
     activities: Array.isArray(value.activities) ? value.activities : [],
@@ -453,5 +459,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, makeId, localDate, shiftDate, createProfile, normalizeProfile, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });
