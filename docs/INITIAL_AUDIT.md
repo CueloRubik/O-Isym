@@ -3,41 +3,73 @@
 Fecha: 2026-11-04  
 Rama: `oisym-5-development`
 
-## Alcance
+## Estado de la estructura
 
-Revisión estática de la estructura del repositorio y de las rutas de arranque. No se ha ejecutado la aplicación en el Mac del usuario; por tanto, esta auditoría no afirma que el arranque esté probado en ese entorno.
+La aplicación está organizada de esta manera:
+
+```text
+O-Isym/
+├── electron/
+│   └── main.js
+├── src/
+│   ├── scripts/
+│   │   ├── app.js
+│   │   ├── calendar.js
+│   │   ├── planner.js
+│   │   ├── timer.js
+│   │   └── settings.js
+│   └── styles/
+│       └── styles.css
+├── docs/
+├── legacy/
+│   └── renderer.js
+├── index.html
+├── package.json
+└── .gitignore
+```
 
 ## Hallazgos confirmados
 
-1. `package.json` declara `main.js` como entrada de Electron.
-2. `main.js` intentaba cargar `src/index.html`, pero el HTML existente está en la raíz.
-3. El HTML cargaba cinco scripts desde `js/`, pero los cinco archivos existentes están en la raíz.
-4. `styles.css` ya estaba referenciado desde la raíz y también existe allí.
-5. `renderer.js` existe, pero no aparece referenciado por el HTML principal actual. Debe tratarse como posible código antiguo hasta rastrear sus dependencias; no borrarlo todavía.
-6. No existen actualmente las carpetas `src/` ni `js/` en la raíz del repositorio.
+1. Electron inicia desde `electron/main.js`, según el campo `main` de `package.json`.
+2. `electron/main.js` carga el `index.html` de la raíz.
+3. El HTML carga la hoja de estilos y los cinco scripts desde sus nuevas ubicaciones en `src/`.
+4. `legacy/renderer.js` se conserva como código antiguo no referenciado por el HTML actual; no se elimina hasta revisar si contiene lógica recuperable.
+5. Electron permanece fijado en la versión `28.3.3`, sin añadir dependencias.
+6. `index.html` permanece en la raíz para no cambiar innecesariamente el origen del almacenamiento local usado por la versión anterior.
 
-## Correcciones mínimas aplicadas en esta rama
+## Primera corrección funcional
 
-- `main.js`: ahora carga `index.html` desde la raíz.
-- `index.html`: ahora carga `app.js`, `calendar.js`, `planner.js`, `timer.js` y `settings.js` desde la raíz.
+Se corrigió el calendario mensual:
 
-No se han cambiado las reglas de negocio ni el diseño de la interfaz.
+- Los días ahora aparecen bajo el día de la semana correcto, con celdas vacías antes del día 1.
+- La navegación entre meses construye cada fecha desde el día 1, evitando saltos de mes cuando se navega desde meses con distinta cantidad de días.
+- Las celdas de día pueden abrirse con ratón o teclado.
+- El número del día y el rendimiento se insertan como texto, no como HTML.
+
+La corrección conserva las claves de rendimiento existentes (`score_YYYY-MM-DD`) y la acción de abrir el planificador para cada fecha.
+
+## Validaciones realizadas
+
+- Revisión estática de las rutas entre `package.json`, Electron, HTML, scripts y CSS.
+- Revisión de sintaxis JavaScript del cambio del calendario.
+- Confirmación de que la rama de trabajo es `oisym-5-development`; `main` no se modifica.
 
 ## Pendiente de validar localmente
 
-- Ejecutar `npm start` en el entorno del usuario y confirmar que Electron abre la ventana.
-- Comprobar consola de DevTools y errores de carga de recursos.
-- Probar navegación, calendario, alta y finalización de actividades, temporizador y preferencias de color.
-- Verificar persistencia tras cerrar y volver a abrir la aplicación.
-- Revisar compatibilidad con la versión concreta de macOS y la instalación local de dependencias.
+La aplicación todavía no se ha ejecutado en el Mac del usuario. Antes de migrar almacenamiento o seguridad, hace falta confirmar:
+
+- Que `npm install` termina correctamente.
+- Que `npm start` abre la ventana de Electron.
+- Que el calendario, el planificador, el temporizador y los colores funcionan.
+- Que las actividades y preferencias siguen presentes después de cerrar y volver a abrir la app.
 
 ## Riesgos técnicos para las siguientes etapas
 
-- La ventana de Electron mantiene actualmente `nodeIntegration: true` y `contextIsolation: false`. No cambiar esta configuración hasta introducir y probar una capa `preload`/IPC que reemplace los accesos existentes.
-- La lógica usa `localStorage`; antes de migrarla hay que definir cómo preservar los datos actuales.
-- Algunas vistas insertan texto de actividades en HTML. Al refactorizar, usar APIs DOM seguras como `textContent` y validar entradas.
-- El temporizador debe evolucionar a medición basada en marcas de tiempo para tolerar suspensión del equipo y cierre de la ventana.
+- La ventana aún usa `nodeIntegration: true` y `contextIsolation: false`. No cambiar estos valores hasta implementar y probar una capa `preload`/IPC que reemplace los accesos existentes.
+- La aplicación usa `localStorage`. Antes de migrarlo hay que preservar los datos ya guardados.
+- El planificador todavía inserta algunos valores del usuario mediante plantillas HTML; debe migrarse a creación segura de nodos y `textContent`.
+- El temporizador actual depende de `setInterval`; deberá evolucionar a cálculo basado en marcas de tiempo para tolerar suspensión o cierre de la ventana.
 
 ## Estado
 
-**Auditoría estática inicial completada; prueba de ejecución pendiente.** No iniciar la migración de arquitectura hasta comprobar el arranque y las funciones actuales en el Mac.
+**Reorganización y primera corrección de calendario completadas mediante revisión estática. Prueba de ejecución en el Mac pendiente.** No se afirma que la aplicación completa esté probada en tiempo de ejecución.
