@@ -73,11 +73,11 @@ app.whenReady().then(() => {
     });
   } catch (error) {
     reportStartupError('Error al iniciar O-Isym', error);
-    dialog.showErrorBox('O-Isym no pudo iniciarse', (error.stack || error.message) + '\\n\\nTus archivos de datos no se han borrado.');
+    dialog.showErrorBox('O-Isym no pudo iniciarse', (error.stack || error.message) + '\n\nTus archivos de datos no se han borrado.');
   }
 }).catch(error => {
   reportStartupError('Electron no pudo estar listo', error);
-  dialog.showErrorBox('O-Isym no pudo iniciarse', (error.stack || error.message) + '\\n\\nTus archivos de datos no se han borrado.');
+  dialog.showErrorBox('O-Isym no pudo iniciarse', (error.stack || error.message) + '\n\nTus archivos de datos no se han borrado.');
 });
 
 app.on('window-all-closed', () => {
