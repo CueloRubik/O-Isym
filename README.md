@@ -1,45 +1,50 @@
 # O-Isym 5
 
-O-Isym es un sistema personal de organización: actividades, tareas, calendario, enfoque y objetivos.
+Sistema personal de organización y planificación.
 
 ## Requisitos
 
 - Node.js 18.x
 - npm 10.x
-- Electron 28.3.3 (se instala automáticamente con npm)
+- Electron 28.3.3 (se instala mediante npm)
 
-## Preparar el proyecto
+## Instalar y ejecutar
 
-1. Descarga el ZIP de la rama `oisym-5-development` o clona esa rama.
-2. Abre la carpeta del proyecto en Terminal o VS Code.
-3. Ejecuta:
+Desde la carpeta raíz del proyecto:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+npm start
+```
 
-4. Inicia la aplicación:
+No ejecutes `npm init -y`: el proyecto ya incluye su `package.json`.
+No instales otra versión de Electron: está fijada en 28.3.3.
 
-   ```bash
-   npm start
-   ```
+## Estructura
 
-No ejecutes `npm init -y`: el proyecto ya incluye su propio `package.json`.
-Tampoco es necesario instalar Electron por separado: `npm install` instala la versión exacta declarada por el proyecto.
+```text
+O-Isym/
+├── electron/
+│   └── main.js
+├── src/
+│   ├── scripts/
+│   │   ├── app.js
+│   │   ├── calendar.js
+│   │   ├── planner.js
+│   │   ├── timer.js
+│   │   └── settings.js
+│   └── styles/
+│       └── styles.css
+├── docs/
+│   ├── INITIAL_AUDIT.md
+│   └── ROADMAP_OISYM_5.md
+├── legacy/
+│   └── renderer.js
+├── index.html
+├── package.json
+└── .gitignore
+```
 
-## Estructura actual
+`index.html` se mantiene en la raíz deliberadamente: así evitamos cambiar innecesariamente la ubicación del documento principal mientras la aplicación todavía guarda preferencias y datos con `localStorage`. El renderer antiguo se conserva en `legacy/` porque no está conectado al HTML actual; no se ejecuta.
 
-La reorganización se está haciendo por etapas para no romper las funciones existentes ni perder datos guardados localmente.
-
-- `main.js`: proceso principal de Electron.
-- `index.html`, `styles.css`: interfaz actual.
-- `app.js`, `calendar.js`, `planner.js`, `timer.js`, `settings.js`: módulos actuales de la interfaz.
-- `docs/`: auditoría y hoja de ruta.
-
-## Compatibilidad
-
-La versión de Electron está fijada en **28.3.3**. No actualizar Electron sin comprobar antes la compatibilidad con el equipo de desarrollo.
-
-## Estado
-
-Proyecto en desarrollo. La rama `oisym-5-development` es la rama de trabajo; `main` se conserva como versión principal.
+La configuración de seguridad de Electron y la migración del almacenamiento se harán en etapas posteriores, no como parte de este simple movimiento de archivos.
