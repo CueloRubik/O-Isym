@@ -143,3 +143,10 @@ test('focus preferences default to enabled but can be disabled safely', () => {
   assert.equal(normalized.preferences.focusSound, false);
   assert.equal(normalized.preferences.focusNotifications, false);
 });
+
+
+test('active Focus recovery preserves whether the timer is a break', () => {
+  const { normalizeActiveFocus } = require('../src/domain.js');
+  const restored = normalizeActiveFocus({ isBreak: true, startedAt: '2026-11-04T10:00:00.000Z', durationSeconds: 300 });
+  assert.equal(restored.isBreak, true);
+});
