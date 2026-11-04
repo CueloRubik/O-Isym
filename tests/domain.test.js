@@ -131,6 +131,7 @@ test('focus duration follows the selected task activity, with profile preference
   const task = createTask({ title: 'Practicar piano', activityId: activity.id });
   profile.tasks.push(task);
   assert.equal(getSuggestedFocusMinutes(profile, task.id), 50);
+  assert.equal(getSuggestedFocusMinutes(profile, null, activity.id), 50);
   assert.equal(getSuggestedFocusMinutes(profile, null), 35);
 });
 
@@ -147,6 +148,8 @@ test('focus preferences default to enabled but can be disabled safely', () => {
 
 test('active Focus recovery preserves whether the timer is a break', () => {
   const { normalizeActiveFocus } = require('../src/domain.js');
-  const restored = normalizeActiveFocus({ isBreak: true, startedAt: '2026-11-04T10:00:00.000Z', durationSeconds: 300 });
+  const restored = normalizeActiveFocus({ isBreak: true, activityId: 'activity-1', activityTitle: 'Piano', startedAt: '2026-11-04T10:00:00.000Z', durationSeconds: 300 });
   assert.equal(restored.isBreak, true);
+  assert.equal(restored.activityId, 'activity-1');
+  assert.equal(restored.activityTitle, 'Piano');
 });
