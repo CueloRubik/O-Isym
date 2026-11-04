@@ -234,3 +234,12 @@ test('planner rejects impossible calendar dates without producing proposals', ()
   assert.equal(result.proposals.length, 0);
   assert.equal(result.skipped.length, 0);
 });
+
+
+test('calendar date navigation handles leap days and year boundaries', () => {
+  const { shiftDate } = require('../src/domain.js');
+  assert.equal(shiftDate('2024-02-28', 1), '2024-02-29');
+  assert.equal(shiftDate('2024-02-29', 1), '2024-03-01');
+  assert.equal(shiftDate('2026-12-31', 1), '2027-01-01');
+  assert.equal(shiftDate('2027-01-01', -1), '2026-12-31');
+});
