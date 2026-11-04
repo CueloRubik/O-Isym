@@ -75,3 +75,43 @@ test('protege un archivo existente si está dañado', async t => {
 
   assert.equal(await fs.readFile(storage.storePath, 'utf8'), '{datos incompletos');
 });
+
+
+test('guarda una copia exacta del archivo dañado antes de sobrescribirlo', async t => {
+  const { storage } = await makeTemporaryStorage(t);
+  const damaged = '{datos incompletos y valiosos';
+  await fs.writeFile(storage.storePath, damaged, 'utf8');
+
+  const result = await storage.recovery.overwriteWithFreshData();
+  assert.ok(result.backupName);
+  assert.equal(await fs.readFile(path.join(storage.backupsPath, result.backupName), 'utf8'), damaged);
+
+  const fresh = await storage.read();
+  assert.equal(fresh.schemaVersion, 1);
+  assert.deepEqual(fresh.profiles, []);
+});
+
+test('restaura una copia válida y conserva el archivo que estaba activo', async t => {
+  const { storage } = await makeTemporaryStorage(t);
+  const initial = await storage.read();
+  await storage.save({
+    ...initial,
+    profiles: [{ id: 'profile-old', name: 'Perfil recuperable' }],
+    activeProfileId: 'profile-old'
+  });
+  const backups = await storage.recovery.listBackups();
+  assert.equal(backups.length, 1);
+
+  await fs.writeFile(storage.storePath, '{archivo roto', 'utf8');
+  const restored = await storage.recovery.restoreBackup(backups[0].name);
+
+  const current = await storage.read();
+  assert.equal(current.profiles[0].name, 'Perfil recuperable');
+  assert.ok(restored.emergencyBackup);
+  assert.equal(await fs.readFile(path.join(storage.backupsPath, restored.emergencyBackup), 'utf8'), '{archivo roto');
+});
+
+test('no permite restaurar rutas fuera de la carpeta de copias', async t => {
+  const { storage } = await makeTemporaryStorage(t);
+  await assert.rejects(storage.recovery.restoreBackup('../oisym-data-secret.json'), /nombre de la copia/);
+});
