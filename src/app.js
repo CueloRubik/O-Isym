@@ -119,6 +119,13 @@ const goalById = id => state.profile.goals.find(goal => goal.id === id);
 const priorityLabel = value => ({ high: 'Alta', medium: 'Media', low: 'Baja' }[value] || 'Media');
 const priorityClass = value => 'priority-' + (value || 'medium');
 const avatarMark = (profile) => ({ leaf: '❧', book: '▤', compass: '⌖', spark: '✳', wave: '≈' }[profile.avatarId] || String(profile.name || 'O').trim().charAt(0).toUpperCase() || 'O');
+const updateProfilePreview = form => {
+  const preview = $('.profile-avatar-preview', form);
+  if (!preview) return;
+  preview.textContent = avatarMark({ avatarId: $('select[name="avatarId"]', form)?.value, name: $('input[name="name"]', form)?.value || 'O' });
+  const color = $('input[name="color"]', form)?.value;
+  if (/^#[0-9a-f]{6}$/i.test(color || '')) { preview.style.backgroundColor = color; preview.style.color = '#ffffff'; }
+};
 
 function buildShell() {
   root.replaceChildren();
@@ -1024,13 +1031,13 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { event.target.remove(); return; }
+  if (event.target.matches('[data-profile-modal]')) { event.target.remove(); $('.profile-add')?.focus(); return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
   const id = target.dataset.id;
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
-  if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
+  if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
   if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
   if (action === 'new-profile') {
     if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de perfiles.', 'error');
@@ -1054,7 +1061,7 @@ root.addEventListener('click', async event => {
     const previewRow = element('div', 'profile-avatar-preview-row');
     const preview = element('div', 'profile-avatar profile-avatar-preview', 'O');
     preview.setAttribute('aria-hidden', 'true');
-    previewRow.append(preview, element('span', 'muted', 'Vista previa del avatar'));
+    previewRow.append(preview, element('span', 'muted', 'Vista previa del avatar y su color'));
     form.append(previewRow);
     form.append(field('Estilo visual', select('theme', [
       { value: 'classic', label: 'Clásico — limpio y equilibrado' },
@@ -1068,6 +1075,7 @@ root.addEventListener('click', async event => {
     dialog.append(form);
     overlay.append(dialog);
     root.append(overlay);
+    updateProfilePreview(form);
     const nameInput = $('input[name="name"]', form);
     if (nameInput) nameInput.focus();
   }
@@ -1330,8 +1338,16 @@ document.addEventListener('keydown', event => {
   if (profileModal && event.key === 'Escape') {
     event.preventDefault();
     profileModal.remove();
-    const trigger = $('.profile-add');
-    if (trigger) trigger.focus();
+    $('.profile-add')?.focus();
+    return;
+  }
+  if (profileModal && event.key === 'Tab') {
+    const focusable = $('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])', profileModal);
+    if (focusable.length) {
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
     return;
   }
   if (!state.profile || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
@@ -1391,11 +1407,11 @@ root.addEventListener('submit', event => {
   event.preventDefault();
   handleSubmit(form);
 });
+root.addEventListener('input', event => {
+  if ((event.target.name === 'name' || event.target.name === 'color') && event.target.closest('[data-profile-modal]')) updateProfilePreview(event.target.closest('form'));
+});
 root.addEventListener('change', event => {
-  if (event.target.name === 'avatarId' && event.target.closest('[data-profile-modal]')) {
-    const preview = $('.profile-avatar-preview');
-    if (preview) preview.textContent = avatarMark({ avatarId: event.target.value, name: $('input[name="name"]')?.value || 'O' });
-  }
+  if ((event.target.name === 'avatarId' || event.target.name === 'color') && event.target.closest('[data-profile-modal]')) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
     if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(updateShell); }
