@@ -26,18 +26,18 @@ O-Isym es un sistema personal para organizar el día, las tareas, las actividade
 | Etapa | Alcance | Estado |
 |---|---|---|
 | 0 | Inventario y conservación del prototipo | Completado |
-| 1 | Seguridad Electron y almacenamiento | CI aprobada; validación manual en Mac pendiente |
+| 1 | Seguridad Electron y almacenamiento | Implementado; inicio confirmado manualmente en macOS por el usuario; falta validar recuperación y escenarios de error |
 | 2 | Modelo de dominio y perfiles | Implementado; edición de actividades y objetivos añadida |
 | 3 | Sistema visual y navegación | Implementado en esta versión |
 | 4 | Catálogo de actividades | Implementado en esta versión |
-| 5 | Tareas y captura rápida | Mejorado: edición completa, búsqueda y validación de fechas/horas |
+| 5 | Tareas y captura rápida | Implementado: edición, búsqueda, filtros y validación de fechas/horas; falta recorrido manual completo |
 | 6 | Panel Hoy | Implementado en esta versión |
 | 7 | Calendario y agenda | Vista mensual y semanal; selección de día y acceso rápido a tareas |
 | 8 | Planificador | Planificador 2.0: huecos reales, fechas límite, prioridades, explicaciones y vista previa segura |
 | 9 | Focus | Duración por sesión y actividad, alarma configurable, aviso del sistema, resumen diario y recuperación al reabrir |
 | 10 | Objetivos e Insights | Implementación inicial |
 | 11 | Recomendaciones y autonomía | Implementación inicial; reglas locales explicables |
-| 12 | Calidad, accesibilidad y publicación | Atajos y navegación accesible implementados; faltan validación manual en Mac, integración y empaquetado |
+| 12 | Calidad, accesibilidad y publicación | Atajos, adaptación a ventanas estrechas y navegación accesible implementados; faltan pruebas de integración, validación manual y empaquetado |
 | 13 | Identidad visual personalizable | Primera entrega: avatar, tres temas claros y reducción de movimiento por perfil; selector visual más completo y prueba de creación de perfiles pendientes |
 
 ## Modelo principal
@@ -107,7 +107,7 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 - Enlace para saltar directamente al contenido principal.
 - Navegación identifica la sección actual mediante aria-current.
 - Diálogo de perfil cerrable con Escape o al pulsar fuera, con vista previa del avatar.
-- La interfaz ya no impone un ancho mínimo global de 780 px: sidebar, navegación, formularios y calendario se adaptan a ventanas estrechas.
+- La interfaz se adapta a ventanas estrechas: sidebar, navegación, formularios y calendario responden a los breakpoints; Electron permite reducir la ventana hasta 360 px de ancho y 560 px de alto.
 - Preferencia del sistema para reducir movimiento respetada en CSS.
 
 
