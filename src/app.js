@@ -184,11 +184,12 @@ function addTaskForm(parent, defaults = {}) {
   form.append(element('h3', '', 'Añadir tarea'));
   form.append(field('¿Qué necesitas hacer?', input('title', 'Ej. Leer 20 páginas')));
   const row = element('div', 'form-grid');
-  row.append(field('Fecha', input('scheduledDate', '', 'date', defaults.scheduledDate || state.selectedDate)));
+  row.append(field('Programar para (opcional)', input('scheduledDate', '', 'date', defaults.scheduledDate || '')));
   row.append(field('Prioridad', select('priority', [
     { value: 'low', label: 'Baja' }, { value: 'medium', label: 'Media' }, { value: 'high', label: 'Alta' }
   ], defaults.priority || 'medium')));
   form.append(row);
+  form.append(field('Fecha límite (opcional)', input('dueDate', '', 'date', defaults.dueDate || '')));
   const row2 = element('div', 'form-grid');
   row2.append(field('Duración estimada (min)', input('estimatedMinutes', '30', 'number', defaults.estimatedMinutes || 30)));
   row2.append(field('Vincular actividad', activitySelect('activityId', defaults.activityId || '')));
@@ -240,7 +241,7 @@ function renderTaskList(parent, tasks, options = {}) {
 
 function renderToday(main) {
   const date = localDate();
-  const tasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === date || (!task.scheduledDate && task.dueDate === date)));
+  const tasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === date || !task.scheduledDate || task.dueDate === date));
   const overdue = state.profile.tasks.filter(task => task.status === 'pending' && task.dueDate && task.dueDate < date);
   const done = state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && task.completedAt.slice(0, 10) === date);
   const hero = card('welcome-card');
@@ -401,6 +402,11 @@ function renderPlanner(main) {
   agenda.append(heading('Agenda', scheduled.length + ' elementos programados'));
   renderTaskList(agenda, scheduled, { emptyTitle: 'No hay bloques programados', emptyDetail: 'Puedes asignar fecha y horario a una tarea.' });
   main.append(agenda);
+  const unscheduled = card();
+  const waiting = state.profile.tasks.filter(task => task.status === 'pending' && !task.scheduledDate);
+  unscheduled.append(heading('Por organizar', waiting.length + ' tareas sin horario asignado'));
+  renderTaskList(unscheduled, waiting, { emptyTitle: 'Todo tiene un día asignado', emptyDetail: 'No hay tareas pendientes de organizar.' });
+  main.append(unscheduled);
   const add = element('form', 'form-card');
   add.dataset.form = 'planner-task';
   add.append(element('h3', '', 'Reservar un bloque'));
@@ -540,7 +546,11 @@ function renderSettings(main) {
   const row = element('div', 'form-grid');
   row.append(field('Minutos de enfoque', input('focusMinutes', '', 'number', state.profile.preferences.focusMinutes)));
   row.append(field('Minutos de descanso', input('breakMinutes', '', 'number', state.profile.preferences.breakMinutes)));
-  profileForm.append(row, button('Guardar preferencias', 'submit-form', 'button primary'));
+  profileForm.append(row);
+  const hours = element('div', 'form-grid');
+  hours.append(field('Inicio habitual', input('workingDayStart', '', 'time', state.profile.preferences.workingDayStart || '09:00')));
+  hours.append(field('Fin habitual', input('workingDayEnd', '', 'time', state.profile.preferences.workingDayEnd || '17:00')));
+  profileForm.append(hours, button('Guardar preferencias', 'submit-form', 'button primary'));
   main.append(profileForm);
 
   const dataCard = card();
@@ -620,6 +630,12 @@ async function handleSubmit(form) {
       state.profile.preferences.autonomy = data.autonomy;
       state.profile.preferences.focusMinutes = clampNumber(data.focusMinutes, 5, 180, 25);
       state.profile.preferences.breakMinutes = clampNumber(data.breakMinutes, 1, 60, 5);
+      if (data.workingDayStart && data.workingDayEnd && data.workingDayEnd > data.workingDayStart) {
+        state.profile.preferences.workingDayStart = data.workingDayStart;
+        state.profile.preferences.workingDayEnd = data.workingDayEnd;
+      } else {
+        throw new Error('El horario habitual debe terminar después de comenzar.');
+      }
       await save();
       showToast('Preferencias guardadas.');
     }
