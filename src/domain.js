@@ -312,7 +312,7 @@ function getRecommendations(profile, today = localDate()) {
 function analyzeSchedule(profile, dateKey) {
   const preferences = profile && profile.preferences ? profile.preferences : {};
   const parseTime = value => {
-    if (typeof value !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(value)) return null;
+    if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
     const parts = value.split(':').map(Number);
     return parts[0] * 60 + parts[1];
   };
@@ -321,7 +321,7 @@ function analyzeSchedule(profile, dateKey) {
   const requestedEnd = parseTime(preferences.workingDayEnd);
   const fromMinutes = requestedStart === null ? 540 : requestedStart;
   const untilMinutes = requestedEnd === null || requestedEnd <= fromMinutes ? 1020 : requestedEnd;
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateKey || ''))) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || ''))) {
     return { date: dateKey, workday: { start: formatTime(fromMinutes), end: formatTime(untilMinutes) }, proposals: [], skipped: [], availableMinutes: untilMinutes - fromMinutes };
   }
   const tasks = Array.isArray(profile.tasks) ? profile.tasks : [];
