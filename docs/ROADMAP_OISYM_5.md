@@ -109,3 +109,14 @@ Una función no se considera validada hasta comprobar su flujo completo, persist
 - Diálogo de perfil cerrable con Escape o al pulsar fuera, con vista previa del avatar.
 - La interfaz ya no impone un ancho mínimo global de 780 px: sidebar, navegación, formularios y calendario se adaptan a ventanas estrechas.
 - Preferencia del sistema para reducir movimiento respetada en CSS.
+
+
+## Avance: perfiles personalizados por edad y avatares
+- Creación guiada en tres pasos: nombre y edad, selección de foto, y estilo visual.
+- Edad almacenada como número de años; no se solicita ni guarda fecha de nacimiento.
+- Experiencia inicial diferenciada para infancia (1–12), adolescencia (13–17) y adultez (18+), sin bloquear funciones ni opciones.
+- Sugerencias de actividades ajustadas al grupo de edad; siempre son opcionales y editables.
+- Galería con los 18 PNG `profile(1).png` a `profile(18).png`, visible al crear y editar perfiles.
+- Los perfiles existentes pueden definir o cambiar su edad, avatar, tema y color desde Ajustes.
+- Compatibilidad con perfiles anteriores y avatares simbólicos antiguos.
+- Pendiente: comprobación visual y de persistencia en macOS; revisar el flujo completo con varios perfiles antes de fusionar.
