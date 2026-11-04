@@ -1,6 +1,6 @@
 const {
-  createProfile, normalizeProfile, createActivity, createTask, updateTask,
-  createGoal, localDate, shiftDate, getRecommendations, suggestSchedule,
+  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
+  createGoal, updateGoal, localDate, shiftDate, getRecommendations, suggestSchedule,
   validateSnapshot, clampNumber
 } = window.OIsymDomain;
 
@@ -13,7 +13,9 @@ const state = {
   calendarDate: new Date(),
   focusTick: null,
   toastTimer: null,
-  editingTaskId: null
+  editingTaskId: null,
+  editingActivityId: null,
+  editingGoalId: null
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -107,6 +109,7 @@ const showToast = (message, type = 'success') => {
 const formData = form => Object.fromEntries(new FormData(form).entries());
 const taskById = id => state.profile.tasks.find(task => task.id === id);
 const activityById = id => state.profile.activities.find(activity => activity.id === id);
+const goalById = id => state.profile.goals.find(goal => goal.id === id);
 const priorityLabel = value => ({ high: 'Alta', medium: 'Media', low: 'Baja' }[value] || 'Media');
 const priorityClass = value => 'priority-' + (value || 'medium');
 
@@ -346,16 +349,18 @@ function renderTasks(main) {
 
 function renderActivities(main) {
   main.append(heading('Actividades', 'Crea plantillas reutilizables para las cosas que haces.'));
+  const editing = state.editingActivityId ? activityById(state.editingActivityId) : null;
   const form = element('form', 'form-card');
-  form.dataset.form = 'activity';
-  form.append(element('h3', '', 'Nueva actividad'));
+  form.dataset.form = editing ? 'activity-edit' : 'activity';
+  form.append(element('h3', '', editing ? 'Editar actividad' : 'Nueva actividad'));
   const grid = element('div', 'form-grid');
-  grid.append(field('Nombre', input('name', 'Ej. Lectura')), field('Categoría', input('category', 'Personal, estudio, salud…')));
+  grid.append(field('Nombre', input('name', 'Ej. Lectura', 'text', editing?.name || '')), field('Categoría', input('category', 'Personal, estudio, salud…', 'text', editing?.category || '')));
   form.append(grid);
-  form.append(field('Descripción', textarea('description', '¿En qué consiste?')));
+  form.append(field('Descripción', textarea('description', '¿En qué consiste?', editing?.description || '')));
   const row = element('div', 'form-grid');
-  row.append(field('Duración orientativa (min)', input('durationMinutes', '30', 'number', 30)), field('Frecuencia', input('frequency', 'Ej. Tres veces por semana')));
-  form.append(row, button('Crear actividad', 'submit-form', 'button primary'));
+  row.append(field('Duración orientativa (min)', input('durationMinutes', '30', 'number', editing?.durationMinutes || 30)), field('Frecuencia', input('frequency', 'Ej. Tres veces por semana', 'text', editing?.frequency || '')));
+  form.append(row, button(editing ? 'Guardar cambios' : 'Crear actividad', 'submit-form', 'button primary'));
+  if (editing) form.append(button('Cancelar', 'cancel-edit-activity', 'button secondary'));
   main.append(form);
   const list = card();
   list.append(heading('Tu catálogo', state.profile.activities.length + ' actividades'));
@@ -366,7 +371,7 @@ function renderActivities(main) {
     const detail = element('div', '');
     detail.append(element('strong', '', activity.name), element('p', 'muted', activity.category + ' · ' + activity.durationMinutes + ' min · ' + activity.frequency));
     if (activity.description) detail.append(element('p', 'muted', activity.description));
-    rowItem.append(detail, button('Crear tarea', 'task-from-activity', 'button secondary small', { id: activity.id }), button('Archivar', 'archive-activity', 'text-button', { id: activity.id }));
+    rowItem.append(detail, button('Editar', 'edit-activity', 'button secondary small', { id: activity.id }), button('Crear tarea', 'task-from-activity', 'button secondary small', { id: activity.id }), button('Archivar', 'archive-activity', 'text-button', { id: activity.id }));
     list.append(rowItem);
   });
   main.append(list);
@@ -485,14 +490,16 @@ function renderFocus(main) {
 
 function renderGoals(main) {
   main.append(heading('Objetivos', 'Avanza poco a poco y revisa lo que importa.'));
+  const editing = state.editingGoalId ? goalById(state.editingGoalId) : null;
   const form = element('form', 'form-card');
-  form.dataset.form = 'goal';
-  form.append(element('h3', '', 'Nuevo objetivo'));
-  form.append(field('Nombre', input('title', 'Ej. Practicar guitarra')));
-  form.append(field('Descripción', textarea('description', '¿Qué quieres conseguir?')));
+  form.dataset.form = editing ? 'goal-edit' : 'goal';
+  form.append(element('h3', '', editing ? 'Editar objetivo' : 'Nuevo objetivo'));
+  form.append(field('Nombre', input('title', 'Ej. Practicar guitarra', 'text', editing?.title || '')));
+  form.append(field('Descripción', textarea('description', '¿Qué quieres conseguir?', editing?.description || '')));
   const row = element('div', 'form-grid');
-  row.append(field('Meta numérica', input('target', '10', 'number', 10)), field('Unidad', input('unit', 'sesiones')));
-  form.append(row, field('Fecha objetivo (opcional)', input('dueDate', '', 'date')), button('Crear objetivo', 'submit-form', 'button primary'));
+  row.append(field('Meta numérica', input('target', '10', 'number', editing?.target || 10)), field('Unidad', input('unit', 'sesiones', 'text', editing?.unit || '')));
+  form.append(row, field('Fecha objetivo (opcional)', input('dueDate', '', 'date', editing?.dueDate || '')), button(editing ? 'Guardar cambios' : 'Crear objetivo', 'submit-form', 'button primary'));
+  if (editing) form.append(button('Cancelar', 'cancel-edit-goal', 'button secondary'));
   main.append(form);
   const list = card();
   list.append(heading('En marcha', 'Actualiza el progreso cuando avances.'));
@@ -507,7 +514,7 @@ function renderGoals(main) {
     fill.style.width = Math.min(100, goal.progress / goal.target * 100) + '%';
     track.append(fill);
     const actions = element('div', 'button-group');
-    actions.append(button('+1', 'goal-progress', 'button secondary small', { id: goal.id, amount: 1 }), button('−1', 'goal-progress', 'button secondary small', { id: goal.id, amount: -1 }), button('Archivar', 'archive-goal', 'text-button', { id: goal.id }));
+    actions.append(button('+1', 'goal-progress', 'button secondary small', { id: goal.id, amount: 1 }), button('−1', 'goal-progress', 'button secondary small', { id: goal.id, amount: -1 }), button('Editar', 'edit-goal', 'button secondary small', { id: goal.id }), button('Archivar', 'archive-goal', 'text-button', { id: goal.id }));
     row.append(top, track, actions);
     list.append(row);
   });
@@ -646,10 +653,24 @@ async function handleSubmit(form) {
       }
       await save();
       state.view = form.dataset.form === 'planner-task' ? 'planner' : state.view;
+    } else if (form.dataset.form === 'activity-edit') {
+      const current = activityById(state.editingActivityId);
+      if (!current) throw new Error('La actividad que intentas editar ya no existe.');
+      state.profile.activities = state.profile.activities.map(item => item.id === current.id ? updateActivity(item, data) : item);
+      state.editingActivityId = null;
+      await save();
+      showToast('Actividad actualizada.');
     } else if (form.dataset.form === 'activity') {
       state.profile.activities.unshift(createActivity(data));
       await save();
       showToast('Actividad creada.');
+    } else if (form.dataset.form === 'goal-edit') {
+      const current = goalById(state.editingGoalId);
+      if (!current) throw new Error('El objetivo que intentas editar ya no existe.');
+      state.profile.goals = state.profile.goals.map(item => item.id === current.id ? updateGoal(item, data) : item);
+      state.editingGoalId = null;
+      await save();
+      showToast('Objetivo actualizado.');
     } else if (form.dataset.form === 'goal') {
       state.profile.goals.unshift(createGoal(data));
       await save();
@@ -767,8 +788,18 @@ root.addEventListener('click', async event => {
       await save(); showToast('Tarea creada desde la actividad.'); updateShell();
     }
   }
+  if (action === 'edit-activity') {
+    if (!activityById(id)) return;
+    state.editingActivityId = id;
+    state.view = 'activities';
+    updateShell();
+    const nameInput = $('.form-card input[name="name"]');
+    if (nameInput) { nameInput.focus(); nameInput.select(); }
+  }
+  if (action === 'cancel-edit-activity') { state.editingActivityId = null; updateShell(); }
   if (action === 'archive-activity') {
     state.profile.activities = state.profile.activities.map(item => item.id === id ? { ...item, archived: true } : item);
+    if (state.editingActivityId === id) state.editingActivityId = null;
     await save(); updateShell();
   }
   if (action === 'select-date') { state.selectedDate = target.dataset.date; updateShell(); }
@@ -823,8 +854,18 @@ root.addEventListener('click', async event => {
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, progress: Math.max(0, Math.min(goal.target, goal.progress + Number(target.dataset.amount))) } : goal);
     await save(); updateShell();
   }
+  if (action === 'edit-goal') {
+    if (!goalById(id)) return;
+    state.editingGoalId = id;
+    state.view = 'goals';
+    updateShell();
+    const titleInput = $('.form-card input[name="title"]');
+    if (titleInput) { titleInput.focus(); titleInput.select(); }
+  }
+  if (action === 'cancel-edit-goal') { state.editingGoalId = null; updateShell(); }
   if (action === 'archive-goal') {
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, archived: true } : goal);
+    if (state.editingGoalId === id) state.editingGoalId = null;
     await save(); updateShell();
   }
   if (action === 'export-data') {
