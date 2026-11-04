@@ -1,6 +1,6 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
-  createGoal, updateGoal, localDate, shiftDate, getRecommendations, suggestSchedule,
+  createGoal, updateGoal, localDate, shiftDate, getRecommendations, suggestSchedule, analyzeSchedule,
   validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession
 } = window.OIsymDomain;
 
@@ -17,7 +17,8 @@ const state = {
   toastTimer: null,
   editingTaskId: null,
   editingActivityId: null,
-  editingGoalId: null
+  editingGoalId: null,
+  plannerAnalysis: null
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -456,11 +457,13 @@ function renderPlanner(main) {
   const scheduled = state.profile.tasks.filter(task => task.status === 'pending' && task.scheduledDate === state.selectedDate).sort((a, b) => (a.startTime || '99:99').localeCompare(b.startTime || '99:99'));
   const agenda = card();
   agenda.append(heading('Agenda', scheduled.length + ' elementos programados'));
+  const hours = state.profile.preferences;
+  agenda.append(element('p', 'muted small-note', 'Horario habitual: ' + (hours.workingDayStart || '09:00') + '–' + (hours.workingDayEnd || '17:00') + '. Puedes cambiarlo en Ajustes.'));
   renderTaskList(agenda, scheduled, { emptyTitle: 'No hay bloques programados', emptyDetail: 'Puedes asignar fecha y horario a una tarea.' });
   main.append(agenda);
   const unscheduled = card();
   const waiting = state.profile.tasks.filter(task => task.status === 'pending' && !task.scheduledDate);
-  unscheduled.append(heading('Por organizar', waiting.length + ' tareas sin horario asignado'));
+  unscheduled.append(heading('Por organizar', waiting.length + ' tareas sin día asignado'));
   renderTaskList(unscheduled, waiting, { emptyTitle: 'Todo tiene un día asignado', emptyDetail: 'No hay tareas pendientes de organizar.' });
   main.append(unscheduled);
   const add = element('form', 'form-card');
@@ -477,12 +480,43 @@ function renderPlanner(main) {
   add.append(row2, button('Añadir a la agenda', 'submit-form', 'button primary'));
   main.append(add);
   const planner = card();
-  planner.append(heading('Planificación asistida', 'Las propuestas nunca se aplican sin tu aprobación.'));
+  planner.append(heading('Planificación asistida', 'O-Isym busca huecos reales y explica cada propuesta. Nada se aplica sin tu aprobación.'));
   planner.append(element('p', 'muted', 'Modo actual: ' + ({ manual: 'Manual', suggested: 'Sugerido', hybrid: 'Híbrido', automatic: 'Automático' }[state.profile.preferences.autonomy])));
-  planner.append(button('Proponer horarios para tareas sin programar', 'generate-plan', 'button primary'));
+  planner.append(button('Analizar disponibilidad y proponer horarios', 'generate-plan', 'button primary'));
+  if (state.plannerAnalysis && state.plannerAnalysis.date === state.selectedDate) {
+    const analysis = state.plannerAnalysis;
+    const summary = element('p', 'small-note', analysis.proposals.length + ' propuestas · ' + analysis.proposedMinutes + ' min por organizar · Jornada ' + analysis.workday.start + '–' + analysis.workday.end);
+    planner.append(summary);
+    if (analysis.proposals.length) {
+      const proposalList = element('div', 'planner-proposals');
+      analysis.proposals.forEach(proposal => {
+        const item = element('article', 'planner-proposal');
+        const top = element('div', 'planner-proposal-top');
+        top.append(element('strong', '', proposal.title), element('span', 'planner-time', proposal.startTime + '–' + proposal.endTime));
+        item.append(top, element('p', 'muted', proposal.reason));
+        proposalList.append(item);
+      });
+      planner.append(proposalList);
+      planner.append(element('p', 'small-note', 'Revisa los horarios antes de aplicarlos. Las tareas bloqueadas y los bloques ya programados no se cambian.'));
+      const actions = element('div', 'button-group');
+      actions.append(button('Aplicar propuestas', 'apply-plan', 'button primary'), button('Descartar', 'discard-plan', 'button secondary'));
+      planner.append(actions);
+    } else {
+      planner.append(empty('No hay propuestas disponibles', 'No se encontró espacio para las tareas flexibles de este día.'));
+    }
+    if (analysis.skipped.length) {
+      const skipped = element('div', 'planner-skipped');
+      skipped.append(element('h4', '', 'Tareas que necesitan atención'));
+      analysis.skipped.forEach(item => {
+        const row = element('p', 'small-note');
+        row.append(element('strong', '', item.title + ': '), document.createTextNode(item.reason));
+        skipped.append(row);
+      });
+      planner.append(skipped);
+    }
+  }
   main.append(planner);
 }
-
 function renderFocus(main) {
   main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.'));
   const focus = state.profile.activeFocus;
@@ -962,16 +996,31 @@ root.addEventListener('click', async event => {
     }
   }
   if (action === 'generate-plan') {
-    const proposals = suggestSchedule(state.profile, state.selectedDate);
-    if (!proposals.length) return showToast('No hay tareas flexibles sin programar o no queda espacio disponible.', 'error');
-    if (confirm('O-Isym encontró ' + proposals.length + ' espacios. ¿Aplicar estas propuestas? Los compromisos bloqueados no se modificarán.')) {
-      const map = new Map(proposals.map(item => [item.taskId, item]));
-      state.profile.tasks = state.profile.tasks.map(task => {
-        const proposal = map.get(task.id);
-        return proposal && !task.locked ? updateTask(task, { scheduledDate: proposal.date, startTime: proposal.startTime, endTime: proposal.endTime }) : task;
-      });
-      await save(); updateShell(); showToast('Plan actualizado.');
-    }
+    state.plannerAnalysis = analyzeSchedule(state.profile, state.selectedDate);
+    updateShell();
+    if (!state.plannerAnalysis.proposals.length) showToast('Análisis listo. No hay horarios que aplicar.');
+  }
+  if (action === 'apply-plan') {
+    const analysis = state.plannerAnalysis;
+    if (!analysis || analysis.date !== state.selectedDate) return showToast('Vuelve a analizar el día antes de aplicar.', 'error');
+    const map = new Map(analysis.proposals.map(item => [item.taskId, item]));
+    let applied = 0;
+    state.profile.tasks = state.profile.tasks.map(task => {
+      const proposal = map.get(task.id);
+      if (!proposal || task.locked || task.status !== 'pending') return task;
+      if (task.scheduledDate && task.scheduledDate !== analysis.date) return task;
+      if (task.scheduledDate === analysis.date && task.startTime && task.endTime) return task;
+      applied++;
+      return updateTask(task, { scheduledDate: proposal.date, startTime: proposal.startTime, endTime: proposal.endTime });
+    });
+    state.plannerAnalysis = null;
+    await save(); updateShell();
+    showToast(applied + ' propuestas aplicadas.');
+  }
+  if (action === 'discard-plan') {
+    state.plannerAnalysis = null;
+    updateShell();
+    showToast('Propuestas descartadas.');
   }
   if (action === 'focus-start' && !state.profile.activeFocus) {
     const taskId = $('#focus-task')?.value || null;
@@ -1117,6 +1166,7 @@ root.addEventListener('change', event => {
   }
   if (event.target.id === 'planner-date') {
     state.selectedDate = event.target.value || localDate();
+    state.plannerAnalysis = null;
     updateShell();
   }
   if (event.target.id === 'focus-task') {
