@@ -120,3 +120,26 @@ test('completed focus sessions preserve their actual completion time after delay
   assert.equal(session.endedAt, '2026-11-04T10:25:00.000Z');
   assert.equal(session.taskTitle, 'Estudiar');
 });
+
+
+test('focus duration follows the selected task activity, with profile preference as fallback', () => {
+  const { createProfile, createActivity, createTask, getSuggestedFocusMinutes } = require('../src/domain.js');
+  const profile = createProfile('Focus');
+  profile.preferences.focusMinutes = 35;
+  const activity = createActivity({ name: 'Piano', durationMinutes: 50 });
+  profile.activities.push(activity);
+  const task = createTask({ title: 'Practicar piano', activityId: activity.id });
+  profile.tasks.push(task);
+  assert.equal(getSuggestedFocusMinutes(profile, task.id), 50);
+  assert.equal(getSuggestedFocusMinutes(profile, null), 35);
+});
+
+test('focus preferences default to enabled but can be disabled safely', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
+  const profile = createProfile('Focus');
+  assert.equal(profile.preferences.focusSound, true);
+  assert.equal(profile.preferences.focusNotifications, true);
+  const normalized = normalizeProfile({ name: 'Anterior', preferences: { focusSound: false, focusNotifications: false } });
+  assert.equal(normalized.preferences.focusSound, false);
+  assert.equal(normalized.preferences.focusNotifications, false);
+});
