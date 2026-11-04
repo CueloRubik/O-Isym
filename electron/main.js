@@ -20,7 +20,8 @@ function createWindow() {
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
-      allowRunningInsecureContent: false
+      allowRunningInsecureContent: false,
+      backgroundThrottling: false
     }
   });
 
