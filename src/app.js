@@ -120,7 +120,7 @@ const priorityLabel = value => ({ high: 'Alta', medium: 'Media', low: 'Baja' }[v
 const priorityClass = value => 'priority-' + (value || 'medium');
 const avatarMark = profile => ({ leaf: '❧', book: '▤', compass: '⌖', spark: '✳', wave: '≈' }[profile.avatarId] || String(profile.name || 'O').trim().charAt(0).toUpperCase() || 'O');
 const isImageAvatar = id => /^profile-(?:[1-9]|1[0-8])$/.test(String(id || ''));
-const makeAvatarImage = id => { const image=element('img','avatar-image'); image.src='profile('+String(id).replace('profile-','')+').png'; image.alt=''; image.draggable=false; image.onerror=()=>image.remove(); return image; };
+const makeAvatarImage = id => { const image=element('img','avatar-image'); image.src='assets/avatars/profile-'+String(id).replace('profile-','')+'.png'; image.alt=''; image.draggable=false; image.onerror=()=>image.remove(); return image; };
 const updateProfilePreview = form => {
   const avatarId=$('input[name="avatarId"]',form)?.value||'profile-1';
   $$('.avatar-choice',form).forEach(choice=>{const selected=choice.dataset.avatar===avatarId;choice.classList.toggle('selected',selected);choice.setAttribute('aria-pressed',String(selected));});
