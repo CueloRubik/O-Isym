@@ -2,7 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 const storage = Object.freeze({
   read: () => ipcRenderer.invoke('oisym:storage:read'),
-  save: snapshot => ipcRenderer.invoke('oisym:storage:save', snapshot)
+  save: snapshot => ipcRenderer.invoke('oisym:storage:save', snapshot),
+  recovery: Object.freeze({
+    listBackups: () => ipcRenderer.invoke('oisym:storage:recovery:list'),
+    overwrite: () => ipcRenderer.invoke('oisym:storage:recovery:overwrite'),
+    restore: name => ipcRenderer.invoke('oisym:storage:recovery:restore', name)
+  })
 });
 
 contextBridge.exposeInMainWorld('oisym', Object.freeze({
