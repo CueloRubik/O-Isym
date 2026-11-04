@@ -14,7 +14,7 @@ function reportStartupError(title, error) {
   console.error('[O-Isym]', title, detail);
   try {
     const logPath = path.join(app.getPath('userData'), 'startup-error.log');
-    require('node:fs').appendFileSync(logPath, new Date().toISOString() + ' ' + title + '\\n' + detail + '\\n\\n', 'utf8');
+    require('node:fs').appendFileSync(logPath, new Date().toISOString() + ' ' + title + '\n' + detail + '\n\n', 'utf8');
   } catch (logError) {
     console.error('[O-Isym] No se pudo escribir el registro:', logError);
   }
@@ -42,7 +42,7 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.webContents.on('render-process-gone', (_event, details) => {
     reportStartupError('El proceso visual se cerró', new Error(JSON.stringify(details)));
-    dialog.showErrorBox('O-Isym tuvo un problema', 'La ventana de O-Isym se cerró inesperadamente. Se guardó un registro en la carpeta de datos de O-Isym.\\n\\n' + JSON.stringify(details));
+    dialog.showErrorBox('O-Isym tuvo un problema', 'La ventana de O-Isym se cerró inesperadamente. Se guardó un registro en la carpeta de datos de O-Isym.\n\n' + JSON.stringify(details));
   });
   win.webContents.on('did-fail-load', (_event, code, description, validatedURL) => {
     reportStartupError('No se pudo cargar la interfaz', new Error(code + ' ' + description + ' (' + validatedURL + ')'));
@@ -58,7 +58,7 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.loadFile(indexPath).catch(error => {
     reportStartupError('No se pudo abrir index.html', error);
-    dialog.showErrorBox('O-Isym no pudo abrirse', 'No se pudo cargar la interfaz de la aplicación.\\n\\n' + (error.stack || error.message));
+    dialog.showErrorBox('O-Isym no pudo abrirse', 'No se pudo cargar la interfaz de la aplicación.\n\n' + (error.stack || error.message));
   });
 }
 
