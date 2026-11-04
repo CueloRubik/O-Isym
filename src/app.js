@@ -593,14 +593,43 @@ function renderFocus(main) {
   focusCard.append(field(focus?.isBreak ? 'Duración del descanso' : 'Duración de esta sesión (5–180 min)', durationInput));
   const durationHint = activity ? 'Sugerencia de la actividad «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
   focusCard.append(element('p', 'muted focus-hint', durationHint));
-  const alarmOptions = element('div', 'focus-options');
+  const alarmOptions = element('div', 'focus-alarm-settings');
+  alarmOptions.append(element('h3', '', 'Alarmas'));
+  alarmOptions.append(element('p', 'muted small-note', 'Elige sonidos distintos para el inicio, el final de Focus y el final del descanso. Puedes escuchar cada uno antes de guardarlo.'));
+  const toneOptions = [
+    { value: 'off', label: 'Sin sonido' },
+    { value: 'chime', label: 'Campanillas' },
+    { value: 'bell', label: 'Campana' },
+    { value: 'soft', label: 'Suave' },
+    { value: 'digital', label: 'Digital' }
+  ];
+  const toneRows = [
+    ['Inicio de Focus', 'focusStartTone', state.profile.preferences.focusStartTone || 'off', 'start'],
+    ['Fin de Focus', 'focusEndTone', state.profile.preferences.focusEndTone || 'chime', 'focus-end'],
+    ['Fin del descanso', 'breakEndTone', state.profile.preferences.breakEndTone || 'bell', 'break-end']
+  ];
+  toneRows.forEach(([label, name, value, kind]) => {
+    const row = element('div', 'focus-alarm-row');
+    const control = select(name, toneOptions, value);
+    control.disabled = Boolean(focus);
+    row.append(field(label, control), button('Probar', 'preview-focus-alarm', 'button secondary small', { alarm: kind }));
+    alarmOptions.append(row);
+  });
+  const volume = input('focusAlarmVolume', '', 'range', state.profile.preferences.focusAlarmVolume ?? 60);
+  volume.min = '0'; volume.max = '100'; volume.step = '5'; volume.disabled = Boolean(focus);
+  const volumeField = field('Volumen de la alarma', volume);
+  const volumeValue = element('span', 'focus-volume-value', String(volume.value) + '%');
+  volumeField.append(volumeValue);
+  alarmOptions.append(volumeField);
+  const toggles = element('div', 'focus-options');
   const soundLabel = element('label', 'focus-option');
   const sound = input('focusSound', '', 'checkbox'); sound.checked = state.profile.preferences.focusSound !== false; sound.disabled = Boolean(focus);
-  soundLabel.append(sound, element('span', '', 'Alarma sonora al terminar'));
+  soundLabel.append(sound, element('span', '', 'Activar sonidos'));
   const notificationLabel = element('label', 'focus-option');
   const notifications = input('focusNotifications', '', 'checkbox'); notifications.checked = state.profile.preferences.focusNotifications !== false; notifications.disabled = Boolean(focus);
-  notificationLabel.append(notifications, element('span', '', 'Aviso del sistema'));
-  alarmOptions.append(soundLabel, notificationLabel);
+  notificationLabel.append(notifications, element('span', '', 'Avisos del sistema'));
+  toggles.append(soundLabel, notificationLabel);
+  alarmOptions.append(toggles);
   focusCard.append(alarmOptions);
   const actions = element('div', 'button-group center');
   if (!focus) {
@@ -983,25 +1012,39 @@ async function prepareFocusAlarm() {
     // La sesión sigue funcionando aunque el sistema no permita audio o notificaciones.
   }
 }
-function playFocusAlarm() {
+function playFocusAlarm(kind = 'focus-end') {
   if (state.profile.preferences.focusSound === false || !focusAudioContext || focusAudioContext.state !== 'running') return;
+  const preferences = state.profile.preferences;
+  const tone = kind === 'start' ? preferences.focusStartTone : kind === 'break-end' ? preferences.breakEndTone : preferences.focusEndTone;
+  if (!tone || tone === 'off') return;
+  const presets = {
+    chime: { frequencies: [660, 784, 988], wave: 'sine', gap: 0.34, duration: 0.28 },
+    bell: { frequencies: [880, 1174, 880], wave: 'triangle', gap: 0.22, duration: 0.42 },
+    soft: { frequencies: [523, 659], wave: 'sine', gap: 0.48, duration: 0.48 },
+    digital: { frequencies: [880, 660, 880, 660], wave: 'square', gap: 0.15, duration: 0.12 }
+  };
+  const preset = presets[tone];
+  const volume = Math.max(0, Math.min(100, Number(preferences.focusAlarmVolume ?? 60))) / 100;
+  if (!preset || volume <= 0) return;
   try {
-    [0, 0.38, 0.76].forEach((delay, index) => {
+    preset.frequencies.forEach((frequency, index) => {
+      const delay = index * preset.gap;
       const oscillator = focusAudioContext.createOscillator();
       const gain = focusAudioContext.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = [660, 784, 988][index];
-      gain.gain.setValueAtTime(0.0001, focusAudioContext.currentTime + delay);
-      gain.gain.exponentialRampToValueAtTime(0.16, focusAudioContext.currentTime + delay + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.0001, focusAudioContext.currentTime + delay + 0.28);
+      const startAt = focusAudioContext.currentTime + delay;
+      oscillator.type = preset.wave;
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.16 * volume, startAt + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + preset.duration);
       oscillator.connect(gain); gain.connect(focusAudioContext.destination);
-      oscillator.start(focusAudioContext.currentTime + delay);
-      oscillator.stop(focusAudioContext.currentTime + delay + 0.3);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + preset.duration + 0.02);
     });
   } catch (error) {}
 }
 function notifyFocusFinished(taskTitle, isBreak = false) {
-  playFocusAlarm();
+  playFocusAlarm(isBreak ? 'break-end' : 'focus-end');
   if (state.profile.preferences.focusNotifications !== false && 'Notification' in window && Notification.permission === 'granted') {
     const title = isBreak ? 'Descanso terminado' : 'Focus terminado';
     const body = isBreak ? 'Tu descanso terminó. Cuando quieras, puedes comenzar otra sesión.' : (taskTitle ? 'Terminaste tu sesión de ' + taskTitle + '. Tómate un descanso.' : 'Terminaste tu sesión de concentración. Tómate un descanso.');
@@ -1242,7 +1285,9 @@ root.addEventListener('click', async event => {
     await prepareFocusAlarm();
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId, activityId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
-    await save(); updateShell();
+    await save();
+    playFocusAlarm('start');
+    updateShell();
   }
   if (action === 'focus-break' && !state.profile.activeFocus) {
     await prepareFocusAlarm();
@@ -1262,6 +1307,10 @@ root.addEventListener('click', async event => {
       }
       await save(); updateShell();
     }
+  }
+  if (action === 'preview-focus-alarm') {
+    await prepareFocusAlarm();
+    playFocusAlarm(target.dataset.alarm || 'focus-end');
   }
   if (action === 'focus-stop') await finishFocus();
   if (action === 'focus-reset') {
@@ -1456,6 +1505,14 @@ root.addEventListener('change', event => {
   if (event.target.id === 'focus-activity') updateFocusDurationSuggestion();
   if (event.target.name === 'focusSound' || event.target.name === 'focusNotifications') {
     state.profile.preferences[event.target.name] = event.target.checked;
+    save();
+  }
+  if (['focusStartTone', 'focusEndTone', 'breakEndTone', 'focusAlarmVolume'].includes(event.target.name)) {
+    state.profile.preferences[event.target.name] = event.target.name === 'focusAlarmVolume'
+      ? clampNumber(event.target.value, 0, 100, 60)
+      : event.target.value;
+    const value = $('.focus-volume-value');
+    if (value && event.target.name === 'focusAlarmVolume') value.textContent = state.profile.preferences.focusAlarmVolume + '%';
     save();
   }
 });
