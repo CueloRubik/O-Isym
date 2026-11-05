@@ -43,11 +43,17 @@ Los PNG se organizan por función para evitar una carpeta de recursos desordenad
 | `actions/duplicate.png` | Duplicar la configuración de un perfil |
 | `actions/archivate.png` | Archivar actividades y objetivos |
 
+## Identidad de la aplicación
+
+| Archivo | Uso |
+|---|---|
+| `app.png` | Icono de O-Isym en la barra de menús de macOS. Se conserva el PNG original recibido en la raíz del proyecto. |
+
 ## Notificaciones
 
 | Archivo | Uso |
 |---|---|
-| `notifications/task-reminder.png` | Icono del recordatorio de tareas y de O-Isym en la barra de menús de macOS |
+| `notifications/task-reminder.png` | Icono de los recordatorios de tareas en las notificaciones del sistema |
 
 ## Interfaz
 
