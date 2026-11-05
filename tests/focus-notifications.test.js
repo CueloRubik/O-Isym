@@ -3,15 +3,15 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { createFocusNotificationScheduler } = require('../electron/focus-notifications');
 
-function makeHarness() {
+function makeHarness({ hasWindow = () => false } = {}) {
   let clock = Date.parse('2026-11-04T12:00:00.000Z');
   let nextId = 1;
   const timers = new Map();
   const notifications = [];
   const powerMonitor = new EventEmitter();
 
-  class FakeNotification {
-    constructor(options) { this.options = options; }
+  class FakeNotification extends EventEmitter {
+    constructor(options) { super(); this.options = options; }
     show() { notifications.push(this.options); }
     static isSupported() { return true; }
   }
@@ -19,6 +19,7 @@ function makeHarness() {
   const scheduler = createFocusNotificationScheduler({
     Notification: FakeNotification,
     powerMonitor,
+    hasWindow,
     now: () => clock,
     setTimer: (callback, delay) => {
       const id = nextId++;
@@ -116,4 +117,20 @@ test('Focus scheduler can be cancelled and never reminds during a break', () => 
   h.advance(120000);
   assert.equal(h.notifications.length, 1);
   h.dispose();
+});
+
+
+test('Focus completion avoids duplicate sound when the renderer can play its selected tone', () => {
+  const visible = makeHarness({ hasWindow: () => true });
+  const start = Date.parse('2026-11-04T12:00:00.000Z');
+  visible.scheduler.schedule({ endsAt: new Date(start + 1000).toISOString(), soundEnabled: true });
+  visible.advance(1000);
+  assert.equal(visible.notifications[0].silent, true);
+  visible.dispose();
+
+  const closed = makeHarness({ hasWindow: () => false });
+  closed.scheduler.schedule({ endsAt: new Date(start + 1000).toISOString(), soundEnabled: true });
+  closed.advance(1000);
+  assert.equal(closed.notifications[0].silent, false);
+  closed.dispose();
 });
