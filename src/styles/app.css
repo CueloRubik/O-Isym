@@ -688,3 +688,17 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .focus-settings-heading { width: min(560px,100%); margin: 22px 0 -4px; padding-top: 19px; border-top: 1px solid var(--line); font-size: 13px; text-align: left; }
 .focus-panel > .button-group.center { width: min(560px,100%); justify-content: center; flex-wrap: wrap; margin: 14px 0 4px; }
 .focus-panel > .center-text { width: min(560px,100%); margin: 3px 0 4px; }
+
+
+/* Preferencias completas dentro del editor de perfiles */
+.profile-modal { width: min(680px, 100%); }
+.profile-advanced-preferences { padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+.profile-advanced-preferences > summary { color: var(--accent-dark); font-size: 12px; font-weight: 750; cursor: pointer; }
+.profile-editor-preference-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 14px; }
+.profile-advanced-preferences .small-note { margin: 12px 0 0; }
+.today-completed-card { border-color: #e2eee6; background: #fbfdfb; }
+.today-completed-card .section-heading { margin-bottom: 3px; }
+@media (max-width: 560px) {
+  .profile-editor-preference-grid { grid-template-columns: minmax(0, 1fr); }
+  .profile-modal-backdrop { padding: 10px; }
+}
