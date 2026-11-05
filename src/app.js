@@ -50,7 +50,8 @@ const state = {
   editingActivityId: null,
   editingGoalId: null,
   plannerAnalysis: null,
-  selectedProfileId: null
+  selectedProfileId: null,
+  settingsSection: 'profile'
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -1001,79 +1002,109 @@ function openProfileEditor(profile) {
 }
 
 function renderSettings(main) {
-  main.append(heading('Ajustes', 'Configura O-Isym para que trabaje a tu manera.'));
-  const profileForm = element('form', 'form-card');
-  profileForm.dataset.form = 'profile-settings';
-  profileForm.append(element('h3', '', 'Tu perfil'));
-  profileForm.append(field('Nombre', input('name', 'Nombre del perfil', 'text', state.profile.name)));
-  const ageField=input('age','Edad en años','number',state.profile.age==null?'':state.profile.age);ageField.min='1';ageField.max='120';ageField.step='1';
-  profileForm.append(field('Edad (opcional)',ageField),element('p','small-note','La edad adapta las sugerencias y el aspecto inicial. No se guarda fecha de nacimiento.'));
-  profileForm.append(field('Color de acento', input('color', '', 'color', state.profile.color)));
-  profileForm.append(element('span','field-label','Foto de perfil'));
-  buildAvatarPicker(profileForm,state.profile.avatarId || 'profile-1');
-  const avatarPreviewRow=element('div','profile-avatar-preview-row');
-  const avatarPreview=element('div','profile-avatar profile-avatar-preview','');avatarPreview.setAttribute('aria-hidden','true');
-  avatarPreviewRow.append(avatarPreview,element('span','muted','Vista previa de tu foto de perfil'));
-  profileForm.append(avatarPreviewRow);updateProfilePreview(profileForm);
-  profileForm.append(field('Estilo visual', select('theme', [
-    { value: 'classic', label: 'Clásico — limpio y equilibrado' },
-    { value: 'warm', label: 'Cálido — tonos suaves' },
-    { value: 'sky', label: 'Cielo — acentos azulados' },
-    { value: 'playful', label: 'Colorido — alegre y dinámico' }
-  ], state.profile.preferences.theme || 'classic')));
-  const motionLabel = field('Movimiento de la interfaz', select('motionEnabled', [
-    { value: 'true', label: 'Activado — transiciones sutiles' },
-    { value: 'false', label: 'Reducido — priorizar menos movimiento' }
-  ], String(state.profile.preferences.motionEnabled !== false)));
-  profileForm.append(motionLabel);
-  profileForm.append(element('p', 'small-note', 'El estilo y el avatar son preferencias visuales: no cambian las funciones ni los datos del perfil.'));
-  profileForm.append(field('Autonomía del planificador', select('autonomy', [
-    { value: 'manual', label: 'Manual — yo organizo todo' },
-    { value: 'suggested', label: 'Sugerido — O-Isym propone' },
-    { value: 'hybrid', label: 'Híbrido — automatiza solo reglas permitidas' },
-    { value: 'automatic', label: 'Automático — organiza tareas flexibles' }
-  ], state.profile.preferences.autonomy)));
-  const row = element('div', 'form-grid');
-  row.append(field('Minutos de enfoque', input('focusMinutes', '', 'number', state.profile.preferences.focusMinutes)));
-  row.append(field('Minutos de descanso', input('breakMinutes', '', 'number', state.profile.preferences.breakMinutes)));
-  profileForm.append(row);
-  const hours = element('div', 'form-grid');
-  hours.append(field('Inicio habitual', input('workingDayStart', '', 'time', state.profile.preferences.workingDayStart || '09:00')));
-  hours.append(field('Fin habitual', input('workingDayEnd', '', 'time', state.profile.preferences.workingDayEnd || '17:00')));
-  profileForm.append(hours, button('Guardar preferencias', 'submit-form', 'button primary'));
-  main.append(profileForm);
-
-  const shortcutsCard = card();
-  shortcutsCard.append(heading('Atajos de teclado', 'Navega sin tener que usar siempre el ratón.'));
-  shortcutsCard.append(element('p', 'muted', 'N: nueva tarea · T: ir a Hoy · ← / →: día anterior o siguiente en Calendario y Planificador · [ / ]: semana o mes anterior/siguiente · ?: mostrar ayuda rápida.'));
-  main.append(shortcutsCard);
-
-  const dataCard = card();
-  dataCard.append(heading('Tus datos', 'Exporta una copia o recupera un archivo.'));
-  dataCard.append(button('Exportar copia JSON', 'export-data', 'button secondary'));
-  const importLabel = field('Importar copia JSON', input('backupFile', '', 'file'));
-  importLabel.querySelector('input').accept = 'application/json,.json';
-  importLabel.querySelector('input').id = 'backup-file';
-  dataCard.append(importLabel);
-  dataCard.append(button('Importar archivo seleccionado', 'import-data', 'button secondary'));
-  main.append(dataCard);
-
-  const migration = card();
-  migration.append(heading('Datos del prototipo anterior', 'O-Isym no borra el almacenamiento antiguo.'));
-  const legacy = inspectLegacyData();
-  migration.append(element('p', 'muted', legacy.summary));
-  if (!state.profile.legacyImportedAt && legacy.total > 0) {
-    migration.append(element('p', 'small-note', 'La importación crea tareas y actividades en este perfil. Los datos originales de localStorage se conservan.'));
-    migration.append(button('Importar datos del prototipo', 'import-legacy', 'button secondary'));
-  } else if (state.profile.legacyImportedAt) {
-    migration.append(element('p', 'small-note', 'Este perfil ya importó datos el ' + new Date(state.profile.legacyImportedAt).toLocaleString('es-MX') + '.'));
+  const sections = [
+    ['profile','Mi perfil','Identidad y apariencia'],
+    ['planning','Planificación','Horario y autonomía'],
+    ['focus','Focus y sonido','Sesiones, música y alarmas'],
+    ['data','Datos y copias','Importar, exportar y recuperar'],
+    ['shortcuts','Atajos y ayuda','Navegación rápida'],
+    ['profiles','Perfiles','Administrar espacios']
+  ];
+  if (!sections.some(item => item[0] === state.settingsSection)) state.settingsSection = 'profile';
+  const layout = element('div', 'settings-layout');
+  const navigation = element('nav', 'settings-navigation');
+  navigation.setAttribute('aria-label', 'Categorías de ajustes');
+  navigation.append(element('span','eyebrow','PREFERENCIAS'));
+  sections.forEach(([id,label,description]) => {
+    const item=button('', 'settings-section', 'settings-nav-item'+(state.settingsSection===id?' active':''), {section:id});
+    item.append(element('strong','',label),element('small','',description));
+    if(state.settingsSection===id)item.setAttribute('aria-current','page');
+    navigation.append(item);
+  });
+  const panel=element('section','settings-panel');
+  const active=sections.find(item=>item[0]===state.settingsSection);
+  panel.append(heading(active[1],active[2]));
+  if(state.settingsSection==='profile'){
+    const form=element('form','form-card settings-form');
+    form.dataset.form='profile-settings';
+    form.append(field('Nombre',input('name','Nombre del perfil','text',state.profile.name)));
+    const age=input('age','Edad en años','number',state.profile.age==null?'':state.profile.age);age.min='1';age.max='120';age.step='1';
+    form.append(field('Edad (opcional)',age),element('p','small-note','La edad adapta algunas sugerencias. No se guarda fecha de nacimiento.'));
+    form.append(field('Color de acento',input('color','','color',state.profile.color)));
+    form.append(element('span','field-label','Avatar'));
+    buildAvatarPicker(form,state.profile.avatarId||'profile-1');
+    const previewRow=element('div','profile-avatar-preview-row');
+    const preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');
+    previewRow.append(preview,element('span','muted','Vista previa del perfil'));form.append(previewRow);updateProfilePreview(form);
+    form.append(field('Tema',select('theme',[
+      {value:'classic',label:'Clásico — limpio y equilibrado'},
+      {value:'warm',label:'Cálido — tonos suaves'},
+      {value:'sky',label:'Cielo — acentos azulados'},
+      {value:'playful',label:'Colorido — alegre y dinámico'}
+    ],state.profile.preferences.theme||'classic')));
+    form.append(field('Movimiento de la interfaz',select('motionEnabled',[
+      {value:'true',label:'Activado — transiciones sutiles'},
+      {value:'false',label:'Reducido — menos movimiento'}
+    ],String(state.profile.preferences.motionEnabled!==false))));
+    form.append(element('p','small-note','El avatar, el color y el tema solo cambian la presentación de este perfil.'));
+    form.append(button('Guardar cambios','submit-form','button primary'));
+    panel.append(form);
+  } else if(state.settingsSection==='planning'){
+    const form=element('form','form-card settings-form');form.dataset.form='profile-planning-settings';
+    form.append(field('Autonomía del planificador',select('autonomy',[
+      {value:'manual',label:'Manual — yo organizo todo'},
+      {value:'suggested',label:'Sugerido — O-Isym propone'},
+      {value:'hybrid',label:'Híbrido — aplica reglas permitidas'},
+      {value:'automatic',label:'Automático — organiza tareas flexibles'}
+    ],state.profile.preferences.autonomy)));
+    form.append(element('p','small-note','El modo define cuánto interviene el planificador. Las propuestas deben poder revisarse antes de aplicarlas.'));
+    const durations=element('div','form-grid');
+    durations.append(field('Minutos de enfoque',input('focusMinutes','25','number',state.profile.preferences.focusMinutes)));
+    durations.append(field('Minutos de descanso',input('breakMinutes','5','number',state.profile.preferences.breakMinutes)));
+    form.append(durations);
+    const hours=element('div','form-grid');
+    hours.append(field('Inicio habitual',input('workingDayStart','','time',state.profile.preferences.workingDayStart||'09:00')));
+    hours.append(field('Fin habitual',input('workingDayEnd','','time',state.profile.preferences.workingDayEnd||'17:00')));
+    form.append(hours,button('Guardar planificación','submit-form','button primary'));
+    panel.append(form);
+  } else if(state.settingsSection==='focus'){
+    const info=card('settings-info-card');
+    info.append(element('p','','Las opciones de sesión, música, vista previa, alarma y notificaciones siguen centralizadas en Enfoque para evitar controles duplicados o preferencias desincronizadas.'));
+    info.append(button('Abrir Enfoque','navigate','button primary',{view:'focus'}));
+    panel.append(info);
+  } else if(state.settingsSection==='data'){
+    const dataCard=card('settings-info-card');
+    dataCard.append(element('h3','','Copia completa de O-Isym'),element('p','muted','Incluye todos los perfiles y sus datos. Importar una copia completa reemplaza el estado actual; O-Isym conserva una copia de seguridad antes de hacerlo.'));
+    dataCard.append(button('Exportar copia JSON','export-data','button secondary'));
+    const importLabel=field('Archivo de copia JSON',input('backupFile','','file'));
+    importLabel.querySelector('input').accept='application/json,.json';importLabel.querySelector('input').id='backup-file';
+    dataCard.append(importLabel,button('Importar archivo seleccionado','import-data','button secondary'));
+    panel.append(dataCard);
+    const migration=card('settings-info-card');
+    migration.append(heading('Datos del prototipo anterior','El almacenamiento antiguo no se borra.'));
+    const legacy=inspectLegacyData();migration.append(element('p','muted',legacy.summary));
+    if(!state.profile.legacyImportedAt&&legacy.total>0){
+      migration.append(element('p','small-note','La importación crea tareas y actividades en este perfil. Los datos originales se conservan.'));
+      migration.append(button('Importar datos del prototipo','import-legacy','button secondary'));
+    }else if(state.profile.legacyImportedAt){
+      migration.append(element('p','small-note','Este perfil ya importó datos el '+new Date(state.profile.legacyImportedAt).toLocaleString('es-MX')+'.'));
+    }
+    panel.append(migration);
+  } else if(state.settingsSection==='shortcuts'){
+    const shortcuts=card('settings-info-card');
+    shortcuts.append(heading('Atajos de teclado','Navega sin tener que usar siempre el ratón.'));
+    [['N','Nueva tarea'],['T','Ir a Hoy'],['← / →','Día anterior o siguiente en Calendario y Planificador'],['[ / ]','Semana o mes anterior/siguiente'],['?','Mostrar ayuda rápida']].forEach(([key,label])=>{
+      const row=element('div','shortcut-row');row.append(element('kbd','',key),element('span','',label));shortcuts.append(row);
+    });
+    panel.append(shortcuts);
+  } else if(state.settingsSection==='profiles'){
+    const profiles=card('settings-info-card');
+    profiles.append(element('p','muted','Cada espacio conserva sus propias tareas, objetivos, sesiones y preferencias.'));
+    profiles.append(button('Administrar perfiles','navigate','button primary',{view:'profiles'}));
+    panel.append(profiles);
   }
-  main.append(migration);
-
-  const profilesLink = card();
-  profilesLink.append(heading('Administración de perfiles', 'Cada espacio conserva sus propias tareas, objetivos y preferencias.'));
-  profilesLink.append(button('Abrir administración de perfiles', 'navigate', 'button secondary', { view: 'profiles' }));
-  main.append(profilesLink);
+  layout.append(navigation,panel);
+  main.append(heading('Ajustes','Configura O-Isym por categorías, sin recorrer una página interminable.'),layout);
 }
 
 function inspectLegacyData() {
@@ -1195,24 +1226,28 @@ async function handleSubmit(form) {
       await save();
       showToast('Objetivo creado.');
     } else if (form.dataset.form === 'profile-settings') {
-      state.profile.name=String(data.name).trim().slice(0,60)||state.profile.name;
-      const ageValue=String(data.age||'').trim();if(ageValue&&(!Number.isInteger(Number(ageValue))||Number(ageValue)<1||Number(ageValue)>120))throw new Error('La edad debe estar entre 1 y 120 años.');
-      state.profile.age=ageValue?Number(ageValue):null;state.profile.preferences.ageBand=getAgeBand(state.profile.age);
-      state.profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:state.profile.color;
+      const name=String(data.name||'').trim();
+      if(!name)throw new Error('Escribe un nombre para el perfil.');
+      const ageValue=String(data.age||'').trim();
+      if(ageValue&&(!Number.isInteger(Number(ageValue))||Number(ageValue)<1||Number(ageValue)>120))throw new Error('La edad debe estar entre 1 y 120 años.');
+      state.profile.name=name.slice(0,60);
+      state.profile.age=ageValue?Number(ageValue):null;
+      state.profile.preferences.ageBand=getAgeBand(state.profile.age);
+      state.profile.color=/^#[0-9a-f]{6}$/i.test(data.color||'')?data.color:state.profile.color;
       state.profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:state.profile.avatarId;
       state.profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(state.profile.age);
-      state.profile.preferences.motionEnabled = data.motionEnabled !== 'false';
-      state.profile.preferences.autonomy = data.autonomy;
-      state.profile.preferences.focusMinutes = clampNumber(data.focusMinutes, 5, 180, 25);
-      state.profile.preferences.breakMinutes = clampNumber(data.breakMinutes, 1, 60, 5);
-      if (data.workingDayStart && data.workingDayEnd && data.workingDayEnd > data.workingDayStart) {
-        state.profile.preferences.workingDayStart = data.workingDayStart;
-        state.profile.preferences.workingDayEnd = data.workingDayEnd;
-      } else {
-        throw new Error('El horario habitual debe terminar después de comenzar.');
-      }
-      await save();
-      showToast('Preferencias guardadas.');
+      state.profile.preferences.motionEnabled=data.motionEnabled!=='false';
+      await save();showToast('Perfil actualizado.');
+    } else if (form.dataset.form === 'profile-planning-settings') {
+      const start=data.workingDayStart,end=data.workingDayEnd;
+      if(!start||!end||end<=start)throw new Error('El horario habitual debe terminar después de comenzar.');
+      if(!['manual','suggested','hybrid','automatic'].includes(data.autonomy))throw new Error('Selecciona un modo de planificación válido.');
+      state.profile.preferences.autonomy=data.autonomy;
+      state.profile.preferences.focusMinutes=clampNumber(data.focusMinutes,5,180,25);
+      state.profile.preferences.breakMinutes=clampNumber(data.breakMinutes,1,60,5);
+      state.profile.preferences.workingDayStart=start;
+      state.profile.preferences.workingDayEnd=end;
+      await save();showToast('Planificación guardada.');
     }
     updateShell();
   } catch (error) {
@@ -1330,6 +1365,7 @@ root.addEventListener('click', async event => {
     return;
   }
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
+  if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
   if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }
   if (action === 'edit-profile') { openProfileEditor(state.snapshot.profiles.find(item => item.id === id)); return; }
   if (action === 'duplicate-profile') {
