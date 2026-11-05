@@ -732,3 +732,22 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .section-heading-icon, .view-title-icon { width: 23px; height: 23px; flex-basis: 23px; }
   .today-title .view-title-icon { width: 27px; height: 27px; flex-basis: 27px; }
 }
+
+
+/* Recordatorios de tareas y agenda */
+.schedule-date-chip { background: #eef5f0; color: #416b55; font-weight: 650; }
+.schedule-time-chip { background: #eaf1fb; color: #365b89; font-weight: 750; font-variant-numeric: tabular-nums; }
+.task-reminder-icon { display: inline-block; width: 15px; height: 15px; flex: 0 0 15px; object-fit: contain; }
+.task-reminder-chip { background: #e8f4ed; color: #28734c; font-weight: 700; }
+.task-reminder-muted { color: var(--muted); background: var(--surface-soft); }
+.notification-settings-form > h3 { font-size: 15px; }
+.notification-settings-form > p { max-width: 680px; line-height: 1.55; }
+.notification-settings-form .field { max-width: 620px; }
+.notification-settings-form .form-actions { justify-content: space-between; flex-wrap: wrap; }
+.notification-system-card { border-color: #dcebe1; background: #fbfdfb; }
+.notification-system-card h3 { font-size: 13px; }
+.notification-system-status { color: var(--accent-dark); font-weight: 700; }
+@media (max-width: 560px) {
+  .notification-settings-form .form-actions { align-items: stretch; flex-direction: column; }
+  .notification-settings-form .form-actions .button { width: 100%; }
+}
