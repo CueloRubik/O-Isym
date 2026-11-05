@@ -28,8 +28,17 @@ function reportStartupError(title, error) {
 let isQuitting = false;
 let mainWindow = null;
 let tray = null;
+let pendingTaskReminder = null;
 
-function showMainWindow() {
+function deliverPendingTaskReminder() {
+  if (!pendingTaskReminder || !mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) return;
+  const reminder = pendingTaskReminder;
+  pendingTaskReminder = null;
+  mainWindow.webContents.send('oisym:notifications:open-task', reminder);
+}
+
+function showMainWindow(reminder) {
+  if (reminder && typeof reminder === 'object') pendingTaskReminder = reminder;
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow({ show: true });
     return;
@@ -37,6 +46,7 @@ function showMainWindow() {
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
+  deliverPendingTaskReminder();
 }
 
 function createTray() {
@@ -78,6 +88,7 @@ function createWindow(options = {}) {
 
   mainWindow = win;
   win.once('ready-to-show', () => { if (options.show !== false) win.show(); });
+  win.webContents.on('did-finish-load', deliverPendingTaskReminder);
   win.on('close', event => {
     if (process.platform === 'darwin' && !isQuitting) {
       event.preventDefault();
