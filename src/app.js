@@ -197,6 +197,7 @@ function buildShell() {
   const profileBox = element('div', 'profile-switcher');
   const profileSelect = select('profile', []);
   profileSelect.id = 'profile-select';
+  profileSelect.setAttribute('aria-label', 'Cambiar el perfil activo');
   profileBox.append(element('span', 'eyebrow', 'ESPACIO ACTUAL'), profileSelect, button('+ Perfil', 'new-profile', 'profile-add'));
   sidebar.append(profileBox);
 
@@ -440,8 +441,10 @@ function renderTasks(main) {
     { value: 'active', label: 'Pendientes' }, { value: 'all', label: 'Todas' }, { value: 'done', label: 'Completadas' }
   ], 'active');
   filter.id = 'task-filter';
+  filter.setAttribute('aria-label', 'Filtrar tareas por estado');
   const search = input('task-search', 'Buscar por nombre o notas…');
   search.id = 'task-search';
+  search.setAttribute('aria-label', 'Buscar tareas por nombre o notas');
   const searchWrap = element('label', 'search-field');
   searchWrap.append(iconImage('interface/search.png', '', 'search-icon'), search);
   toolbar.append(iconImage('tasks/filter.png', '', 'filter-icon'), filter, searchWrap);
@@ -528,12 +531,20 @@ function renderCalendar(main) {
   const title=element('div','');
   const controls=element('div','button-group calendar-controls');
   const modeControls=element('div','button-group calendar-mode');
-  modeControls.append(button('Mes','calendar-mode-month','button '+(state.calendarMode==='month'?'primary':'secondary')),button('Semana','calendar-mode-week','button '+(state.calendarMode==='week'?'primary':'secondary')));
+  const monthModeButton=button('Mes','calendar-mode-month','button '+(state.calendarMode==='month'?'primary':'secondary'));
+  const weekModeButton=button('Semana','calendar-mode-week','button '+(state.calendarMode==='week'?'primary':'secondary'));
+  monthModeButton.setAttribute('aria-pressed',String(state.calendarMode==='month'));
+  weekModeButton.setAttribute('aria-pressed',String(state.calendarMode==='week'));
+  modeControls.append(monthModeButton,weekModeButton);
   controls.append(modeControls);
   if(state.calendarMode==='month'){
     const year=state.calendarDate.getFullYear(),month=state.calendarDate.getMonth();
     title.append(element('h1','',state.calendarDate.toLocaleDateString('es-MX',{month:'long',year:'numeric'})),element('p','muted','Selecciona un día para revisar su agenda. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
-    controls.append(button('‹','calendar-prev','button secondary'),button('Hoy','calendar-today','button secondary'),button('›','calendar-next','button secondary'));
+    const previousMonth=button('‹','calendar-prev','button secondary');
+    previousMonth.setAttribute('aria-label','Mes anterior');
+    const nextMonth=button('›','calendar-next','button secondary');
+    nextMonth.setAttribute('aria-label','Mes siguiente');
+    controls.append(previousMonth,button('Hoy','calendar-today','button secondary'),nextMonth);
     header.append(title,controls);calendarPrimary.append(header);
     const wrap=card('calendar-card'),grid=element('div','calendar-grid');
     ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(day=>grid.append(element('div','calendar-weekday',day)));
@@ -1944,11 +1955,17 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (profileModal && event.key === 'Tab') {
-    const focusable = $('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])', profileModal);
+    const focusable = $('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])', profileModal)
+      .filter(node => !node.hidden && node.getClientRects().length > 0);
     if (focusable.length) {
       const first = focusable[0], last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      if (event.shiftKey && (document.activeElement === first || !profileModal.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !profileModal.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    } else {
+      event.preventDefault();
     }
     return;
   }
