@@ -60,6 +60,17 @@ const element = (tag, className, text) => {
   if (text !== undefined && text !== null) node.textContent = String(text);
   return node;
 };
+const iconImage = (path, alt = '', className = 'ui-icon') => {
+  const image = element('img', className);
+  image.src = 'assets/icons/' + path;
+  image.alt = alt;
+  image.draggable = false;
+  image.decoding = 'async';
+  image.loading = 'lazy';
+  if (!alt) image.setAttribute('aria-hidden', 'true');
+  image.onerror = () => image.remove();
+  return image;
+};
 const button = (label, action, className = 'button secondary', data = {}) => {
   const node = element('button', className, label);
   node.type = 'button';
@@ -187,18 +198,21 @@ function buildShell() {
   const nav = element('nav', 'navigation');
   nav.setAttribute('aria-label', 'Navegación principal');
   const items = [
-    ['today', 'Hoy', '◷'], ['tasks', 'Tareas', '▤'], ['activities', 'Actividades', '◇'],
-    ['calendar', 'Calendario', '▦'], ['planner', 'Planificador', '⌁'], ['focus', 'Enfoque', '◉'],
-    ['goals', 'Objetivos', '◎'], ['insights', 'Insights', '↗']
+    ['today', 'Hoy', 'navigation/today.png'], ['tasks', 'Tareas', 'navigation/tasks.png'],
+    ['activities', 'Actividades', 'navigation/activities.png'], ['calendar', 'Calendario', 'navigation/calendar.png'],
+    ['planner', 'Planificador', 'navigation/planner.png'], ['focus', 'Enfoque', 'focus/timer.png'],
+    ['goals', 'Objetivos', 'navigation/goals.png'], ['insights', 'Insights', 'navigation/insights.png']
   ];
-  items.forEach(([id, label, icon]) => {
+  items.forEach(([id, label, iconPath]) => {
     const item = button('', 'navigate', 'nav-item', { view: id });
-    item.append(element('span', 'nav-icon', icon), element('span', '', label));
+    item.append(iconImage(iconPath, '', 'nav-icon-image'), element('span', '', label));
     nav.append(item);
   });
   sidebar.append(nav);
   const sidebarBottom = element('div', 'sidebar-bottom');
-  sidebarBottom.append(button('Ajustes', 'navigate', 'nav-item settings-link', { view: 'settings' }));
+  const settingsButton = button('Ajustes', 'navigate', 'nav-item settings-link', { view: 'settings' });
+  settingsButton.prepend(iconImage('interface/settings.png', '', 'nav-icon-image'));
+  sidebarBottom.append(settingsButton);
   sidebarBottom.append(element('div', 'sidebar-note', 'Tus datos permanecen en este dispositivo.'));
   sidebar.append(sidebarBottom);
 
@@ -207,7 +221,9 @@ function buildShell() {
   const topLeft = element('div', 'topbar-date');
   topLeft.id = 'topbar-date';
   const topRight = element('div', 'topbar-actions');
-  topRight.append(button('+ Nueva tarea', 'quick-task', 'button primary'));
+  const quickTaskButton = button('Nueva tarea', 'quick-task', 'button primary');
+  quickTaskButton.prepend(iconImage('interface/add.png', '', 'button-icon'));
+  topRight.append(quickTaskButton);
   topbar.append(topLeft, topRight);
   const main = element('main', 'main-content');
   main.id = 'main-content';
@@ -309,7 +325,7 @@ function renderTaskList(parent, tasks, options = {}) {
     const meta = element('div', 'task-meta');
     if (task.scheduledDate) meta.append(element('span', 'meta-chip', dateLabel(task.scheduledDate, { day: 'numeric', month: 'short' })));
     if (task.startTime) meta.append(element('span', 'meta-chip', task.startTime + (task.endTime ? '–' + task.endTime : '')));
-    meta.append(element('span', 'meta-chip ' + priorityClass(task.priority), priorityLabel(task.priority)));
+    meta.append(iconImage('tasks/priority.png', '', 'meta-icon'), element('span', 'meta-chip ' + priorityClass(task.priority), priorityLabel(task.priority)));
     if (task.locked) meta.append(element('span', 'meta-chip locked-chip', 'Bloqueada'));
     const activity = activityById(task.activityId);
     if (activity) meta.append(element('span', 'meta-chip', activity.name));
@@ -398,7 +414,9 @@ function renderTasks(main) {
   filter.id = 'task-filter';
   const search = input('task-search', 'Buscar por nombre o notas…');
   search.id = 'task-search';
-  toolbar.append(filter, search);
+  const searchWrap = element('label', 'search-field');
+  searchWrap.append(iconImage('interface/search.png', '', 'search-icon'), search);
+  toolbar.append(iconImage('tasks/filter.png', '', 'filter-icon'), filter, searchWrap);
   main.append(toolbar);
   const list = card();
   list.id = 'tasks-results';
@@ -608,7 +626,10 @@ function renderFocus(main) {
   const remaining = focus ? getFocusRemainingSeconds(focus) : duration * 60;
   const display = element('div', 'focus-clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0'));
   display.id = 'focus-clock';
-  focusCard.append(element('div', 'eyebrow', focus ? (focus.isBreak ? (focus.pausedAt ? 'DESCANSO EN PAUSA' : 'DESCANSO EN CURSO') : (focus.pausedAt ? 'SESIÓN EN PAUSA' : 'SESIÓN EN CURSO')) : 'LISTO PARA CONCENTRARTE'), display);
+  const focusStatus = element('div', 'focus-status');
+  const focusIconPath = !focus ? 'focus/zen.png' : (focus.isBreak ? 'focus/break.png' : (focus.pausedAt ? 'focus/pause.png' : 'focus/timer.png'));
+  focusStatus.append(iconImage(focusIconPath, '', 'focus-status-icon'), element('div', 'eyebrow', focus ? (focus.isBreak ? (focus.pausedAt ? 'DESCANSO EN PAUSA' : 'DESCANSO EN CURSO') : (focus.pausedAt ? 'SESIÓN EN PAUSA' : 'SESIÓN EN CURSO')) : 'LISTO PARA CONCENTRARTE'));
+  focusCard.append(focusStatus, display);
   const taskSelect = select('taskId', [{ value: '', label: 'Sesión libre' }, ...state.profile.tasks.filter(task => task.status === 'pending').map(task => ({ value: task.id, label: task.title }))], focus ? focus.taskId || '' : '');
   taskSelect.id = 'focus-task';
   taskSelect.disabled = Boolean(focus);
