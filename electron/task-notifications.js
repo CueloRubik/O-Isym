@@ -113,6 +113,8 @@ function createTaskNotificationScheduler({
         : task.title + ' · ' + dateText + ' · ' + range;
       reminders.push({
         key: [profile.id, task.id, task.scheduledDate, task.startTime].join(':'),
+        taskId: task.id,
+        scheduledDate: task.scheduledDate,
         triggerAt: dueAt - lead * 60000,
         activityName: String(activityName || task.title).slice(0, 100),
         body: String(body).slice(0, 240),
