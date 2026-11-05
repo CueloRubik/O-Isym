@@ -86,7 +86,7 @@ const button = (label, action, className = 'button secondary', data = {}) => {
 const actionIconButton = (label, action, icon, className = 'button secondary', data = {}) => {
   const node = button('', action, className + ' button-with-icon', data);
   const image = element('img', 'action-button-icon');
-  image.src = icon;
+  image.src = 'assets/icons/actions/' + icon;
   image.alt = '';
   image.setAttribute('aria-hidden', 'true');
   image.draggable = false;
@@ -129,9 +129,12 @@ const textarea = (name, placeholder, value = '') => {
   return node;
 };
 const card = (className = 'card') => element('section', className);
-const heading = (title, subtitle) => {
+const heading = (title, subtitle, iconPath = '') => {
   const wrap = element('div', 'section-heading');
-  wrap.append(element('h2', '', title));
+  const titleRow = element('div', 'section-heading-title');
+  if (iconPath) titleRow.append(iconImage(iconPath, '', 'section-heading-icon'));
+  titleRow.append(element('h2', '', title));
+  wrap.append(titleRow);
   if (subtitle) wrap.append(element('p', 'muted', subtitle));
   return wrap;
 };
@@ -216,7 +219,7 @@ function buildShell() {
   const nav = element('nav', 'navigation');
   nav.setAttribute('aria-label', 'Navegación principal');
   const profileNav = button('Perfiles', 'navigate', 'nav-item', { view: 'profiles' });
-  profileNav.prepend(element('span', 'nav-profile-symbol', '◎'));
+  profileNav.prepend(iconImage('actions/profiles.png', '', 'nav-icon-image'));
   nav.append(profileNav);
   const items = [
     ['today', 'Hoy', 'navigation/today.png'], ['tasks', 'Tareas', 'navigation/tasks.png'],
@@ -373,7 +376,9 @@ function renderToday(main) {
   const hero = card('welcome-card');
   const greeting = new Date().getHours() < 12 ? 'Buenos días' : (new Date().getHours() < 19 ? 'Buenas tardes' : 'Buenas noches');
   const childMode=getAgeBand(state.profile.age)==='child';
-  hero.append(element('div','eyebrow',dateLabel(date,{weekday:'long',day:'numeric',month:'long'})),element('h1','',childMode?'¡Hola, '+state.profile.name+'!':greeting+', '+state.profile.name),element('p','',childMode?'Este es tu espacio para organizar tus ideas, juegos y actividades.':'Organiza lo importante. Deja espacio para lo inesperado.'));
+  const heroTitle = element('div', 'today-title');
+  heroTitle.append(iconImage('navigation/today.png', '', 'view-title-icon'), element('h1', '', childMode ? '¡Hola, ' + state.profile.name + '!' : greeting + ', ' + state.profile.name));
+  hero.append(element('div','eyebrow',dateLabel(date,{weekday:'long',day:'numeric',month:'long'})), heroTitle, element('p','',childMode?'Este es tu espacio para organizar tus ideas, juegos y actividades.':'Organiza lo importante. Deja espacio para lo inesperado.'));
   const progress = element('div', 'progress-wrap');
   const progressTop = element('div', 'progress-label');
   const totalToday = done.length + tasks.length;
@@ -445,7 +450,7 @@ function renderToday(main) {
 
 function renderTasks(main) {
   const header=element('div','view-heading-row');
-  header.append(heading('Tareas','Todo lo que quieres hacer, en un solo lugar.'));
+  header.append(heading('Tareas','Todo lo que quieres hacer, en un solo lugar.','navigation/tasks.png'));
   const create=button('+ Nueva tarea','new-task','button primary');create.id='task-create-button';
   header.append(create);main.append(header);
   const toolbar = element('div', 'toolbar task-toolbar');
@@ -494,7 +499,7 @@ function renderActivities(main) {
   const band=getAgeBand(state.profile.age);
   const ideas=band==='child'?[['Leer un cuento','Lectura','Leer o escuchar un cuento',15],['Dibujar','Creatividad','Dibujar, colorear o inventar personajes',20],['Jugar al aire libre','Movimiento','Un rato de juego y movimiento',30],['Ordenar mis cosas','Hogar','Guardar juguetes, libros o materiales',10],['Practicar música','Música','Tocar o escuchar música',15]]:band==='teen'?[['Estudiar una materia','Estudio','Repasar un tema o preparar una tarea',30],['Practicar una habilidad','Creatividad','Practicar música, dibujo o una habilidad',25],['Leer','Lectura','Leer por gusto o para clase',20],['Moverme un rato','Bienestar','Caminar, bailar o una actividad recreativa',20]]:[['Lectura','Personal','Tiempo para leer',25],['Aprendizaje','Estudio','Aprender o practicar una habilidad',30],['Movimiento','Bienestar','Actividad recreativa o paseo',30]];
   const header=element('div','view-heading-row');
-  header.append(heading(band==='child'?'Mis actividades':'Actividades',band==='child'?'Ideas sencillas para llenar tu espacio con cosas que te gustan.':'Crea plantillas reutilizables para las cosas que haces.'));
+  header.append(heading(band==='child'?'Mis actividades':'Actividades',band==='child'?'Ideas sencillas para llenar tu espacio con cosas que te gustan.':'Crea plantillas reutilizables para las cosas que haces.','navigation/activities.png'));
   const create=button('+ Nueva actividad','new-activity','button primary');create.id='activity-create-button';
   header.append(create);main.append(header);
   const list=card('activity-catalog-card');
@@ -551,7 +556,9 @@ function renderCalendar(main) {
   controls.append(modeControls);
   if(state.calendarMode==='month'){
     const year=state.calendarDate.getFullYear(),month=state.calendarDate.getMonth();
-    title.append(element('h1','',state.calendarDate.toLocaleDateString('es-MX',{month:'long',year:'numeric'})),element('p','muted','Selecciona un día para revisar su agenda. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
+    const calendarTitle = element('div', 'view-title-with-icon');
+    calendarTitle.append(iconImage('navigation/calendar.png', '', 'view-title-icon'), element('h1', '', state.calendarDate.toLocaleDateString('es-MX',{month:'long',year:'numeric'})));
+    title.append(calendarTitle,element('p','muted','Selecciona un día para revisar su agenda. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
     const previousMonth=button('‹','calendar-prev','button secondary');
     previousMonth.setAttribute('aria-label','Mes anterior');
     const nextMonth=button('›','calendar-next','button secondary');
@@ -602,7 +609,9 @@ function renderCalendar(main) {
 function renderPlanner(main) {
   const dateBar = element('div', 'calendar-heading');
   const title = element('div', '');
-  title.append(element('h1', '', 'Planificador'), element('p', 'muted', dateLabel(state.selectedDate) + ' · Los compromisos bloqueados se respetan. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
+  const plannerTitle = element('div', 'view-title-with-icon');
+  plannerTitle.append(iconImage('navigation/planner.png', '', 'view-title-icon'), element('h1', '', 'Planificador'));
+  title.append(plannerTitle, element('p', 'muted', dateLabel(state.selectedDate) + ' · Los compromisos bloqueados se respetan. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
   const dateInput = input('selectedDate', '', 'date', state.selectedDate);
   dateInput.id = 'planner-date';
   dateBar.append(title, dateInput);
@@ -676,7 +685,7 @@ function renderPlanner(main) {
   main.append(planner);
 }
 function renderFocus(main) {
-  main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.'));
+  main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.', 'focus/timer.png'));
   const focus = state.profile.activeFocus;
   const focusCard = card('focus-panel');
   const selectedTask = focus ? taskById(focus.taskId) : null;
@@ -804,7 +813,7 @@ function renderFocus(main) {
 }
 function renderGoals(main) {
   const header=element('div','view-heading-row');
-  header.append(heading('Objetivos','Avanza poco a poco y revisa lo que importa.'));
+  header.append(heading('Objetivos','Avanza poco a poco y revisa lo que importa.','navigation/goals.png'));
   const create=button('+ Nuevo objetivo','new-goal','button primary');create.id='goal-create-button';
   header.append(create);main.append(header);
   const goals=state.profile.goals.filter(goal=>!goal.archived);
@@ -844,7 +853,7 @@ function renderGoals(main) {
   }
 }
 function renderInsights(main) {
-  main.append(heading('Insights', 'Una mirada amable a tus hábitos y tu tiempo.'));
+  main.append(heading('Insights', 'Una mirada amable a tus hábitos y tu tiempo.', 'navigation/insights.png'));
   const today = localDate();
   const weekStart = shiftDate(today, -((new Date().getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, index) => shiftDate(weekStart, index));
@@ -948,7 +957,7 @@ function renderProfiles(main) {
   const header = element('div', 'profiles-page-heading');
   const headingCopy = element('div', 'section-heading');
   const profileTitle=element('div','profiles-heading-title');
-  const profileTitleIcon=element('img','profiles-heading-icon');profileTitleIcon.src='profiles.png';profileTitleIcon.alt='';profileTitleIcon.setAttribute('aria-hidden','true');profileTitleIcon.draggable=false;
+  const profileTitleIcon=element('img','profiles-heading-icon');profileTitleIcon.src='assets/icons/actions/profiles.png';profileTitleIcon.alt='';profileTitleIcon.setAttribute('aria-hidden','true');profileTitleIcon.draggable=false;
   profileTitle.append(profileTitleIcon,element('h1','','Perfiles'));
   headingCopy.append(profileTitle, element('p', 'muted', 'Administra tus espacios y mantén cada organización independiente.'));
   const headerActions=element('div','profiles-header-actions');
@@ -1146,7 +1155,7 @@ function renderSettings(main) {
   });
   const panel=element('section','settings-panel');
   const active=sections.find(item=>item[0]===state.settingsSection);
-  panel.append(heading(active[1],active[2]));
+  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'assets/icons/actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/planner.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
   if(state.settingsSection==='profile'){
     const form=element('form','form-card settings-form');
     form.dataset.form='profile-settings';
