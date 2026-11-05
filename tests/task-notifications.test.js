@@ -137,7 +137,10 @@ test('al hacer clic en una notificación entrega el recordatorio correspondiente
   const time = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
   h.scheduler.scheduleSnapshot(h.snapshot(time));
   h.advance(5 * 60 * 1000);
-  assert.equal(h.openNotification().key.includes('task-1'), true);
+  const opened = h.openNotification();
+  assert.equal(opened.key.includes('task-1'), true);
+  assert.equal(opened.taskId, 'task-1');
+  assert.equal(opened.scheduledDate, h.dateKey);
   h.dispose();
 });
 
