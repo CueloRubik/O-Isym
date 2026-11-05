@@ -12,7 +12,8 @@ function createFocusNotificationScheduler({ Notification, powerMonitor, hasWindo
   function show(title, body, options = {}) {
     try {
       if (!Notification || (typeof Notification.isSupported === 'function' && !Notification.isSupported())) return;
-      const notification = new Notification({ title, body, silent: options.silent === true });
+      const nativeSounds = { chime: 'Glass', bell: 'Ping', soft: 'Pop', digital: 'Submarine' };
+      const notification = new Notification({ title, body, silent: options.silent === true, sound: nativeSounds[options.tone] });
       notification.on('failed', (_event, error) => console.error('[O-Isym] No se pudo mostrar una notificación:', error));
       notification.show();
     } catch (error) {
@@ -34,14 +35,15 @@ function createFocusNotificationScheduler({ Notification, powerMonitor, hasWindo
           : (completed.taskTitle
             ? 'Terminaste tu sesión de ' + completed.taskTitle + '. Tómate un descanso.'
             : 'Terminaste tu sesión de concentración. Tómate un descanso.'),
-        { silent: Boolean(hasWindow()) && completed.soundEnabled });
+        { silent: Boolean(hasWindow()) && completed.soundEnabled, tone: completed.endTone });
       return;
     }
 
     if (active.nextReminderAt !== null && currentTime >= active.nextReminderAt) {
       show('Pausa breve', active.taskTitle
         ? 'Llevas un rato en Focus con «' + active.taskTitle + '». Puedes revisar cómo te sientes y continuar.'
-        : 'Llevas un rato en Focus. Puedes revisar cómo te sientes y continuar.');
+        : 'Llevas un rato en Focus. Puedes revisar cómo te sientes y continuar.',
+        { tone: active.reminderTone });
       do {
         active.nextReminderAt += active.reminderMinutes * 60 * 1000;
       } while (active.nextReminderAt <= currentTime);
@@ -67,6 +69,8 @@ function createFocusNotificationScheduler({ Notification, powerMonitor, hasWindo
       isBreak,
       taskTitle: typeof payload.taskTitle === 'string' ? payload.taskTitle.slice(0, 140) : '',
       soundEnabled: payload.soundEnabled !== false,
+      endTone: typeof payload.endTone === 'string' ? payload.endTone : 'chime',
+      reminderTone: typeof payload.reminderTone === 'string' ? payload.reminderTone : 'soft',
       reminderMinutes,
       nextReminderAt: reminderMinutes > 0 && Number.isFinite(requestedReminderAt) && requestedReminderAt < endsAt
         ? requestedReminderAt
