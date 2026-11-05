@@ -285,30 +285,49 @@ test('profile normalization keeps valid age and avatar image ids and safely fall
 });
 
 
-test('Focus alarm preferences normalize tone choices and volume safely', () => {
-  const { createProfile, normalizeProfile } = require('../src/domain.js');
+test('Focus alarm preferences normalize MP3 tones, volume, and legacy values safely', () => {
+  const { createProfile, normalizeProfile, FOCUS_ALARM_TONES } = require('../src/domain.js');
   const fresh = createProfile('Alarmas');
   assert.equal(fresh.preferences.focusStartTone, 'off');
-  assert.equal(fresh.preferences.focusEndTone, 'chime');
-  assert.equal(fresh.preferences.breakEndTone, 'bell');
-  assert.equal(fresh.preferences.focusAlarmVolume, 60);
-  assert.equal(fresh.preferences.focusReminderTone, 'soft');
+  assert.equal(fresh.preferences.focusEndTone, 'clock');
+  assert.equal(fresh.preferences.breakEndTone, 'ringtone2');
+  assert.equal(fresh.preferences.focusAlarmVolume, 70);
+  assert.equal(fresh.preferences.focusReminderTone, 'digital');
+  assert.deepEqual(FOCUS_ALARM_TONES, ['clock', 'digital', 'funny', 'ringtone1', 'ringtone2', 'ringtone3', 'ringtone4', 'ringtone5', 'ringtone6', 'tititi']);
   const restored = normalizeProfile({ name: 'Antiguo', preferences: { focusSound: true, focusNotifications: true } });
   assert.equal(restored.preferences.focusStartTone, 'off');
-  assert.equal(restored.preferences.focusEndTone, 'chime');
-  assert.equal(restored.preferences.breakEndTone, 'bell');
-  assert.equal(restored.preferences.focusAlarmVolume, 60);
-  const customized = normalizeProfile({ name: 'Personalizado', preferences: { focusStartTone: 'digital', focusEndTone: 'soft', breakEndTone: 'bell', focusAlarmVolume: 135 } });
+  assert.equal(restored.preferences.focusEndTone, 'clock');
+  assert.equal(restored.preferences.breakEndTone, 'ringtone2');
+  assert.equal(restored.preferences.focusAlarmVolume, 70);
+  const legacy = normalizeProfile({ name: 'Anterior', preferences: { focusEndTone: 'chime', breakEndTone: 'bell', focusReminderTone: 'soft' } });
+  assert.equal(legacy.preferences.focusEndTone, 'ringtone2');
+  assert.equal(legacy.preferences.breakEndTone, 'clock');
+  assert.equal(legacy.preferences.focusReminderTone, 'ringtone3');
+  const customized = normalizeProfile({ name: 'Personalizado', preferences: { focusStartTone: 'digital', focusEndTone: 'tititi', breakEndTone: 'ringtone6', focusAlarmVolume: 135 } });
   assert.equal(customized.preferences.focusStartTone, 'digital');
-  assert.equal(customized.preferences.focusEndTone, 'soft');
-  assert.equal(customized.preferences.breakEndTone, 'bell');
+  assert.equal(customized.preferences.focusEndTone, 'tititi');
+  assert.equal(customized.preferences.breakEndTone, 'ringtone6');
   assert.equal(customized.preferences.focusAlarmVolume, 100);
   const invalid = normalizeProfile({ name: 'Inválido', preferences: { focusStartTone: 'loud', focusEndTone: 'unknown', breakEndTone: null, focusAlarmVolume: -5 } });
   assert.equal(invalid.preferences.focusStartTone, 'off');
-  assert.equal(invalid.preferences.focusEndTone, 'chime');
-  assert.equal(invalid.preferences.breakEndTone, 'bell');
+  assert.equal(invalid.preferences.focusEndTone, 'clock');
+  assert.equal(invalid.preferences.breakEndTone, 'ringtone2');
   assert.equal(invalid.preferences.focusAlarmVolume, 0);
-  assert.equal(invalid.preferences.focusReminderTone, 'soft');
+  assert.equal(invalid.preferences.focusReminderTone, 'digital');
+});
+
+test('Focus music preferences default to no music and validate the selected track', () => {
+  const { createProfile, normalizeProfile, FOCUS_MUSIC_TRACKS } = require('../src/domain.js');
+  const fresh = createProfile('Música');
+  assert.equal(fresh.preferences.focusMusicTrack, '');
+  assert.equal(fresh.preferences.focusMusicVolume, 35);
+  assert.equal(FOCUS_MUSIC_TRACKS.length, 14);
+  const selected = normalizeProfile({ name: 'Pista', preferences: { focusMusicTrack: 'focus6', focusMusicVolume: 45 } });
+  assert.equal(selected.preferences.focusMusicTrack, 'focus6');
+  assert.equal(selected.preferences.focusMusicVolume, 45);
+  const invalid = normalizeProfile({ name: 'Inválido', preferences: { focusMusicTrack: 'focus99', focusMusicVolume: -1 } });
+  assert.equal(invalid.preferences.focusMusicTrack, '');
+  assert.equal(invalid.preferences.focusMusicVolume, 0);
 });
 
 

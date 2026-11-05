@@ -6,8 +6,14 @@ const SCHEMA_VERSION = 1;
 const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
 const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...Array.from({ length: 18 }, (_, index) => 'profile-' + (index + 1))];
 const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
-const FOCUS_ALARM_TONES = ['chime', 'bell', 'soft', 'digital'];
+const FOCUS_ALARM_TONES = ['clock', 'digital', 'funny', 'ringtone1', 'ringtone2', 'ringtone3', 'ringtone4', 'ringtone5', 'ringtone6', 'tititi'];
+const FOCUS_MUSIC_TRACKS = ['focus1', 'focus2', 'focus3', 'focus4', 'focus5', 'focus6', 'focus7', 'focus8', 'focus9', 'focus10', 'focus11', 'focus12', 'focus13', 'focus14'];
 const FOCUS_REMINDER_INTERVALS = [0, 5, 10, 15, 20, 25, 30, 45, 60];
+function normalizeAlarmTone(value, fallback) {
+  const legacy = { chime: 'ringtone2', bell: 'clock', soft: 'ringtone3' };
+  const tone = legacy[value] || value;
+  return tone === 'off' || FOCUS_ALARM_TONES.includes(tone) ? tone : fallback;
+}
 function getAgeBand(age) { const value=Number(age); if(!Number.isInteger(value)||value<1||value>120)return 'general'; if(value<=12)return 'child'; if(value<=17)return 'teen'; return 'adult'; }
 function getDefaultThemeForAge(age) { const band=getAgeBand(age); return band==='child'?'playful':band==='teen'?'sky':'classic'; }
 
@@ -47,11 +53,13 @@ function createProfile(name, color = '#27856b', age = null) {
       focusSound: true,
       focusNotifications: true,
       focusStartTone: 'off',
-      focusEndTone: 'chime',
-      breakEndTone: 'bell',
-      focusAlarmVolume: 60,
-      focusReminderTone: 'soft',
+      focusEndTone: 'clock',
+      breakEndTone: 'ringtone2',
+      focusAlarmVolume: 70,
+      focusReminderTone: 'digital',
       focusReminderMinutes: 0,
+      focusMusicTrack: '',
+      focusMusicVolume: 35,
       theme: getDefaultThemeForAge(age),
       ageBand: getAgeBand(age),
       motionEnabled: true,
@@ -87,12 +95,14 @@ function normalizeProfile(profile) {
       breakMinutes: clampNumber(preferences.breakMinutes, 1, 60, 5),
       focusSound: preferences.focusSound !== false,
       focusNotifications: preferences.focusNotifications !== false,
-      focusStartTone: ['off', ...FOCUS_ALARM_TONES].includes(preferences.focusStartTone) ? preferences.focusStartTone : 'off',
-      focusEndTone: FOCUS_ALARM_TONES.includes(preferences.focusEndTone) ? preferences.focusEndTone : 'chime',
-      breakEndTone: FOCUS_ALARM_TONES.includes(preferences.breakEndTone) ? preferences.breakEndTone : 'bell',
-      focusAlarmVolume: clampNumber(preferences.focusAlarmVolume, 0, 100, 60),
-      focusReminderTone: FOCUS_ALARM_TONES.includes(preferences.focusReminderTone) ? preferences.focusReminderTone : 'soft',
+      focusStartTone: normalizeAlarmTone(preferences.focusStartTone, 'off'),
+      focusEndTone: normalizeAlarmTone(preferences.focusEndTone, 'clock'),
+      breakEndTone: normalizeAlarmTone(preferences.breakEndTone, 'ringtone2'),
+      focusAlarmVolume: clampNumber(preferences.focusAlarmVolume, 0, 100, 70),
+      focusReminderTone: normalizeAlarmTone(preferences.focusReminderTone, 'digital'),
       focusReminderMinutes: FOCUS_REMINDER_INTERVALS.includes(Number(preferences.focusReminderMinutes)) ? Number(preferences.focusReminderMinutes) : 0,
+      focusMusicTrack: FOCUS_MUSIC_TRACKS.includes(preferences.focusMusicTrack) ? preferences.focusMusicTrack : '',
+      focusMusicVolume: clampNumber(preferences.focusMusicVolume, 0, 100, 35),
       theme: THEME_IDS.includes(preferences.theme) ? preferences.theme : getDefaultThemeForAge(value.age),
       ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
@@ -473,5 +483,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
+return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });

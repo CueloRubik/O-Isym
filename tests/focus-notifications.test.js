@@ -135,3 +135,68 @@ test('Focus completion avoids duplicate sound when the renderer can play its sel
   assert.equal(closed.notifications[0].silent, false);
   closed.dispose();
 });
+
+
+test('Focus reminders avoid duplicate sound when the renderer is available', () => {
+  const h = makeHarness({ hasWindow: () => true });
+  const start = Date.parse('2026-11-04T12:00:00.000Z');
+  h.scheduler.schedule({
+    endsAt: new Date(start + 1800000).toISOString(),
+    nextReminderAt: new Date(start + 600000).toISOString(),
+    reminderMinutes: 10,
+    reminderTone: 'tititi',
+    reminderSoundEnabled: true
+  });
+  h.advance(600000);
+  assert.equal(h.notifications.length, 1);
+  assert.equal(h.notifications[0].silent, true);
+  h.dispose();
+});
+
+test('Focus reminders are silent when custom alarm sound or system notifications are disabled', () => {
+  const silentSound = makeHarness();
+  const start = Date.parse('2026-11-04T12:00:00.000Z');
+  silentSound.scheduler.schedule({
+    endsAt: new Date(start + 1800000).toISOString(),
+    nextReminderAt: new Date(start + 600000).toISOString(),
+    reminderMinutes: 10,
+    reminderSoundEnabled: false
+  });
+  silentSound.advance(600000);
+  assert.equal(silentSound.notifications[0].silent, true);
+  silentSound.dispose();
+
+  const notificationsOff = makeHarness();
+  notificationsOff.scheduler.schedule({
+    endsAt: new Date(start + 1800000).toISOString(),
+    nextReminderAt: new Date(start + 600000).toISOString(),
+    reminderMinutes: 10,
+    notificationsEnabled: false
+  });
+  notificationsOff.advance(600000);
+  assert.equal(notificationsOff.notifications.length, 0);
+  notificationsOff.dispose();
+});
+
+test('Focus completion respects disabled sounds and disabled system notifications', () => {
+  const h = makeHarness();
+  const start = Date.parse('2026-11-04T12:00:00.000Z');
+  h.scheduler.schedule({
+    endsAt: new Date(start + 1000).toISOString(),
+    soundEnabled: false,
+    notificationsEnabled: true
+  });
+  h.advance(1000);
+  assert.equal(h.notifications.length, 1);
+  assert.equal(h.notifications[0].silent, true);
+  h.dispose();
+
+  const muted = makeHarness();
+  muted.scheduler.schedule({
+    endsAt: new Date(start + 1000).toISOString(),
+    notificationsEnabled: false
+  });
+  muted.advance(1000);
+  assert.equal(muted.notifications.length, 0);
+  muted.dispose();
+});

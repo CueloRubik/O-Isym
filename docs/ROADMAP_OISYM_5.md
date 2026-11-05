@@ -27,13 +27,15 @@ Por tanto, esas tareas dejan de figurar como pendientes. El trabajo restante cor
 
 Objetivo: convertir las alarmas de Focus en un sistema configurable, claro y consistente.
 
-- [x] Crear cuatro tonos diferenciados: campanillas, campana, suave y digital.
-- [x] Permitir elegir por separado el sonido de inicio de Focus, finalización de Focus y finalización del descanso.
-- [x] Añadir control de volumen independiente de los controles del sistema.
-- [x] Incluir una vista previa para escuchar cada sonido, incluso si las alarmas de sesión están silenciadas.
+- [x] Integrar diez sonidos MP3 de alarma con nombres propios y selección independiente para inicio de Focus, fin de Focus, fin del descanso y recordatorios.
+- [x] Reproducir cada alarma en tres ciclos separados por una pausa breve; la vista previa utiliza el mismo patrón.
+- [x] Añadir control de volumen de alarmas independiente del volumen de música y de los controles del sistema.
+- [x] Incluir una vista previa de cada sonido, incluso si las alarmas de sesión están silenciadas.
 - [x] Guardar las preferencias por perfil y asignar valores seguros a perfiles antiguos.
 - [x] Añadir recordatorios durante Focus con intervalos de 5, 10, 15, 20, 25, 30, 45 o 60 minutos; desactivados por defecto.
 - [x] Permitir elegir y previsualizar un sonido específico para los recordatorios, independiente del sonido de fin de Focus.
+- [x] Añadir catorce pistas de música organizadas por ambiente, con nombres, descripciones, vista previa, volumen independiente y opción «Sin música».
+- [x] Reproducir la pista elegida en bucle durante Focus y los descansos; detenerla al pausar o finalizar.
 - [x] Programar las notificaciones en el proceso principal de Electron, no solamente en el renderer.
 - [x] Mantener los temporizadores cuando la ventana se minimiza o se cierra en macOS, mientras el proceso de O-Isym continúa ejecutándose.
 - [x] Al volver de suspensión, comprobar el reloj real: enviar el recordatorio pendiente más reciente una sola vez o la notificación de finalización si el tiempo ya venció.
@@ -127,6 +129,8 @@ Las prioridades pueden ajustarse si una decisión de diseño revela dependencias
 - `src/styles/app.css`: sistema visual.
 - `tests/`: pruebas automatizadas.
 - `assets/avatars/`: avatares de perfiles.
+- `assets/audio/music/`: catorce pistas de Focus.
+- `assets/audio/alarms/`: diez sonidos de alarma.
 - `legacy/` y `src/scripts/`: referencia del prototipo; no cargar en la interfaz nueva.
 
 ## Decisiones de producto que se mantienen
