@@ -10,6 +10,12 @@ const storage = Object.freeze({
   })
 });
 
+const focusAlarms = Object.freeze({
+  schedule: payload => ipcRenderer.invoke('oisym:focus:notifications:schedule', payload),
+  cancel: () => ipcRenderer.invoke('oisym:focus:notifications:cancel')
+});
+
 contextBridge.exposeInMainWorld('oisym', Object.freeze({
-  storage
+  storage,
+  focusAlarms
 }));
