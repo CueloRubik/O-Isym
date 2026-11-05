@@ -28,4 +28,5 @@ jobs:
           node --check electron/preload.js
           node --check electron/ipc-handlers.js
           node --check electron/focus-notifications.js
+          node --check electron/task-notifications.js
           node --check electron/storage.js
