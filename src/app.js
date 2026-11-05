@@ -1144,6 +1144,8 @@ async function handleSubmit(form) {
         state.snapshot.profiles = state.snapshot.profiles.filter(item => item.id !== profile.id);
         state.profile = state.snapshot.profiles.find(item => item.id === previousProfileId) || state.snapshot.profiles[0];
         state.snapshot.activeProfileId = state.profile.id;
+        if(state.profile.activeFocus&&!state.profile.activeFocus.pausedAt)startFocusTicker();
+        syncFocusNotificationSchedule();startFocusMusic();
         throw new Error('No se pudo guardar el perfil.');
       }
       state.view = 'today';
@@ -1234,6 +1236,7 @@ async function handleSubmit(form) {
       if(!name)throw new Error('Escribe un nombre para el perfil.');
       const ageValue=String(data.age||'').trim();
       if(ageValue&&(!Number.isInteger(Number(ageValue))||Number(ageValue)<1||Number(ageValue)>120))throw new Error('La edad debe estar entre 1 y 120 años.');
+      const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
       state.profile.name=name.slice(0,60);
       state.profile.age=ageValue?Number(ageValue):null;
       state.profile.preferences.ageBand=getAgeBand(state.profile.age);
@@ -1241,7 +1244,6 @@ async function handleSubmit(form) {
       state.profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:state.profile.avatarId;
       state.profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(state.profile.age);
       state.profile.preferences.motionEnabled=data.motionEnabled!=='false';
-      const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
       const saved=await save();
       if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
       showToast('Perfil actualizado.');
@@ -1768,6 +1770,7 @@ document.addEventListener('keydown', event => {
   const profileModal = $('[data-profile-modal]');
   if (profileModal && event.key === 'Escape') {
     event.preventDefault();
+    if(profileModal.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
     profileModal.remove();
     $('.profile-add')?.focus();
     return;
