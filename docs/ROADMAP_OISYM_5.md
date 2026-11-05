@@ -100,7 +100,9 @@ Esta sección sirve como registro de lo que O-Isym ya tiene. No son tareas para 
 ## 3. Plan de producto pendiente
 
 ### P2 — Reorganización de Ajustes
-**Estado: especificación detallada preparada; implementación pendiente.**
+**Estado: primera etapa implementada; quedan categorías y pulido por verificar.**
+
+Ajustes ahora tiene navegación secundaria y paneles separados para Mi perfil, Planificación, Focus y sonido, Datos y copias, Atajos y ayuda, y Perfiles. La implementación inicial mantiene los controles de audio centralizados en Enfoque para evitar duplicados. Falta prueba visual y ampliar la sección de notificaciones/ayuda si corresponde.
 
 La nueva arquitectura de Ajustes, con navegación secundaria y categorías separadas, está definida en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md).
 
@@ -118,7 +120,9 @@ Objetivo: que cada configuración esté en su lugar y sea fácil de encontrar.
 Criterio de aceptación: cada opción tiene una ubicación lógica, se encuentra sin recorrer una pantalla interminable y conserva su comportamiento actual.
 
 ### P3 — Administración avanzada de perfiles
-**Estado: especificación detallada preparada; implementación pendiente.**
+**Estado: primera etapa implementada; funciones individuales restantes pendientes.**
+
+Ya existe una vista dedicada con lista/ficha, contadores calculados, preferencias resumidas, selección administrativa separada del perfil activo, edición de perfiles inactivos, duplicación solo de preferencias, exportación individual y eliminación del perfil seleccionado con resumen de contenido y protección del último perfil. El cambio de perfil guarda primero el actual y gestiona recursos Focus. Pendiente: importación individual con validación, reemplazar el prompt de duplicación por un diálogo propio, y completar pruebas manuales de Focus y fallos de almacenamiento.
 
 La especificación completa está en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md). Define el centro de perfiles, creación, edición de perfiles inactivos, cambio seguro, duplicación de preferencias, exportación/importación individual, eliminación protegida, estados especiales, pruebas y criterios de aceptación.
 
@@ -159,7 +163,9 @@ Pendiente:
 Criterio de aceptación: los iconos se sienten parte del mismo producto, son reconocibles y mejoran la orientación sin añadir ruido visual.
 
 ### P5 — Pulido general
-**Estado: primera pasada CSS/iconos realizada; reorganización completa especificada, implementación pendiente.**
+**Estado: iniciado; perfiles y Ajustes tienen una primera reorganización responsive.**
+
+La nueva vista Perfiles y la navegación secundaria de Ajustes ya están implementadas. Las demás vistas principales siguen pendientes de reorganización y revisión visual.
 
 La distribución objetivo de todas las vistas, jerarquía de tarjetas, acciones, formularios, modales, textos, accesibilidad y responsive está definida en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md).
 
