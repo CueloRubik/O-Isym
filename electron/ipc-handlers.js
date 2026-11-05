@@ -49,8 +49,9 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
 
   ipcMain.handle('oisym:notifications:status', event => {
     assertTrusted(event);
-    const login = app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings() : {};
-    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true };
+    const canManageLogin = process.platform === 'darwin' || process.platform === 'win32';
+    const login = canManageLogin && app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings() : {};
+    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true, canManageLogin };
   });
 
   ipcMain.handle('oisym:notifications:test', event => {
@@ -60,7 +61,7 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
 
   ipcMain.handle('oisym:notifications:launch-at-login', (event, enabled) => {
     assertTrusted(event);
-    if (typeof enabled !== 'boolean' || !app || typeof app.setLoginItemSettings !== 'function') return false;
+    if (typeof enabled !== 'boolean' || !['darwin', 'win32'].includes(process.platform) || !app || typeof app.setLoginItemSettings !== 'function') return false;
     app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: enabled });
     return app.getLoginItemSettings().openAtLogin === enabled;
   });
