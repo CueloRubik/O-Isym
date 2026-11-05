@@ -31,7 +31,7 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "app.icns",
-      "identity": null,
+      "identity": "-",
       "target": [
         {
           "target": "dmg",
@@ -39,7 +39,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "hardenedRuntime": false
     }
   }
 }
