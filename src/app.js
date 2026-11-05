@@ -1088,7 +1088,8 @@ function syncFocusNotificationSchedule() {
   alarms.schedule({
     endsAt: new Date(endAt).toISOString(),
     isBreak: focus.isBreak === true,
-    taskTitle: focus.activityTitle || (taskById(focus.taskId)?.title || ''),
+    taskTitle: taskById(focus.taskId)?.title || focus.activityTitle || '',
+    soundEnabled: state.profile.preferences.focusSound !== false,
     reminderMinutes: intervalMinutes,
     nextReminderAt
   }).catch(() => {});
@@ -1391,7 +1392,7 @@ root.addEventListener('click', async event => {
       state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
       state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
       if (!state.profile) throw new Error('El archivo no contiene perfiles.');
-      await save(); updateShell(); showToast('Copia importada.');
+      await save(); syncFocusNotificationSchedule(); updateShell(); showToast('Copia importada.');
     } catch (error) { showToast('No se pudo importar: ' + error.message, 'error'); }
   }
   if (action === 'import-legacy') {
@@ -1527,7 +1528,7 @@ root.addEventListener('change', event => {
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
-    if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(updateShell); }
+    if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(() => { syncFocusNotificationSchedule(); updateShell(); }); }
   }
   if (event.target.id === 'planner-date') {
     state.selectedDate = event.target.value || localDate();
