@@ -1782,18 +1782,43 @@ root.addEventListener('click', async event => {
   if (action === 'import-data') {
     const file = $('#backup-file')?.files?.[0];
     if (!file) return showToast('Selecciona primero un archivo JSON.', 'error');
+    const previousSnapshot = JSON.parse(JSON.stringify(state.snapshot));
+    const previousProfile = state.profile;
+    const previousSelectedProfileId = state.selectedProfileId;
     try {
       const imported = JSON.parse(await file.text());
       validateSnapshot(imported);
+      if (!Array.isArray(imported.profiles) || imported.profiles.length === 0) {
+        throw new Error('La copia no contiene perfiles. No se modificó tu información actual.');
+      }
+      const normalizedProfiles = imported.profiles.map(normalizeProfile);
+      const activeProfile = normalizedProfiles.find(profile => profile.id === imported.activeProfileId) || normalizedProfiles[0];
       if (!confirm('La importación reemplazará los datos actuales. O-Isym conservará una copia de seguridad. ¿Continuar?')) return;
       focusAudioController.stopAll();
-      state.snapshot = imported;
-      state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
-      state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
-  state.selectedProfileId = state.profile.id;
-      if (!state.profile) throw new Error('El archivo no contiene perfiles.');
-      await save(); syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); showToast('Copia importada.');
-    } catch (error) { showToast('No se pudo importar: ' + error.message, 'error'); }
+      state.snapshot = { ...imported, profiles: normalizedProfiles, activeProfileId: activeProfile.id };
+      state.profile = activeProfile;
+      state.selectedProfileId = activeProfile.id;
+      const saved = await save();
+      if (!saved) {
+        state.snapshot = previousSnapshot;
+        state.profile = previousProfile;
+        state.selectedProfileId = previousSelectedProfileId;
+        syncFocusNotificationSchedule();
+        startFocusMusic();
+        return;
+      }
+      syncFocusNotificationSchedule();
+      startFocusMusic();
+      updateShell();
+      showToast('Copia importada.');
+    } catch (error) {
+      state.snapshot = previousSnapshot;
+      state.profile = previousProfile;
+      state.selectedProfileId = previousSelectedProfileId;
+      syncFocusNotificationSchedule();
+      startFocusMusic();
+      showToast('No se pudo importar: ' + error.message, 'error');
+    }
   }
   if (action === 'import-legacy') {
     if (state.profile.legacyImportedAt) return;
