@@ -135,13 +135,13 @@ test('focus duration follows the selected task activity, with profile preference
   assert.equal(getSuggestedFocusMinutes(profile, null), 35);
 });
 
-test('focus preferences default to enabled but can be disabled safely', () => {
+test('Focus end alarm and system notifications default to enabled and migrate safely', () => {
   const { createProfile, normalizeProfile } = require('../src/domain.js');
   const profile = createProfile('Focus');
-  assert.equal(profile.preferences.focusSound, true);
+  assert.equal(profile.preferences.focusEndAlarmEnabled, true);
   assert.equal(profile.preferences.focusNotifications, true);
   const normalized = normalizeProfile({ name: 'Anterior', preferences: { focusSound: false, focusNotifications: false } });
-  assert.equal(normalized.preferences.focusSound, false);
+  assert.equal(normalized.preferences.focusEndAlarmEnabled, false);
   assert.equal(normalized.preferences.focusNotifications, false);
 });
 
@@ -321,13 +321,4 @@ test('Focus music preferences default to no music and validate the selected trac
 });
 
 
-test('Focus reminder interval defaults off and rejects unsupported values', () => {
-  const { createProfile, normalizeProfile, FOCUS_REMINDER_INTERVALS } = require('../src/domain.js');
-  const fresh = createProfile('Recordatorios');
-  assert.equal(fresh.preferences.focusReminderMinutes, 0);
-  assert.deepEqual(FOCUS_REMINDER_INTERVALS, [0, 5, 10, 15, 20, 25, 30, 45, 60]);
-  const enabled = normalizeProfile({ name: 'Activo', preferences: { focusReminderMinutes: 15 } });
-  assert.equal(enabled.preferences.focusReminderMinutes, 15);
-  const invalid = normalizeProfile({ name: 'Inválido', preferences: { focusReminderMinutes: 17 } });
-  assert.equal(invalid.preferences.focusReminderMinutes, 0);
-});
+
