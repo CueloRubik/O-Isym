@@ -32,6 +32,22 @@ test('automatic scheduling never includes locked or already scheduled tasks', as
   assert.equal(proposals[0].taskId, profile.tasks[0].id);
 });
 
+test('validates imported profile collections and rejects malformed records', () => {
+  const { createProfile, createTask, createActivity, createGoal, validateImportedProfile } = require('../src/domain.js');
+  const profile = createProfile('Importado');
+  profile.tasks.push(createTask({ title: 'Tarea válida' }));
+  profile.activities.push(createActivity({ name: 'Lectura' }));
+  profile.goals.push(createGoal({ title: 'Leer', target: 5 }));
+  assert.equal(validateImportedProfile(profile), true);
+
+  const invalidTask = { ...profile, tasks: [{ id: 'task-1', title: 'Sin estado', priority: 'medium' }] };
+  assert.throws(() => validateImportedProfile(invalidTask), /estado o prioridad/);
+  const duplicateIds = { ...profile, activities: [{ id: 'same', name: 'Una' }, { id: 'same', name: 'Otra' }] };
+  assert.throws(() => validateImportedProfile(duplicateIds), /identificadores repetidos/);
+  const oversized = { ...profile, tasks: new Array(10001).fill({ id: 'task', title: 'Tarea', status: 'pending', priority: 'low' }) };
+  assert.throws(() => validateImportedProfile(oversized), /colección tasks/);
+});
+
 test('snapshot rejects duplicate profiles and invalid active profile', async () => {
   const { createProfile, validateSnapshot } = require('../src/domain.js');
   const profile = createProfile('Uno');
