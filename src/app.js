@@ -351,8 +351,11 @@ function renderTaskList(parent, tasks, options = {}) {
 
 function renderToday(main) {
   const date = localDate();
-  const tasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === date || !task.scheduledDate || task.dueDate === date));
   const overdue = state.profile.tasks.filter(task => task.status === 'pending' && task.dueDate && task.dueDate < date);
+  const overdueIds = new Set(overdue.map(task => task.id));
+  const tasks = state.profile.tasks.filter(task => task.status === 'pending' && !overdueIds.has(task.id) && (
+    task.scheduledDate === date || task.dueDate === date || (!task.scheduledDate && !task.dueDate)
+  ));
   const done = state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && task.completedAt.slice(0, 10) === date);
   const hero = card('welcome-card');
   const greeting = new Date().getHours() < 12 ? 'Buenos días' : (new Date().getHours() < 19 ? 'Buenas tardes' : 'Buenas noches');
@@ -360,10 +363,17 @@ function renderToday(main) {
   hero.append(element('div','eyebrow',dateLabel(date,{weekday:'long',day:'numeric',month:'long'})),element('h1','',childMode?'¡Hola, '+state.profile.name+'!':greeting+', '+state.profile.name),element('p','',childMode?'Este es tu espacio para organizar tus ideas, juegos y actividades.':'Organiza lo importante. Deja espacio para lo inesperado.'));
   const progress = element('div', 'progress-wrap');
   const progressTop = element('div', 'progress-label');
-  progressTop.append(element('span', '', 'Tu día'), element('strong', '', done.length + ' de ' + (done.length + tasks.length) + ' tareas'));
+  const totalToday = done.length + tasks.length;
+  const progressPercent = totalToday ? Math.round(done.length / totalToday * 100) : 0;
+  progressTop.append(element('span', '', 'Tu día'), element('strong', '', totalToday ? done.length + ' de ' + totalToday + ' tareas' : 'Sin tareas para hoy'));
   const bar = element('div', 'progress-track');
+  bar.setAttribute('role', 'progressbar');
+  bar.setAttribute('aria-label', 'Progreso de tareas de hoy');
+  bar.setAttribute('aria-valuemin', '0');
+  bar.setAttribute('aria-valuemax', '100');
+  bar.setAttribute('aria-valuenow', String(progressPercent));
   const fill = element('div', 'progress-fill');
-  fill.style.width = (done.length + tasks.length ? Math.round(done.length / (done.length + tasks.length) * 100) : 0) + '%';
+  fill.style.width = progressPercent + '%';
   bar.append(fill);
   progress.append(progressTop, bar);
   hero.append(progress);
@@ -376,6 +386,12 @@ function renderToday(main) {
   renderTaskList(taskCard, tasks, { emptyTitle: 'Tu agenda está despejada', emptyDetail: 'Puedes agregar una tarea o reservar tiempo para algo importante.' });
   taskCard.append(button('+ Añadir tarea', 'quick-task', 'button primary'));
   primary.append(taskCard);
+  if (done.length) {
+    const doneCard = card('today-completed-card');
+    doneCard.append(heading('Completadas hoy', done.length === 1 ? 'Ya terminaste una tarea.' : 'Ya terminaste ' + done.length + ' tareas.'));
+    renderTaskList(doneCard, done.slice().reverse(), { emptyTitle: 'Todavía no hay tareas completadas', emptyDetail: 'Las tareas que marques como terminadas aparecerán aquí.' });
+    primary.append(doneCard);
+  }
   if (overdue.length) {
     const overdueCard = card();
     overdueCard.append(heading('Pendientes anteriores', 'Decide qué hacer con ellos; nada se mueve por su cuenta.'));
@@ -1039,6 +1055,34 @@ function openProfileEditor(profile) {
   form.append(field('Tema',select('theme',[
     {value:'classic',label:'Clásico'},{value:'warm',label:'Cálido'},{value:'sky',label:'Cielo'},{value:'playful',label:'Colorido'}
   ],profile.preferences.theme || 'classic')));
+  const preferences=element('details','profile-advanced-preferences');
+  const preferencesSummary=element('summary','','Preferencias de planificación y Focus');
+  preferences.append(preferencesSummary);
+  const preferenceGrid=element('div','profile-editor-preference-grid');
+  preferenceGrid.append(field('Autonomía del planificador',select('autonomy',[
+    {value:'manual',label:'Manual'},{value:'suggested',label:'Sugerido'},{value:'hybrid',label:'Híbrido'},{value:'automatic',label:'Automático'}
+  ],profile.preferences.autonomy || 'suggested')));
+  preferenceGrid.append(field('Minutos de enfoque',input('focusMinutes','25','number',profile.preferences.focusMinutes || 25)));
+  preferenceGrid.append(field('Minutos de descanso',input('breakMinutes','5','number',profile.preferences.breakMinutes || 5)));
+  preferenceGrid.append(field('Inicio habitual',input('workingDayStart','','time',profile.preferences.workingDayStart || '09:00')));
+  preferenceGrid.append(field('Fin habitual',input('workingDayEnd','','time',profile.preferences.workingDayEnd || '17:00')));
+  preferenceGrid.append(field('Música de Focus',select('focusMusicTrack',[
+    {value:'',label:'Sin música'},...FOCUS_MUSIC_CATALOG.map(track=>({value:track.id,label:track.name}))
+  ],profile.preferences.focusMusicTrack || '')));
+  preferenceGrid.append(field('Volumen de música (%)',input('focusMusicVolume','35','number',profile.preferences.focusMusicVolume ?? 35)));
+  preferenceGrid.append(field('Alarma al terminar Focus',select('focusEndAlarmEnabled',[
+    {value:'true',label:'Activada'},{value:'false',label:'Desactivada'}
+  ],String(profile.preferences.focusEndAlarmEnabled !== false))));
+  preferenceGrid.append(field('Sonido de alarma',select('focusEndTone',FOCUS_ALARM_CATALOG.map(sound=>({value:sound.id,label:sound.name})),profile.preferences.focusEndTone || 'clock')));
+  preferenceGrid.append(field('Volumen de alarma (%)',input('focusAlarmVolume','70','number',profile.preferences.focusAlarmVolume ?? 70)));
+  preferenceGrid.append(field('Notificaciones de Focus',select('focusNotifications',[
+    {value:'true',label:'Activadas'},{value:'false',label:'Desactivadas'}
+  ],String(profile.preferences.focusNotifications !== false))));
+  preferenceGrid.append(field('Movimiento de interfaz',select('motionEnabled',[
+    {value:'true',label:'Activado'},{value:'false',label:'Reducido'}
+  ],String(profile.preferences.motionEnabled !== false))));
+  preferences.append(preferenceGrid,element('p','small-note','Estos cambios pertenecen únicamente a este perfil. Las sesiones que ya estén en curso no se modifican.'));
+  form.append(preferences);
   const previewRow=element('div','profile-avatar-preview-row');
   const preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');
   previewRow.append(preview,element('span','muted','Vista previa del perfil'));form.append(previewRow);
@@ -1235,7 +1279,19 @@ async function handleSubmit(form) {
         avatarId: isImageAvatar(data.avatarId) ? data.avatarId : current.avatarId,
         preferences: {
           ...current.preferences,
-          theme: ['classic','warm','sky','playful'].includes(data.theme) ? data.theme : current.preferences.theme
+          theme: ['classic','warm','sky','playful'].includes(data.theme) ? data.theme : current.preferences.theme,
+          autonomy: ['manual','suggested','hybrid','automatic'].includes(data.autonomy) ? data.autonomy : current.preferences.autonomy,
+          focusMinutes: data.focusMinutes,
+          breakMinutes: data.breakMinutes,
+          workingDayStart: /^([01]\\d|2[0-3]):[0-5]\\d$/.test(data.workingDayStart || '') ? data.workingDayStart : current.preferences.workingDayStart,
+          workingDayEnd: /^([01]\\d|2[0-3]):[0-5]\\d$/.test(data.workingDayEnd || '') ? data.workingDayEnd : current.preferences.workingDayEnd,
+          focusMusicTrack: musicTrackById(data.focusMusicTrack) ? data.focusMusicTrack : '',
+          focusMusicVolume: data.focusMusicVolume,
+          focusEndAlarmEnabled: data.focusEndAlarmEnabled === 'true',
+          focusEndTone: alarmSoundById(data.focusEndTone) ? data.focusEndTone : current.preferences.focusEndTone,
+          focusAlarmVolume: data.focusAlarmVolume,
+          focusNotifications: data.focusNotifications === 'true',
+          motionEnabled: data.motionEnabled === 'true'
         },
         updatedAt: new Date().toISOString()
       });
