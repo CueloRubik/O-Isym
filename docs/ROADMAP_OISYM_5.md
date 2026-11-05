@@ -34,6 +34,9 @@ Por tanto, esas tareas dejan de figurar como pendientes. El trabajo restante cor
 - [x] Configurar repeticiones (1–10), pausa (1–15 s), duración máxima (5–120 s) y volumen.
 - [x] Usar el mismo patrón en la prueba de alarma y cancelar repeticiones al detenerla.
 - [x] Mantener las notificaciones del sistema silenciosas para evitar sonidos duplicados.
+- [x] Centralizar reproducción y temporizadores en `src/focus-audio.js`, con limpieza al pausar, reiniciar, cambiar de perfil o importar datos.
+- [x] Probar automáticamente vista previa, bucle musical, repeticiones, intervalos, duración máxima y parada manual.
+- [x] Corregir la actualización de controles al activar/desactivar la alarma.
 - [x] Migrar perfiles antiguos y limitar valores inválidos.
 
 **Límites:** el MP3 requiere que la ventana siga abierta o minimizada. Al cerrar la ventana puede quedar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen. Durante la suspensión, la notificación se revisa al reanudarse.
