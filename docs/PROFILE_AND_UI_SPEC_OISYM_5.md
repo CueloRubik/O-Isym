@@ -486,7 +486,9 @@ Primera entrega de código realizada en `oisym-5-development`:
 - [x] Confirmación al descartar cambios del modal y corrección del foco del teclado.
 - [x] Importación individual de perfiles con validación del formato, versión, nombre, arrays y preferencias; los IDs repetidos se regeneran y el perfil se añade sin activarlo.
 - [x] Diálogo visual de duplicación, con explicación de los datos que se copian y los que se dejan fuera.
-- [ ] Reorganización visual final de Hoy; Tareas, Actividades, Calendario, Planificador, Objetivos e Insights ya tienen una primera pasada de distribución. En Focus, los controles principales de iniciar/pausar/descansar se movieron encima de las preferencias de sonido para evitar tener que desplazarse para iniciar una sesión.
+- [x] Editor de perfiles con preferencias de planificación y Focus, incluso para perfiles inactivos.
+- [x] Reorganización de Hoy: tareas del día, vencidas y completadas en bloques separados; progreso diario accesible.
+- [ ] Tareas, Actividades, Calendario, Planificador, Objetivos e Insights requieren revisión visual final en Electron. En Focus, los controles principales de iniciar/pausar/descansar se movieron encima de las preferencias de sonido para evitar tener que desplazarse para iniciar una sesión.
 - [x] Formularios de Tareas, Actividades y Objetivos movidos a diálogos contextuales; acciones primarias colocadas en sus encabezados.
 - [x] Calendario e Insights agrupados en cuadrículas adaptables; Planificador dividido en agenda y panel de tareas por organizar.
 - [x] Guardado fallido de tareas, actividades y objetivos conserva el formulario abierto y revierte el cambio en memoria.
@@ -506,6 +508,7 @@ La CI automatizada ejecutó `npm test` y `node --check` para los archivos indica
 - [x] Planificador: agenda, tareas sin asignar y reserva de bloque organizadas en columnas relacionadas.
 - [x] Formularios de tareas, actividades y objetivos conservan su contenido en pantalla si falla el guardado; se restaura el estado anterior.
 - [x] La acción global «Nueva tarea» se limita a Hoy; Tareas tiene su propio botón contextual.
-- [ ] Reorganizar visualmente la vista Hoy y revisar jerarquía/estados de Focus.
+- [x] Reorganizar visualmente la vista Hoy y separar las tareas completadas de las pendientes.
+- [ ] Revisar jerarquía y estados de Focus en una ejecución visual de Electron.
 - [ ] Pruebas visuales en Electron sobre macOS Catalina, distintas anchuras y alturas.
 - [ ] Pruebas manuales de recorridos completos y regresión de las vistas existentes.
