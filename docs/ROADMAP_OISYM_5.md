@@ -32,10 +32,20 @@ Objetivo: convertir las alarmas de Focus en un sistema configurable, claro y con
 - [x] Añadir control de volumen independiente de los controles del sistema.
 - [x] Incluir una vista previa para escuchar cada sonido, incluso si las alarmas de sesión están silenciadas.
 - [x] Guardar las preferencias por perfil y asignar valores seguros a perfiles antiguos.
-- [ ] Diseñar e implementar recordatorios configurables durante sesiones largas.
-- [ ] Definir el comportamiento cuando la aplicación está minimizada, cerrada o el sistema está en reposo; documentar límites de macOS y notificaciones nativas.
+- [x] Añadir recordatorios durante Focus con intervalos de 5, 10, 15, 20, 25, 30, 45 o 60 minutos; desactivados por defecto.
+- [x] Permitir elegir y previsualizar un sonido específico para los recordatorios, independiente del sonido de fin de Focus.
+- [x] Programar las notificaciones en el proceso principal de Electron, no solamente en el renderer.
+- [x] Mantener los temporizadores cuando la ventana se minimiza o se cierra en macOS, mientras el proceso de O-Isym continúa ejecutándose.
+- [x] Al volver de suspensión, comprobar el reloj real: enviar el recordatorio pendiente más reciente una sola vez o la notificación de finalización si el tiempo ya venció.
+- [x] Cancelar recordatorios al pausar, reiniciar o terminar manualmente una sesión; no enviar recordatorios durante descansos.
+- [x] Evitar sonidos duplicados: si el renderer sigue activo, reproduce el tono elegido; si la ventana ya no existe, la notificación nativa usa el sonido del sistema correspondiente.
+- [x] Añadir firma local ad-hoc a la compilación macOS para habilitar las notificaciones nativas sin requerir un certificado de Apple Developer.
+- [x] Añadir pruebas automatizadas para intervalos, finalización, suspensión, cancelación y sonido nativo.
+- [x] Mantener compatibilidad con perfiles existentes: los recordatorios empiezan desactivados y el tono nuevo usa un valor seguro.
 
-Criterio de aceptación: el usuario puede elegir y probar sus alarmas, guardar la configuración y comprobar que se respeta en sesiones posteriores.
+**Límites de plataforma:** cerrar la ventana en macOS no termina el proceso de O-Isym, así que las alarmas siguen funcionando. Si se sale por completo con Cmd + Q, el proceso y sus temporizadores se detienen; no se promete una alarma en ese estado. Durante el reposo del sistema, la notificación no puede mostrarse en el instante exacto: se revisa al reanudarse y se evita reproducir una cadena de avisos atrasados. macOS debe permitir las notificaciones de O-Isym. La firma ad-hoc es local y no equivale a una distribución firmada con Developer ID y notarizada.
+
+Criterio de aceptación: el usuario puede elegir y probar sus tonos, configurar los recordatorios, guardar preferencias por perfil y recibir avisos mientras O-Isym permanece ejecutándose, incluso sin una ventana abierta.
 
 ### P2 — Reorganización de Ajustes
 
