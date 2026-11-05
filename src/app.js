@@ -665,8 +665,8 @@ function renderFocus(main) {
   const pattern=element('div','focus-alarm-pattern');pattern.append(field('Número de repeticiones',repeats),field('Pausa entre repeticiones',interval),field('Duración máxima',max));alarmOptions.append(pattern);
   const volume=input('focusAlarmVolume','','range',state.profile.preferences.focusAlarmVolume??70);volume.min='0';volume.max='100';volume.step='5';volume.disabled=disabled;
   const vf=field('Volumen',volume),vv=element('span','focus-volume-value alarm-volume-value',String(volume.value)+'%');vf.append(vv);alarmOptions.append(vf);
-  const actions=element('div','focus-audio-actions'),preview=button('Probar alarma','preview-focus-alarm','button secondary small');preview.disabled=disabled;actions.append(preview);
-  const stop=button('Detener alarma','stop-focus-alarm','button ghost small');stop.id='focus-alarm-stop';stop.disabled=!focusAlarmPlayback;actions.append(stop);alarmOptions.append(actions);
+  const audioActions=element('div','focus-audio-actions'),preview=button('Probar alarma','preview-focus-alarm','button secondary small');preview.disabled=disabled;audioActions.append(preview);
+  const stop=button('Detener alarma','stop-focus-alarm','button ghost small');stop.id='focus-alarm-stop';stop.disabled=!focusAlarmPlayback;audioActions.append(stop);alarmOptions.append(audioActions);
   const notificationLabel=element('label','focus-option'),notifications=input('focusNotifications','','checkbox');notifications.checked=state.profile.preferences.focusNotifications!==false;notifications.disabled=Boolean(focus);
   notificationLabel.append(notifications,element('span','','Mostrar notificación del sistema al terminar'));alarmOptions.append(notificationLabel);
   alarmOptions.append(element('p','small-note','El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
