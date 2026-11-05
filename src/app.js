@@ -1175,6 +1175,8 @@ function inspectLegacyData() {
 
 async function handleSubmit(form) {
   const data = formData(form);
+  const originalProfile=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
+  const restoreProfile=()=>{state.profile=originalProfile;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===originalProfile.id?originalProfile:item);state.snapshot.activeProfileId=originalProfile.id;};
   try {
     if (form.dataset.form === 'profile-create') {
       if (state.snapshot.profiles.length >= 50) throw new Error('Has alcanzado el máximo de perfiles.');
@@ -1263,45 +1265,46 @@ async function handleSubmit(form) {
         if (!data.startTime || !data.endTime || data.endTime <= data.startTime) throw new Error('El horario debe tener una hora de fin posterior al inicio.');
         data.estimatedMinutes = (Number(data.endTime.slice(0, 2)) * 60 + Number(data.endTime.slice(3))) - (Number(data.startTime.slice(0, 2)) * 60 + Number(data.startTime.slice(3)));
       }
+      const editingId=state.editingTaskId;
       if (form.dataset.form === 'task-edit') {
-        const editingId = state.editingTaskId;
         const current = taskById(editingId);
         if (!current) throw new Error('La tarea que intentas editar ya no existe.');
         state.profile.tasks = state.profile.tasks.map(item => item.id === editingId ? updateTask(item, data) : item);
-        state.editingTaskId = null;
-        showToast('Cambios guardados.');
-      } else {
-        state.profile.tasks.unshift(createTask(data));
-        state.showTaskForm = false;
-        showToast('Tarea guardada.');
-      }
-      await save();
+      } else state.profile.tasks.unshift(createTask(data));
+      const saved=await save();
+      if(!saved){restoreProfile();state.showTaskForm=form.dataset.form!=='planner-task';state.editingTaskId=editingId;return;}
+      state.editingTaskId=null;state.showTaskForm=false;
+      showToast(form.dataset.form==='task-edit'?'Cambios guardados.':'Tarea guardada.');
       state.view = form.dataset.form === 'planner-task' ? 'planner' : state.view;
     } else if (form.dataset.form === 'activity-edit') {
-      const current = activityById(state.editingActivityId);
+      const editingId=state.editingActivityId;
+      const current = activityById(editingId);
       if (!current) throw new Error('La actividad que intentas editar ya no existe.');
       state.profile.activities = state.profile.activities.map(item => item.id === current.id ? updateActivity(item, data) : item);
-      state.editingActivityId = null;
-      state.showActivityForm = false;
-      await save();
+      const saved=await save();
+      if(!saved){restoreProfile();state.editingActivityId=editingId;state.showActivityForm=true;return;}
+      state.editingActivityId=null;state.showActivityForm=false;
       showToast('Actividad actualizada.');
     } else if (form.dataset.form === 'activity') {
       state.profile.activities.unshift(createActivity(data));
-      state.showActivityForm = false;
-      await save();
+      const saved=await save();
+      if(!saved){restoreProfile();state.showActivityForm=true;return;}
+      state.showActivityForm=false;
       showToast('Actividad creada.');
     } else if (form.dataset.form === 'goal-edit') {
-      const current = goalById(state.editingGoalId);
+      const editingId=state.editingGoalId;
+      const current = goalById(editingId);
       if (!current) throw new Error('El objetivo que intentas editar ya no existe.');
       state.profile.goals = state.profile.goals.map(item => item.id === current.id ? updateGoal(item, data) : item);
-      state.editingGoalId = null;
-      state.showGoalForm = false;
-      await save();
+      const saved=await save();
+      if(!saved){restoreProfile();state.editingGoalId=editingId;state.showGoalForm=true;return;}
+      state.editingGoalId=null;state.showGoalForm=false;
       showToast('Objetivo actualizado.');
     } else if (form.dataset.form === 'goal') {
       state.profile.goals.unshift(createGoal(data));
-      state.showGoalForm = false;
-      await save();
+      const saved=await save();
+      if(!saved){restoreProfile();state.showGoalForm=true;return;}
+      state.showGoalForm=false;
       showToast('Objetivo creado.');
     } else if (form.dataset.form === 'profile-settings') {
       const name=String(data.name||'').trim();
