@@ -154,6 +154,12 @@ const syncLaunchAtLogin = () => {
   const request = window.oisym?.notifications?.setLaunchAtLogin?.(state.profile?.preferences?.launchAtLogin === true);
   if (request && typeof request.catch === 'function') request.catch(() => {});
 };
+const cloneActiveProfile = () => JSON.parse(JSON.stringify(state.profile));
+const restoreActiveProfile = profile => {
+  state.profile = profile;
+  state.snapshot.profiles = state.snapshot.profiles.map(item => item.id === profile.id ? profile : item);
+  state.snapshot.activeProfileId = profile.id;
+};
 const save = async () => {
   state.profile.updatedAt = new Date().toISOString();
   state.snapshot.profiles = state.snapshot.profiles.map(profile => profile.id === state.profile.id ? state.profile : profile);
@@ -1620,6 +1626,7 @@ function stopFocusTicker() {
 async function finishFocus(options = {}) {
   const focus = state.profile?.activeFocus;
   if (!focus || state.focusFinishing) return;
+  const previousProfile = cloneActiveProfile();
   state.focusFinishing = true;
   const now = new Date().toISOString();
   const task = taskById(focus.taskId);
@@ -1630,6 +1637,15 @@ async function finishFocus(options = {}) {
   if (!options.completed) window.oisym?.focusAlarms?.cancel().catch(() => {});
   const saved = await save();
   state.focusFinishing = false;
+  if (!saved) {
+    restoreActiveProfile(previousProfile);
+    if (state.profile.activeFocus && !state.profile.activeFocus.pausedAt) startFocusTicker();
+    syncFocusNotificationSchedule();
+    startFocusMusic();
+    updateShell();
+    if (!options.silent) showToast('No se pudo guardar el final de Focus. La sesión sigue activa.', 'error');
+    return;
+  }
   if (options.completed && !options.silent) notifyFocusFinished(task ? task.title : '', Boolean(focus.isBreak));
   if (!options.silent) showToast(saved ? (options.completed ? (focus.isBreak ? 'Descanso terminado. Cuando quieras, puedes volver a concentrarte.' : '¡Tiempo completado! Tu sesión quedó guardada. Es buen momento para descansar.') : (focus.isBreak ? 'Descanso finalizado.' : 'Sesión guardada.')) : 'La sesión terminó, pero no se pudo guardar. Revisa el almacenamiento.', saved ? 'success' : 'error');
   updateShell();
@@ -1890,8 +1906,9 @@ root.addEventListener('click', async event => {
     state.profile.preferences.focusNotifications = $('.focus-panel input[name="focusNotifications"]')?.checked !== false;
     stopFocusMusicPreview(); stopFocusAlarmPlayback();
     const now = new Date().toISOString();
+    const previousProfile = cloneActiveProfile();
     state.profile.activeFocus = { taskId, activityId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
-    await save();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
     syncFocusNotificationSchedule();
     startFocusMusic();
     updateShell();
@@ -1899,12 +1916,15 @@ root.addEventListener('click', async event => {
   if (action === 'focus-break' && !state.profile.activeFocus) {
     stopFocusMusicPreview(); stopFocusAlarmPlayback();
     const now = new Date().toISOString();
+    const previousProfile = cloneActiveProfile();
     state.profile.activeFocus = { taskId: null, activityTitle: '', isBreak: true, startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: state.profile.preferences.breakMinutes * 60 };
-    await save(); syncFocusNotificationSchedule(); startFocusMusic(); updateShell();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    syncFocusNotificationSchedule(); startFocusMusic(); updateShell();
   }
   if (action === 'focus-toggle') {
     const focus = state.profile.activeFocus;
     if (focus) {
+      const previousProfile = cloneActiveProfile();
       if (focus.pausedAt) {
         focus.startedAt = new Date().toISOString();
         focus.pausedAt = null;
@@ -1912,7 +1932,7 @@ root.addEventListener('click', async event => {
         focus.elapsedBeforePause += Math.floor((Date.now() - new Date(focus.startedAt).getTime()) / 1000);
         focus.pausedAt = new Date().toISOString();
       }
-      await save();
+      if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
       if (focus.pausedAt) {
         window.oisym?.focusAlarms?.cancel().catch(() => {});
         focusAudioController.stopAll();
@@ -1930,9 +1950,16 @@ root.addEventListener('click', async event => {
   if (action === 'focus-stop') await finishFocus();
   if (action === 'focus-reset') {
     if (state.profile.activeFocus && !confirm('¿Terminar y descartar la sesión actual?')) return;
+    const previousProfile = cloneActiveProfile();
     state.profile.activeFocus = null; stopFocusTicker();
     focusAudioController.stopAll();
-    window.oisym?.focusAlarms?.cancel().catch(() => {}); await save(); updateShell();
+    window.oisym?.focusAlarms?.cancel().catch(() => {});
+    if (!await save()) {
+      restoreActiveProfile(previousProfile);
+      if (state.profile.activeFocus && !state.profile.activeFocus.pausedAt) startFocusTicker();
+      syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); return;
+    }
+    updateShell();
   }
   if (action === 'goal-progress') {
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, progress: Math.max(0, Math.min(goal.target, goal.progress + Number(target.dataset.amount))) } : goal);
@@ -2237,8 +2264,27 @@ root.addEventListener('change', async event => {
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
-    const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
-    if (profile) { focusAudioController.stopAll(); state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(() => { syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); }); }
+    const profileId = event.target.value;
+    const profile = state.snapshot.profiles.find(item => item.id === profileId);
+    if (profile && profile.id !== state.profile.id) {
+      const previousProfile = cloneActiveProfile();
+      if (!await save()) { event.target.value = state.profile.id; return; }
+      focusAudioController.stopAll();
+      stopFocusTicker();
+      window.oisym?.focusAlarms?.cancel().catch(() => {});
+      const nextProfile = state.snapshot.profiles.find(item => item.id === profileId);
+      state.profile = normalizeProfile(nextProfile);
+      state.snapshot.activeProfileId = profileId;
+      if (!await save()) {
+        restoreActiveProfile(previousProfile);
+        if (state.profile.activeFocus && !state.profile.activeFocus.pausedAt) startFocusTicker();
+        syncFocusNotificationSchedule(); startFocusMusic(); updateShell();
+        return;
+      }
+      syncLaunchAtLogin();
+      if (state.profile.activeFocus && !state.profile.activeFocus.pausedAt) startFocusTicker();
+      syncFocusNotificationSchedule(); startFocusMusic(); updateShell();
+    }
   }
   if (event.target.id === 'planner-date') {
     state.selectedDate = event.target.value || localDate();
