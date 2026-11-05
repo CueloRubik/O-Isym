@@ -159,7 +159,11 @@ test('restaura una copia válida y conserva el archivo que estaba activo', async
   });
   // Cada guardado conserva la versión anterior; hacemos un segundo guardado
   // para que la copia disponible contenga el perfil recuperable.
-  await storage.save({ ...withProfile, updatedAt: new Date().toISOString() });
+  await storage.save({
+    ...withProfile,
+    profiles: withProfile.profiles.map(profile => ({ ...profile, color: '#27856b' })),
+    updatedAt: new Date().toISOString()
+  });
   const backups = await storage.recovery.listBackups();
   assert.ok(backups.length >= 1);
   assert.equal(backups[0].profiles, 1);
