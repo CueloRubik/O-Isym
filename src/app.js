@@ -52,7 +52,8 @@ const state = {
   plannerAnalysis: null,
   selectedProfileId: null,
   settingsSection: 'profile',
-  showTaskForm: false
+  showTaskForm: false,
+  showActivityForm: false
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -460,37 +461,47 @@ function renderTasks(main) {
 function renderActivities(main) {
   const band=getAgeBand(state.profile.age);
   const ideas=band==='child'?[['Leer un cuento','Lectura','Leer o escuchar un cuento',15],['Dibujar','Creatividad','Dibujar, colorear o inventar personajes',20],['Jugar al aire libre','Movimiento','Un rato de juego y movimiento',30],['Ordenar mis cosas','Hogar','Guardar juguetes, libros o materiales',10],['Practicar música','Música','Tocar o escuchar música',15]]:band==='teen'?[['Estudiar una materia','Estudio','Repasar un tema o preparar una tarea',30],['Practicar una habilidad','Creatividad','Practicar música, dibujo o una habilidad',25],['Leer','Lectura','Leer por gusto o para clase',20],['Moverme un rato','Bienestar','Caminar, bailar o una actividad recreativa',20]]:[['Lectura','Personal','Tiempo para leer',25],['Aprendizaje','Estudio','Aprender o practicar una habilidad',30],['Movimiento','Bienestar','Actividad recreativa o paseo',30]];
-  main.append(heading(band==='child'?'Mis actividades':'Actividades',band==='child'?'Ideas sencillas para llenar tu espacio con cosas que te gustan.':'Crea plantillas reutilizables para las cosas que haces.'));
-  const editing = state.editingActivityId ? activityById(state.editingActivityId) : null;
-  const form = element('form', 'form-card');
-  form.dataset.form = editing ? 'activity-edit' : 'activity';
-  form.append(element('h3', '', editing ? 'Editar actividad' : 'Nueva actividad'));
-  const grid = element('div', 'form-grid');
-  grid.append(field('Nombre', input('name', 'Ej. Lectura', 'text', editing?.name || '')), field('Categoría', input('category', 'Personal, estudio, salud…', 'text', editing?.category || '')));
-  form.append(grid);
-  form.append(field('Descripción', textarea('description', '¿En qué consiste?', editing?.description || '')));
-  const row = element('div', 'form-grid');
-  row.append(field('Duración orientativa (min)', input('durationMinutes', '30', 'number', editing?.durationMinutes || 30)), field('Frecuencia', input('frequency', 'Ej. Tres veces por semana', 'text', editing?.frequency || '')));
-  form.append(row);
-  if(!editing){const ideasCard=element('div','activity-ideas');ideasCard.append(element('strong','','Ideas para empezar'));const ideaList=element('div','activity-idea-list');ideas.forEach(([name,category,description,minutes])=>ideaList.append(button(name,'use-activity-idea','activity-idea',{name,category,description,minutes})));ideasCard.append(ideaList,element('p','small-note','Son sugerencias opcionales: puedes cambiarlas o crear las tuyas.'));form.append(ideasCard);}
-  form.append(button(editing ? 'Guardar cambios' : 'Crear actividad', 'submit-form', 'button primary'));
-  if (editing) form.append(button('Cancelar', 'cancel-edit-activity', 'button secondary'));
-  main.append(form);
-  const list = card();
-  list.append(heading('Tu catálogo', state.profile.activities.length + ' actividades'));
-  const active = state.profile.activities.filter(item => !item.archived);
-  if (!active.length) list.append(empty('Tu catálogo empieza aquí', 'Guarda actividades para convertirlas después en tareas.'));
-  active.forEach(activity => {
-    const rowItem = element('div', 'activity-row');
-    const detail = element('div', '');
-    detail.append(element('strong', '', activity.name), element('p', 'muted', activity.category + ' · ' + activity.durationMinutes + ' min · ' + activity.frequency));
-    if (activity.description) detail.append(element('p', 'muted', activity.description));
-    rowItem.append(detail, button('Editar', 'edit-activity', 'button secondary small', { id: activity.id }), button('Crear tarea', 'task-from-activity', 'button secondary small', { id: activity.id }), button('Archivar', 'archive-activity', 'text-button', { id: activity.id }));
+  const header=element('div','view-heading-row');
+  header.append(heading(band==='child'?'Mis actividades':'Actividades',band==='child'?'Ideas sencillas para llenar tu espacio con cosas que te gustan.':'Crea plantillas reutilizables para las cosas que haces.'));
+  const create=button('+ Nueva actividad','new-activity','button primary');create.id='activity-create-button';
+  header.append(create);main.append(header);
+  const list=card('activity-catalog-card');
+  list.append(heading('Tu catálogo',state.profile.activities.length+' actividades'));
+  const active=state.profile.activities.filter(item=>!item.archived);
+  if(!active.length)list.append(empty('Tu catálogo empieza aquí','Guarda actividades para convertirlas después en tareas.'));
+  active.forEach(activity=>{
+    const rowItem=element('div','activity-row');
+    const detail=element('div','');
+    detail.append(element('strong','',''+activity.name),element('p','muted',activity.category+' · '+activity.durationMinutes+' min · '+activity.frequency));
+    if(activity.description)detail.append(element('p','muted',activity.description));
+    rowItem.append(detail,button('Editar','edit-activity','button secondary small',{id:activity.id}),button('Crear tarea','task-from-activity','button secondary small',{id:activity.id}),button('Archivar','archive-activity','text-button',{id:activity.id}));
     list.append(rowItem);
   });
   main.append(list);
+  const editing=state.editingActivityId?activityById(state.editingActivityId):null;
+  if(state.showActivityForm||editing){
+    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='activity-create-button';
+    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','activity-modal-title');
+    const form=element('form','form-card profile-modal-form activity-modal-form');form.dataset.form=editing?'activity-edit':'activity';
+    const title=element('h2','',editing?'Editar actividad':'Nueva actividad');title.id='activity-modal-title';form.append(title);
+    const grid=element('div','form-grid');
+    grid.append(field('Nombre',input('name','Ej. Lectura','text',editing?.name||'')),field('Categoría',input('category','Personal, estudio, salud…','text',editing?.category||'')));
+    form.append(grid,field('Descripción',textarea('description','¿En qué consiste?',editing?.description||'')));
+    const row=element('div','form-grid');
+    row.append(field('Duración orientativa (min)',input('durationMinutes','30','number',editing?.durationMinutes||30)),field('Frecuencia',input('frequency','Ej. Tres veces por semana','text',editing?.frequency||'')));
+    form.append(row);
+    if(!editing){
+      const ideasCard=element('div','activity-ideas');ideasCard.append(element('strong','','Ideas para empezar'));
+      const ideaList=element('div','activity-idea-list');
+      ideas.forEach(([name,category,description,minutes])=>ideaList.append(button(name,'use-activity-idea','activity-idea',{name,category,description,minutes})));
+      ideasCard.append(ideaList,element('p','small-note','Son sugerencias opcionales: puedes cambiarlas o crear las tuyas.'));form.append(ideasCard);
+    }
+    const actions=element('div','form-actions');
+    actions.append(button(editing?'Guardar cambios':'Crear actividad','submit-form','button primary'),button('Cancelar',editing?'cancel-edit-activity':'close-activity-form','button secondary'));
+    form.append(actions);dialog.append(form);overlay.append(dialog);main.append(overlay);
+    $('input[name="name"]',overlay)?.focus();
+  }
 }
-
 function renderCalendar(main) {
   const selected = state.selectedDate;
   const selectedDate = new Date(Number(selected.slice(0, 4)), Number(selected.slice(5, 7)) - 1, Number(selected.slice(8, 10)));
@@ -1262,10 +1273,12 @@ async function handleSubmit(form) {
       if (!current) throw new Error('La actividad que intentas editar ya no existe.');
       state.profile.activities = state.profile.activities.map(item => item.id === current.id ? updateActivity(item, data) : item);
       state.editingActivityId = null;
+      state.showActivityForm = false;
       await save();
       showToast('Actividad actualizada.');
     } else if (form.dataset.form === 'activity') {
       state.profile.activities.unshift(createActivity(data));
+      state.showActivityForm = false;
       await save();
       showToast('Actividad creada.');
     } else if (form.dataset.form === 'goal-edit') {
@@ -1394,7 +1407,7 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
@@ -1424,8 +1437,10 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
   if (action === 'new-task') { state.view='tasks';state.editingTaskId=null;state.showTaskForm=true;updateShell();return; }
+  if (action === 'new-activity') { state.view='activities';state.editingActivityId=null;state.showActivityForm=true;updateShell();return; }
+  if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
   if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
   if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }
@@ -1451,7 +1466,7 @@ root.addEventListener('click', async event => {
     showToast('Perfil exportado.');
     return;
   }
-  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
   if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(age.value&&!age.checkValidity()){age.focus();return showToast('La edad debe estar entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme&&age.value)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
@@ -1521,12 +1536,13 @@ root.addEventListener('click', async event => {
   if (action === 'edit-activity') {
     if (!activityById(id)) return;
     state.editingActivityId = id;
+    state.showActivityForm = true;
     state.view = 'activities';
     updateShell();
     const nameInput = $('.form-card input[name="name"]');
     if (nameInput) { nameInput.focus(); nameInput.select(); }
   }
-  if (action === 'cancel-edit-activity') { state.editingActivityId = null; updateShell(); }
+  if (action === 'cancel-edit-activity') { state.editingActivityId = null; state.showActivityForm=false; updateShell(); }
   if (action === 'archive-activity') {
     state.profile.activities = state.profile.activities.map(item => item.id === id ? { ...item, archived: true } : item);
     if (state.editingActivityId === id) state.editingActivityId = null;
@@ -1812,6 +1828,7 @@ document.addEventListener('keydown', event => {
     event.preventDefault();
     if(profileModal.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
     if(profileModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}
+    if(profileModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}
     profileModal.remove();
     if(profileModal.dataset.returnFocus)document.getElementById(profileModal.dataset.returnFocus)?.focus();else $('.profile-add')?.focus();
     return;
