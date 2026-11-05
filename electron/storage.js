@@ -3,6 +3,7 @@ const { constants: fsConstants } = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
+const { validateImportedProfile } = require('../src/domain');
 
 const SCHEMA_VERSION = 1;
 const MAX_STORE_BYTES = 5 * 1024 * 1024;
@@ -28,6 +29,13 @@ function validateSnapshot(snapshot) {
     if (!isPlainObject(profile) || typeof profile.id !== 'string' || !profile.id || ids.has(profile.id)) throw new TypeError('Hay perfiles con identificadores inválidos o repetidos.');
     if (typeof profile.name !== 'string' || !profile.name.trim() || profile.name.length > 60) throw new TypeError('Hay un perfil con un nombre inválido.');
     ids.add(profile.id);
+    try { validateImportedProfile(profile); }
+    catch (cause) {
+      const error = new TypeError('El perfil "' + profile.name + '" contiene datos internos no válidos: ' + cause.message);
+      error.code = 'OISYM_PROFILE_INVALID';
+      error.cause = cause;
+      throw error;
+    }
   }
   if (snapshot.activeProfileId !== null && !ids.has(snapshot.activeProfileId)) throw new TypeError('El perfil activo no existe.');
   let serialized;
