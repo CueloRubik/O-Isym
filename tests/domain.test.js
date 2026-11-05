@@ -338,3 +338,28 @@ test('Focus music preferences default to no music and validate the selected trac
 
 
 
+
+
+test('task reminders default on and can be disabled per task', () => {
+  const { createTask, updateTask } = require('../src/domain.js');
+  const fresh = createTask({ title: 'Lectura', scheduledDate: '2026-11-05', startTime: '09:00', endTime: '10:00' });
+  assert.equal(fresh.reminderEnabled, true);
+  assert.equal(updateTask(fresh, { reminderEnabled: false }).reminderEnabled, false);
+  assert.throws(() => updateTask(fresh, { reminderEnabled: 'no' }), /notificación/);
+});
+
+test('task notification preferences normalize safely and preserve legacy profiles', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
+  const fresh = createProfile('Avisos');
+  assert.equal(fresh.preferences.taskNotificationsEnabled, true);
+  assert.equal(fresh.preferences.taskNotificationScope, 'all');
+  assert.equal(fresh.preferences.taskNotificationLeadMinutes, 0);
+  assert.equal(fresh.preferences.taskNotificationSound, true);
+  assert.equal(fresh.preferences.taskNotificationMissed, 'notify');
+  assert.equal(fresh.preferences.launchAtLogin, false);
+  const normalized = normalizeProfile({ name: 'Anterior', preferences: { taskNotificationScope: 'unknown', taskNotificationLeadMinutes: 999, taskNotificationMissed: 'unknown', launchAtLogin: 'yes' } });
+  assert.equal(normalized.preferences.taskNotificationScope, 'all');
+  assert.equal(normalized.preferences.taskNotificationLeadMinutes, 0);
+  assert.equal(normalized.preferences.taskNotificationMissed, 'notify');
+  assert.equal(normalized.preferences.launchAtLogin, false);
+});
