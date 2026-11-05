@@ -214,12 +214,12 @@ p { line-height: 1.55; }
 
 /* Planificador 2.0: vista previa explicable de horarios */
 .planner-proposals { display: grid; gap: 10px; margin: 14px 0; }
-.planner-proposal { padding: 13px 15px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
+.planner-proposal { padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .planner-proposal-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .planner-proposal-top strong { min-width: 0; }
 .planner-time { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent-dark); }
 .planner-proposal p { margin: 6px 0 0; }
-.planner-skipped { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.planner-skipped { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .planner-skipped h4 { margin: 0 0 8px; font-size: 13px; }
 .planner-skipped p { margin: 7px 0; }
 @media (max-width: 480px) {
@@ -362,3 +362,171 @@ p { line-height: 1.55; }
 .focus-music-controls input[type="range"] { min-height: 22px; padding: 0; accent-color: var(--accent); }
 .music-description { min-height: 18px; }
 @media (max-width: 520px) { .focus-music-settings { padding: 13px; } .focus-music-controls { grid-template-columns: 1fr; } }
+
+
+/* Sistema de iconos y refinamiento visual O-Isym 5 */
+:root {
+  --content-width: 1160px;
+  --radius-card: 18px;
+  --shadow-soft: 0 10px 30px rgba(35, 64, 49, .045);
+}
+.main-content {
+  width: min(var(--content-width), 100%);
+  padding-top: 36px;
+  padding-bottom: 64px;
+  gap: 22px;
+}
+.card, .form-card {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+.nav-icon-image {
+  display: block;
+  flex: 0 0 21px;
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  object-position: center;
+}
+.nav-item {
+  min-height: 44px;
+  gap: 13px;
+  padding-right: 14px;
+  border-radius: 11px;
+  transition: background .16s ease, color .16s ease, transform .16s ease;
+}
+.nav-item:hover { transform: translateX(2px); }
+.nav-item.active { font-weight: 750; }
+.settings-link { margin-top: 5px; }
+.button-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  object-fit: contain;
+}
+.topbar-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-icon, .search-icon, .meta-icon {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  opacity: .78;
+}
+.filter-icon { width: 18px; height: 18px; }
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(310px, 100%);
+  min-width: 180px;
+  padding: 0 10px;
+  border: 1px solid #dfe8e3;
+  border-radius: 10px;
+  background: #fff;
+}
+.search-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(39,133,107,.09);
+}
+.search-field .input {
+  min-width: 0;
+  border: 0;
+  box-shadow: none;
+  padding-left: 0;
+  outline: 0;
+}
+.search-icon { width: 16px; height: 16px; }
+.meta-icon { width: 15px; height: 15px; margin-right: -3px; }
+.focus-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+}
+.focus-status-icon {
+  display: block;
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  object-position: center;
+}
+.focus-panel {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: clamp(28px, 5vw, 48px) 24px;
+  border-radius: 20px;
+}
+.focus-panel .focus-clock {
+  margin: 14px 0 26px;
+  line-height: 1;
+  text-align: center;
+}
+.focus-panel > .field,
+.focus-panel > .focus-music-settings,
+.focus-panel > .focus-alarm-settings {
+  width: min(560px, 100%);
+}
+.focus-panel > .focus-hint {
+  width: min(560px, 100%);
+  text-align: center;
+}
+.section-heading { gap: 7px; }
+.section-heading p { max-width: 680px; line-height: 1.55; }
+.calendar-card { padding: 18px; }
+.calendar-grid { gap: 8px; }
+.calendar-day {
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 96px;
+  padding: 11px;
+  border-radius: 12px;
+}
+.calendar-day.is-selected { padding: 10px; }
+.form-grid { align-items: start; gap: 15px; }
+.field { min-width: 0; }
+.input, select.input, textarea.input { min-height: 42px; }
+.button { min-height: 38px; }
+.button.small { min-height: 32px; }
+button:disabled { cursor: not-allowed; opacity: .55; }
+.task-row { align-items: center; }
+.task-meta { row-gap: 7px; }
+.empty-state { padding: 36px 16px; }
+.empty-symbol { display: block; margin: 0 auto 9px; }
+@media (max-width: 980px) {
+  .main-content { padding: 28px 24px 52px; }
+  .topbar { padding: 0 24px; }
+}
+@media (max-width: 700px) {
+  .main-content { padding: 22px 16px 42px; }
+  .topbar { padding: 0 16px; }
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar { justify-content: flex-start; }
+  .search-field { flex: 1 1 220px; }
+}
+@media (max-width: 560px) {
+  .main-content { padding: 18px 12px 34px; }
+  .topbar { padding: 0 12px; }
+  .nav-icon-image { width: 19px; height: 19px; flex-basis: 19px; }
+  .dashboard-side { grid-template-columns: minmax(0, 1fr); }
+  .focus-status-icon { width: 46px; height: 46px; }
+  .calendar-card { padding: 12px; }
+  .toolbar { gap: 8px; }
+  .toolbar > select { flex: 1 1 145px; }
+  .search-field { flex: 1 1 100%; width: 100%; }
+}
