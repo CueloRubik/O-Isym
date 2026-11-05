@@ -504,75 +504,62 @@ function renderActivities(main) {
   }
 }
 function renderCalendar(main) {
-  const selected = state.selectedDate;
-  const selectedDate = new Date(Number(selected.slice(0, 4)), Number(selected.slice(5, 7)) - 1, Number(selected.slice(8, 10)));
-  const header = element('div', 'calendar-heading');
-  const title = element('div', '');
-  const controls = element('div', 'button-group calendar-controls');
-  const modeControls = element('div', 'button-group calendar-mode');
-  modeControls.append(
-    button('Mes', 'calendar-mode-month', 'button ' + (state.calendarMode === 'month' ? 'primary' : 'secondary')),
-    button('Semana', 'calendar-mode-week', 'button ' + (state.calendarMode === 'week' ? 'primary' : 'secondary'))
-  );
+  const selected=state.selectedDate;
+  const selectedDate=new Date(Number(selected.slice(0,4)),Number(selected.slice(5,7))-1,Number(selected.slice(8,10)));
+  const layout=element('div','calendar-layout');
+  const calendarPrimary=element('div','calendar-primary');
+  const header=element('div','calendar-heading');
+  const title=element('div','');
+  const controls=element('div','button-group calendar-controls');
+  const modeControls=element('div','button-group calendar-mode');
+  modeControls.append(button('Mes','calendar-mode-month','button '+(state.calendarMode==='month'?'primary':'secondary')),button('Semana','calendar-mode-week','button '+(state.calendarMode==='week'?'primary':'secondary')));
   controls.append(modeControls);
-  if (state.calendarMode === 'month') {
-    const year = state.calendarDate.getFullYear();
-    const month = state.calendarDate.getMonth();
-    title.append(element('h1', '', state.calendarDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })), element('p', 'muted', 'Selecciona un día para revisar su agenda. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
-    controls.append(button('‹', 'calendar-prev', 'button secondary'), button('Hoy', 'calendar-today', 'button secondary'), button('›', 'calendar-next', 'button secondary'));
-    header.append(title, controls);
-    main.append(header);
-    const wrap = card('calendar-card');
-    const grid = element('div', 'calendar-grid');
-    ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(day => grid.append(element('div', 'calendar-weekday', day)));
-    const first = new Date(year, month, 1);
-    const offset = (first.getDay() + 6) % 7;
-    const count = new Date(year, month + 1, 0).getDate();
-    for (let i = 0; i < offset; i++) grid.append(element('div', 'calendar-blank'));
-    for (let day = 1; day <= count; day++) {
-      const key = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-      const countTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key)).length;
-      const cell = button('', 'select-date', 'calendar-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
-      cell.setAttribute('aria-label', dateLabel(key, { weekday: 'long', day: 'numeric', month: 'long' }) + (countTasks ? ', ' + countTasks + ' tareas' : ', sin tareas'));
-      cell.setAttribute('aria-pressed', String(key === selected));
-      cell.append(element('span', 'calendar-number', day));
-      if (countTasks) cell.append(element('span', 'calendar-count', countTasks + (countTasks === 1 ? ' tarea' : ' tareas')));
+  if(state.calendarMode==='month'){
+    const year=state.calendarDate.getFullYear(),month=state.calendarDate.getMonth();
+    title.append(element('h1','',state.calendarDate.toLocaleDateString('es-MX',{month:'long',year:'numeric'})),element('p','muted','Selecciona un día para revisar su agenda. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
+    controls.append(button('‹','calendar-prev','button secondary'),button('Hoy','calendar-today','button secondary'),button('›','calendar-next','button secondary'));
+    header.append(title,controls);calendarPrimary.append(header);
+    const wrap=card('calendar-card'),grid=element('div','calendar-grid');
+    ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(day=>grid.append(element('div','calendar-weekday',day)));
+    const first=new Date(year,month,1),offset=(first.getDay()+6)%7,count=new Date(year,month+1,0).getDate();
+    for(let i=0;i<offset;i++)grid.append(element('div','calendar-blank'));
+    for(let day=1;day<=count;day++){
+      const key=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      const countTasks=state.profile.tasks.filter(task=>task.status==='pending'&&(task.scheduledDate===key||task.dueDate===key)).length;
+      const cell=button('','select-date','calendar-day'+(key===localDate()?' is-today':'')+(key===selected?' is-selected':''),{date:key});
+      cell.setAttribute('aria-label',dateLabel(key,{weekday:'long',day:'numeric',month:'long'})+(countTasks?', '+countTasks+' tareas':', sin tareas'));
+      cell.setAttribute('aria-pressed',String(key===selected));
+      cell.append(element('span','calendar-number',day));
+      if(countTasks)cell.append(element('span','calendar-count',countTasks+(countTasks===1?' tarea':' tareas')));
       grid.append(cell);
     }
-    wrap.append(grid);
-    main.append(wrap);
-  } else {
-    const weekStart = shiftDate(selected, -((selectedDate.getDay() + 6) % 7));
-    const weekEnd = shiftDate(weekStart, 6);
-    title.append(element('h1', '', dateLabel(weekStart, { day: 'numeric', month: 'long' }) + ' – ' + dateLabel(weekEnd, { day: 'numeric', month: 'long', year: 'numeric' })), element('p', 'muted', 'Elige un día para consultar sus tareas. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
-    controls.append(button('‹ Semana', 'calendar-week-prev', 'button secondary'), button('Esta semana', 'calendar-today', 'button secondary'), button('Semana ›', 'calendar-week-next', 'button secondary'));
-    header.append(title, controls);
-    main.append(header);
-    const week = card('week-calendar');
-    for (let index = 0; index < 7; index++) {
-      const key = shiftDate(weekStart, index);
-      const dayTasks = state.profile.tasks.filter(task => task.status === 'pending' && (task.scheduledDate === key || task.dueDate === key));
-      const dayButton = button('', 'select-date', 'week-day' + (key === localDate() ? ' is-today' : '') + (key === selected ? ' is-selected' : ''), { date: key });
-      const top = element('div', 'week-day-top');
-      top.append(element('strong', '', dateLabel(key, { weekday: 'short' })), element('span', '', key.slice(-2)));
-      dayButton.setAttribute('aria-label', dateLabel(key, { weekday: 'long', day: 'numeric', month: 'long' }) + ', ' + dayTasks.length + ' tareas');
-      dayButton.setAttribute('aria-pressed', String(key === selected));
-      dayButton.append(top, element('span', 'week-day-count', dayTasks.length ? dayTasks.length + (dayTasks.length === 1 ? ' pendiente' : ' pendientes') : 'Sin pendientes'));
-      dayTasks.slice(0, 2).forEach(task => dayButton.append(element('span', 'week-day-task', task.title)));
-      if (dayTasks.length > 2) dayButton.append(element('span', 'week-day-more', '+' + (dayTasks.length - 2) + ' más'));
+    wrap.append(grid);calendarPrimary.append(wrap);
+  }else{
+    const weekStart=shiftDate(selected,-((selectedDate.getDay()+6)%7)),weekEnd=shiftDate(weekStart,6);
+    title.append(element('h1','',dateLabel(weekStart,{day:'numeric',month:'long'})+' – '+dateLabel(weekEnd,{day:'numeric',month:'long',year:'numeric'})),element('p','muted','Elige un día para consultar sus tareas. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
+    controls.append(button('‹ Semana','calendar-week-prev','button secondary'),button('Esta semana','calendar-today','button secondary'),button('Semana ›','calendar-week-next','button secondary'));
+    header.append(title,controls);calendarPrimary.append(header);
+    const week=card('week-calendar');
+    for(let index=0;index<7;index++){
+      const key=shiftDate(weekStart,index),dayTasks=state.profile.tasks.filter(task=>task.status==='pending'&&(task.scheduledDate===key||task.dueDate===key));
+      const dayButton=button('','select-date','week-day'+(key===localDate()?' is-today':'')+(key===selected?' is-selected':''),{date:key});
+      const top=element('div','week-day-top');top.append(element('strong','',dateLabel(key,{weekday:'short'})),element('span','',key.slice(-2)));
+      dayButton.setAttribute('aria-label',dateLabel(key,{weekday:'long',day:'numeric',month:'long'})+', '+dayTasks.length+' tareas');
+      dayButton.setAttribute('aria-pressed',String(key===selected));
+      dayButton.append(top,element('span','week-day-count',dayTasks.length?dayTasks.length+(dayTasks.length===1?' pendiente':' pendientes'):'Sin pendientes'));
+      dayTasks.slice(0,2).forEach(task=>dayButton.append(element('span','week-day-task',task.title)));
+      if(dayTasks.length>2)dayButton.append(element('span','week-day-more','+'+(dayTasks.length-2)+' más'));
       week.append(dayButton);
     }
-    main.append(week);
+    calendarPrimary.append(week);
   }
-  const selectedCard = card();
-  const dayItems = state.profile.tasks.filter(task => task.scheduledDate === selected || task.dueDate === selected);
-  selectedCard.append(heading(dateLabel(selected), dayItems.length ? dayItems.length + ' tareas asociadas a este día' : 'No hay tareas asociadas a este día'));
-  renderTaskList(selectedCard, dayItems, { emptyTitle: 'Día despejado', emptyDetail: 'Puedes dejarlo así o añadir una tarea para esta fecha.' });
-  selectedCard.append(button('+ Añadir tarea para este día', 'calendar-add-task', 'button primary'));
-  selectedCard.append(button('Abrir planificador', 'navigate-date', 'button secondary', { date: selected }));
-  main.append(selectedCard);
+  const selectedCard=card('calendar-detail-card');
+  const dayItems=state.profile.tasks.filter(task=>task.scheduledDate===selected||task.dueDate===selected);
+  selectedCard.append(heading(dateLabel(selected),dayItems.length?dayItems.length+' tareas asociadas a este día':'No hay tareas asociadas a este día'));
+  renderTaskList(selectedCard,dayItems,{emptyTitle:'Día despejado',emptyDetail:'Puedes dejarlo así o añadir una tarea para esta fecha.'});
+  selectedCard.append(button('+ Añadir tarea para este día','calendar-add-task','button primary'),button('Abrir planificador','navigate-date','button secondary',{date:selected}));
+  layout.append(calendarPrimary,selectedCard);main.append(layout);
 }
-
 function renderPlanner(main) {
   const dateBar = element('div', 'calendar-heading');
   const title = element('div', '');
@@ -852,7 +839,8 @@ function renderInsights(main) {
     line.append(track, element('strong', '', dailyCounts[index]));
     week.append(line);
   });
-  main.append(week);
+  const insightGrid=element('div','insights-grid');
+  insightGrid.append(week);
 
   const focusCard = card();
   focusCard.append(heading('Tiempo de concentración', 'Minutos registrados en cada día de esta semana.'));
@@ -868,7 +856,7 @@ function renderInsights(main) {
     line.append(track, element('strong', '', dailyFocus[index] + 'm'));
     focusCard.append(line);
   });
-  main.append(focusCard);
+  insightGrid.append(focusCard);
 
   const distribution = card();
   distribution.append(heading('Actividades de enfoque', 'Dónde se ha concentrado tu tiempo durante los últimos 30 días.'));
@@ -894,7 +882,8 @@ function renderInsights(main) {
       distribution.append(line);
     });
   }
-  main.append(distribution);
+  insightGrid.append(distribution);
+  main.append(insightGrid);
 
   const overview = card('note-card');
   overview.append(element('strong', '', 'Panorama de tu organización'));
