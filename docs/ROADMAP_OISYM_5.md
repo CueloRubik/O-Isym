@@ -198,6 +198,8 @@ Estos puntos proceden de la revisión del código. **No todos están confirmados
 
 - [x] Serializar los guardados mediante una cola para que las escrituras y sus respaldos se ejecuten en orden.
 - [x] Evitar crear respaldos y reescribir el archivo cuando solo cambian las marcas `updatedAt` y el contenido funcional permanece igual.
+- [x] Validar el contenido interno de tareas, actividades, objetivos y sesiones Focus al importar perfiles o copias completas.
+- [x] Hacer transaccional la importación de copias completas: si falla el guardado, se restaura el estado anterior y se reanudan los recursos Focus.
 - [ ] **Por verificar:** comprobar que el guardado terminó correctamente antes de iniciar una sesión Focus o mostrarla como iniciada.
 - [ ] Revisar que la rotación de cinco respaldos no elimine respaldos de recuperación ni archivos ajenos.
 - [ ] **Por verificar:** validar individualmente la estructura de tareas, actividades, objetivos y sesiones al leer o importar datos.
