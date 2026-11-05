@@ -1,111 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>O-Isym</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f7f8f4">
+<meta name="description" content="O-Isym: organiza tus actividades, tareas, calendario y objetivos. Mantén el enfoque en lo que importa.">
+<title>O-Isym — Organiza tu tiempo</title>
+<style>
+:root{color-scheme:light;--ink:#202b24;--muted:#68746b;--green:#39764d;--dark:#285b3a;--soft:#eaf1e9;--line:#e3e9e1;--wash:#f7f8f4}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#fff;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}a{color:inherit}.wrap{width:min(1080px,calc(100% - 40px));margin:auto}
+header{border-bottom:1px solid var(--line)}.nav{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-size:20px;font-weight:750;letter-spacing:-.6px}.mark{width:37px;height:37px;display:grid;place-items:center;border-radius:12px;background:var(--soft);color:var(--dark)}.navlinks{display:flex;align-items:center;gap:25px;font-size:14px;color:var(--muted)}.navlinks a{text-decoration:none}.navlinks a:hover{color:var(--dark)}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:45px;padding:0 18px;border:1px solid var(--green);border-radius:10px;background:var(--green);color:#fff;text-decoration:none;font-size:14px;font-weight:650;transition:.15s}.button:hover{background:var(--dark);transform:translateY(-1px)}.button.alt{background:transparent;color:var(--dark);border-color:#cbd9ca}.button.alt:hover{background:var(--soft)}
+.hero{background:var(--wash);border-bottom:1px solid var(--line)}.hero-inner{padding:88px 0 82px;max-width:760px}.eyebrow{display:inline-block;padding:6px 12px;border:1px solid #dce8da;border-radius:30px;background:var(--soft);color:var(--dark);font-size:12px;font-weight:700;letter-spacing:.3px}h1{margin:22px 0 16px;font-size:clamp(42px,7vw,68px);line-height:1.04;letter-spacing:-3px}.hero p{max-width:610px;margin:0;color:var(--muted);font-size:18px;line-height:1.7}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+section{padding:72px 0}.head{max-width:620px;margin-bottom:28px}.head h2{margin:0 0 8px;font-size:32px;line-height:1.2;letter-spacing:-1px}.head p{margin:0;color:var(--muted)}.features,.downloads{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature,.download{padding:23px;border:1px solid var(--line);border-radius:14px;background:#fff}.symbol{width:39px;height:39px;display:grid;place-items:center;margin-bottom:15px;border-radius:11px;background:var(--soft);color:var(--dark)}.feature h3,.download h3{margin:0 0 5px;font-size:17px}.feature p{margin:0;color:var(--muted);font-size:14px}
+.download-section{background:var(--wash);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.download{display:flex;flex-direction:column;align-items:flex-start;min-height:220px}.platform{margin-bottom:14px;color:var(--dark)}.detail{margin-bottom:22px;color:var(--muted);font-size:13px}.download .button{width:100%;margin-top:auto}.note{margin:17px 0 0;color:var(--muted);font-size:12px}
+footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justify-content:space-between;gap:16px}.foot a{text-decoration:none}
+@media(max-width:760px){.hero-inner{padding:65px 0}.features,.downloads{grid-template-columns:1fr}.download{min-height:190px}section{padding:55px 0}.navlinks{gap:12px}.navlinks a:first-child{display:none}}
+@media(max-width:480px){.wrap{width:calc(100% - 28px)}.nav{min-height:65px}.navlinks{font-size:12px}.navlinks .button{padding:0 11px;min-height:38px}h1{letter-spacing:-2px}.hero p{font-size:16px}.foot{flex-direction:column}}
+</style>
 </head>
 <body>
-  <div class="app-container">
-    <div id="calendar-view" class="view active">
-      <header class="view-header">
-        <div class="header-titles">
-          <h1 id="cal-month-title"></h1>
-          <span id="cal-year-title"></span>
-        </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary" id="cal-today-btn">Hoy</button>
-          <div class="nav-group">
-            <button class="btn btn-secondary" id="cal-prev-btn">&lt;</button>
-            <button class="btn btn-secondary" id="cal-next-btn">&gt;</button>
-          </div>
-          <button class="btn btn-secondary" id="nav-settings-btn">⚙</button>
-        </div>
-      </header>
-      <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 700; font-size: 0.75rem; margin-top: 10px; color: var(--cell-muted);">
-        <div>DOM</div><div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div><div>SÁB</div>
-      </div>
-      <div id="calendar-grid" class="calendar-grid"></div>
-    </div>
-
-    <div id="planner-view" class="view">
-      <header class="view-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <button class="btn btn-secondary" id="planner-back-btn">← Volver</button>
-          <h2 id="planner-date-title">Planificador</h2>
-        </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary" id="nav-timer-btn">⏱ Temporizador</button>
-          <button class="btn" id="evaluate-btn">Evaluar Jornada</button>
-        </div>
-      </header>
-      <div class="planner-body">
-        <div class="planner-box">
-          <h3>Añadir Actividad Personalizada</h3>
-          <div class="form-row">
-            <input type="text" id="act-name" placeholder="Nombre (Ej: Lectura, Tesis, Gym)">
-            <input type="text" id="act-goal" placeholder="Meta (Ej: 20 páginas)">
-          </div>
-          <div class="form-row">
-            <label>Inicio: <input type="time" id="act-start" value="09:00"></label>
-            <label>Fin: <input type="time" id="act-end" value="10:00"></label>
-          </div>
-          <button class="btn" id="add-act-btn">Agregar a la Agenda</button>
-          <hr style="border-color: var(--border-color); margin: 8px 0;">
-          <h3>Agenda del Día</h3>
-          <div id="activities-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
-        </div>
-        <div class="planner-box" style="justify-content: space-between;">
-          <div>
-            <h3>Evaluación Estricta y Rendimiento</h3>
-            <p id="current-time-indicator" style="font-size: 0.85rem; color: var(--cell-muted); margin-top: 4px;"></p>
-          </div>
-          <div id="score-display" style="font-size: 3rem; font-weight: 800; color: var(--accent-color); text-align: center;">-- %</div>
-          <div id="feedback-box" style="background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.9rem;">
-            Registra tus bloques y evalúa tu desempeño según la hora actual.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="timer-view" class="view">
-      <header class="view-header">
-        <h2>Temporizador de Enfoque</h2>
-        <button class="btn btn-secondary" id="timer-back-btn">← Volver</button>
-      </header>
-      <div class="timer-body">
-        <div id="timer-display" class="timer-display">25:00</div>
-        <div class="nav-group">
-          <button class="btn" id="timer-start">Iniciar</button>
-          <button class="btn btn-secondary" id="timer-pause">Pausar</button>
-          <button class="btn btn-secondary" id="timer-reset">Reiniciar</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="settings-view" class="view">
-      <header class="view-header">
-        <h2>Personalización de UI por Elemento</h2>
-        <button class="btn btn-secondary" id="settings-back-btn">← Volver</button>
-      </header>
-      <div class="settings-body">
-        <div class="planner-box" style="max-width: 450px; width: 100%;">
-          <h3>Paleta de Colores</h3>
-          <label>Fondo de Aplicación: <input type="color" id="c-bg" value="#0f172a"></label>
-          <label>Fondo de Tarjetas: <input type="color" id="c-card" value="#1e293b"></label>
-          <label>Color de Texto: <input type="color" id="c-text" value="#f8fafc"></label>
-          <label>Color Principal (Acento): <input type="color" id="c-accent" value="#10b981"></label>
-          <label>Color Celdas: <input type="color" id="c-cell" value="#334155"></label>
-          <button class="btn" id="save-colors-btn">Aplicar Cambios</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-  <script src="calendar.js"></script>
-  <script src="planner.js"></script>
-  <script src="timer.js"></script>
-  <script src="settings.js"></script>
-</body>
-</html>
+<header><div class="wrap nav">
+<a class="brand" href="#" aria-label="O-Isym, inicio"><span class="mark" aria-hidden="true"><svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v4.8l3.1 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></span>O-Isym</a>
+<nav class="navlinks" aria-label="Navegación"><a href="#funciones">Funciones</a><a href="#descargas">Descargas</a><a class="button" href="https://github.com/CueloRubik/O-Isym/releases">Obtener O-Isym</a></nav>
+</div></header>
+<main>
+<section class="hero"><div class="wrap hero-inner">
+<span class="eyebrow">O-ISYM 5.0</span>
+<h1>Organiza tu tiempo.<br>Enfócate en lo que importa.</h1>
+<p>Un espacio personal para organizar actividades, tareas, calendario y objetivos, y dedicar tu atención a lo que quieres conseguir.</p>
+<div class="actions"><a class="button" href="#descargas">Descargar O-Isym ↓</a><a class="button alt" href="https://github.com/CueloRubik/O-Isym">Conocer el proyecto</a></div>
+</div></section>
+<section id="funciones"><div class="wrap">
+<div class="head"><h2>Todo en un mismo lugar.</h2><p>Herramientas sencillas para darle estructura a tu día.</p></div>
+<div class="features">
+<article class="feature"><div class="symbol" aria-hidden="true">▦</div><h3>Organización</h3><p>Reúne tus actividades, tareas y calendario para tener claro qué sigue.</p></article>
+<article class="feature"><div class="symbol" aria-hidden="true">◷</div><h3>Enfoque</h3><p>Dedica bloques de tiempo a una actividad y acompáñalos con tu música.</p></article>
+<article class="feature"><div class="symbol" aria-hidden="true">↗</div><h3>Objetivos</h3><p>Da seguimiento a tus objetivos y observa cómo avanzas con el tiempo.</p></article>
+</div></div></section>
+<section class="download-section" id="descargas"><div class="wrap">
+<div class="head"><h2>Descarga O-Isym.</h2><p>Elige la versión correspondiente a tu equipo.</p></div>
+<div class="downloads">
+<article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Intel</h3><span class="detail">DMG · Procesadores Intel</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases">Ver descarga</a></article>
+<article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Universal</h3><span class="detail">DMG · Intel y Apple Silicon</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases">Ver descarga</a></article>
+<article class="download"><div class="platform" aria-hidden="true">▦</div><h3>Windows</h3><span class="detail">Instalador · Windows x64</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases">Ver descarga</a></article>
+</div><p class="note">Los instaladores se publican en GitHub Releases. Consulta allí la versión más reciente.</p>
+</div></section>
+</main>
+<footer><div class="wrap foot"><span>© 2026 O-Isym. Hecho para organizar mejor tu tiempo.</span><a href="https://github.com/CueloRubik/O-Isym">Código y novedades en GitHub</a></div></footer>
+</body></html>
