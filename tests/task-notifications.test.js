@@ -18,6 +18,7 @@ function makeHarness() {
   const scheduler = createTaskNotificationScheduler({
     Notification: FakeNotification,
     powerMonitor,
+    platform: 'darwin',
     now: () => now,
     setTimer: (fn, delay) => { const id = ++timerId; timers.set(id, { at: now + delay, fn }); return id; },
     clearTimer: id => timers.delete(id),
@@ -76,6 +77,7 @@ test('avisa a la hora programada con actividad, tarea y horario', () => {
   assert.match(h.notifications[0].options.body, /Leer capítulo/);
   assert.match(h.notifications[0].options.body, /09:30|10:00|08:00/);
   assert.equal(h.notifications[0].options.silent, false);
+  assert.equal(h.notifications[0].options.sound, 'Ping');
   h.advance(60 * 60 * 1000);
   assert.equal(h.notifications.length, 1);
   h.dispose();
@@ -91,6 +93,7 @@ test('respeta el tiempo de anticipación y el sonido silencioso', () => {
   h.advance(1);
   assert.equal(h.notifications.length, 1);
   assert.equal(h.notifications[0].options.silent, true);
+  assert.equal(h.notifications[0].options.sound, undefined);
   h.dispose();
 });
 
