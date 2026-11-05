@@ -285,35 +285,25 @@ test('profile normalization keeps valid age and avatar image ids and safely fall
 });
 
 
-test('Focus alarm preferences normalize MP3 tones, volume, and legacy values safely', () => {
+test('Focus end alarm preferences normalize defaults, migration, and bounds', () => {
   const { createProfile, normalizeProfile, FOCUS_ALARM_TONES } = require('../src/domain.js');
-  const fresh = createProfile('Alarmas');
-  assert.equal(fresh.preferences.focusStartTone, 'off');
-  assert.equal(fresh.preferences.focusEndTone, 'clock');
-  assert.equal(fresh.preferences.breakEndTone, 'ringtone2');
-  assert.equal(fresh.preferences.focusAlarmVolume, 70);
-  assert.equal(fresh.preferences.focusReminderTone, 'digital');
-  assert.deepEqual(FOCUS_ALARM_TONES, ['clock', 'digital', 'funny', 'ringtone1', 'ringtone2', 'ringtone3', 'ringtone4', 'ringtone5', 'ringtone6', 'tititi']);
-  const restored = normalizeProfile({ name: 'Antiguo', preferences: { focusSound: true, focusNotifications: true } });
-  assert.equal(restored.preferences.focusStartTone, 'off');
-  assert.equal(restored.preferences.focusEndTone, 'clock');
-  assert.equal(restored.preferences.breakEndTone, 'ringtone2');
-  assert.equal(restored.preferences.focusAlarmVolume, 70);
-  const legacy = normalizeProfile({ name: 'Anterior', preferences: { focusEndTone: 'chime', breakEndTone: 'bell', focusReminderTone: 'soft' } });
-  assert.equal(legacy.preferences.focusEndTone, 'ringtone2');
-  assert.equal(legacy.preferences.breakEndTone, 'clock');
-  assert.equal(legacy.preferences.focusReminderTone, 'ringtone3');
-  const customized = normalizeProfile({ name: 'Personalizado', preferences: { focusStartTone: 'digital', focusEndTone: 'tititi', breakEndTone: 'ringtone6', focusAlarmVolume: 135 } });
-  assert.equal(customized.preferences.focusStartTone, 'digital');
-  assert.equal(customized.preferences.focusEndTone, 'tititi');
-  assert.equal(customized.preferences.breakEndTone, 'ringtone6');
-  assert.equal(customized.preferences.focusAlarmVolume, 100);
-  const invalid = normalizeProfile({ name: 'Inválido', preferences: { focusStartTone: 'loud', focusEndTone: 'unknown', breakEndTone: null, focusAlarmVolume: -5 } });
-  assert.equal(invalid.preferences.focusStartTone, 'off');
-  assert.equal(invalid.preferences.focusEndTone, 'clock');
-  assert.equal(invalid.preferences.breakEndTone, 'ringtone2');
-  assert.equal(invalid.preferences.focusAlarmVolume, 0);
-  assert.equal(invalid.preferences.focusReminderTone, 'digital');
+  const fresh=createProfile('Focus');
+  assert.equal(fresh.preferences.focusEndAlarmEnabled,true);
+  assert.equal(fresh.preferences.focusEndTone,'clock');
+  assert.equal(fresh.preferences.focusAlarmVolume,70);
+  assert.equal(fresh.preferences.focusAlarmRepeats,3);
+  assert.equal(fresh.preferences.focusAlarmIntervalSeconds,2);
+  assert.equal(fresh.preferences.focusAlarmMaxSeconds,30);
+  assert.deepEqual(FOCUS_ALARM_TONES,['clock','digital','funny','ringtone1','ringtone2','ringtone3','ringtone4','ringtone5','ringtone6','tititi']);
+  const migrated=normalizeProfile({name:'Anterior',preferences:{focusSound:false,focusEndTone:'tititi',focusAlarmVolume:45}});
+  assert.equal(migrated.preferences.focusEndAlarmEnabled,false);
+  assert.equal(migrated.preferences.focusEndTone,'tititi');
+  assert.equal(migrated.preferences.focusAlarmVolume,45);
+  const custom=normalizeProfile({name:'Personalizado',preferences:{focusEndAlarmEnabled:true,focusEndTone:'ringtone6',focusAlarmRepeats:8,focusAlarmIntervalSeconds:5,focusAlarmMaxSeconds:60}});
+  assert.equal(custom.preferences.focusAlarmRepeats,8);assert.equal(custom.preferences.focusAlarmIntervalSeconds,5);assert.equal(custom.preferences.focusAlarmMaxSeconds,60);
+  const invalid=normalizeProfile({name:'Inválido',preferences:{focusEndAlarmEnabled:'no',focusEndTone:'unknown',focusAlarmRepeats:99,focusAlarmIntervalSeconds:-4,focusAlarmMaxSeconds:999,focusAlarmVolume:-5}});
+  assert.equal(invalid.preferences.focusEndAlarmEnabled,true);assert.equal(invalid.preferences.focusEndTone,'clock');
+  assert.equal(invalid.preferences.focusAlarmRepeats,10);assert.equal(invalid.preferences.focusAlarmIntervalSeconds,1);assert.equal(invalid.preferences.focusAlarmMaxSeconds,120);assert.equal(invalid.preferences.focusAlarmVolume,0);
 });
 
 test('Focus music preferences default to no music and validate the selected track', () => {
