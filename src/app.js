@@ -149,6 +149,10 @@ const dateLabel = (key, options = { weekday: 'long', day: 'numeric', month: 'lon
 };
 const timeNow = () => new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 const allPending = () => state.profile.tasks.filter(task => task.status === 'pending' && task.scheduledDate === state.selectedDate);
+const syncLaunchAtLogin = () => {
+  const request = window.oisym?.notifications?.setLaunchAtLogin?.(state.profile?.preferences?.launchAtLogin === true);
+  if (request && typeof request.catch === 'function') request.catch(() => {});
+};
 const save = async () => {
   state.profile.updatedAt = new Date().toISOString();
   state.snapshot.profiles = state.snapshot.profiles.map(profile => profile.id === state.profile.id ? state.profile : profile);
@@ -1255,7 +1259,7 @@ function renderSettings(main) {
     panel.append(form,info);
     window.oisym?.notifications?.getStatus?.().then(result=>{
       const target=$('[data-notification-status]',panel);
-      if(target)target.textContent=result.supported?'La aplicación puede enviar notificaciones nativas. Revisa los permisos de O-Isym en macOS si no aparecen.':'Este sistema no informa compatibilidad con notificaciones nativas.';
+      if(target)target.textContent=(result.supported?'Notificaciones nativas disponibles. ':'Este sistema no informa compatibilidad con notificaciones nativas. ')+(result.canManageLogin?'Inicio automático: '+(result.launchAtLogin?'activado.':'desactivado.'):'El inicio automático no está disponible en este sistema.')+' Si no aparecen avisos, revisa los permisos de O-Isym en macOS.';
     }).catch(()=>{const target=$('[data-notification-status]',panel);if(target)target.textContent='No se pudo consultar el estado de las notificaciones.';});
   } else if(state.settingsSection==='focus'){
     const info=card('settings-info-card');
@@ -1341,6 +1345,7 @@ async function handleSubmit(form) {
         throw new Error('No se pudo guardar el perfil.');
       }
       state.view = 'today';
+      syncLaunchAtLogin();
       syncFocusNotificationSchedule();
       const modal = $('[data-profile-modal]');
       if (modal) modal.remove();
@@ -1989,6 +1994,7 @@ root.addEventListener('click', async event => {
         return;
       }
       state.selectedProfileId = id;
+      syncLaunchAtLogin();
       if(state.profile.activeFocus&&!state.profile.activeFocus.pausedAt)startFocusTicker();else stopFocusTicker();
       syncFocusNotificationSchedule();
       startFocusMusic();
@@ -2026,6 +2032,7 @@ root.addEventListener('click', async event => {
       }
       state.snapshot = await window.oisym.storage.save(nextSnapshot);
       state.profile = state.snapshot.profiles.find(item => item.id === state.snapshot.activeProfileId) || state.profile;
+      if (wasActive) syncLaunchAtLogin();
       state.selectedProfileId = state.profile.id;
       if(state.profile.activeFocus&&!state.profile.activeFocus.pausedAt)startFocusTicker();else stopFocusTicker();
       syncFocusNotificationSchedule();
