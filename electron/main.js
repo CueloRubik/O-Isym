@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Notification, powerMonitor } = require('electron');
 const path = require('node:path');
 
 const { createStorage } = require('./storage');
 const { registerIpcHandlers } = require('./ipc-handlers');
+const { createFocusNotificationScheduler } = require('./focus-notifications');
 
 const indexPath = path.join(__dirname, '..', 'index.html');
 
@@ -62,10 +63,13 @@ function createWindow() {
   });
 }
 
+let focusNotifications = null;
+
 app.whenReady().then(() => {
   try {
     const storage = createStorage(app.getPath('userData'));
-    registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath });
+    focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor });
+    registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications });
     createWindow();
 
     app.on('activate', () => {
@@ -78,6 +82,10 @@ app.whenReady().then(() => {
 }).catch(error => {
   reportStartupError('Electron no pudo estar listo', error);
   dialog.showErrorBox('O-Isym no pudo iniciarse', (error.stack || error.message) + '\n\nTus archivos de datos no se han borrado.');
+});
+
+app.on('before-quit', () => {
+  if (focusNotifications) focusNotifications.dispose();
 });
 
 app.on('window-all-closed', () => {
