@@ -31,7 +31,7 @@ Para generar solamente la carpeta de la aplicación sin crear el DMG:
 npm run build:mac:dir
 ```
 
-La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración apunta a Intel x64; no cambia la versión de Electron ni las dependencias de ejecución de la aplicación.
+La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración apunta a Intel x64; no cambia la versión de Electron ni las dependencias de ejecución de la aplicación. La aplicación usa firma local *ad-hoc* (sin certificado de Apple Developer ni notarización) para habilitar las notificaciones nativas de macOS en una instalación local. macOS puede seguir mostrando una advertencia de seguridad al abrirla por primera vez; esta firma no convierte el DMG en una distribución notarizada.
 
 ## Funciones implementadas en esta versión de desarrollo
 
