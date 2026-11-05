@@ -10,6 +10,12 @@ const storage = Object.freeze({
   })
 });
 
+const notifications = Object.freeze({
+  getStatus: () => ipcRenderer.invoke('oisym:notifications:status'),
+  sendTest: () => ipcRenderer.invoke('oisym:notifications:test'),
+  setLaunchAtLogin: enabled => ipcRenderer.invoke('oisym:notifications:launch-at-login', enabled)
+});
+
 const focusAlarms = Object.freeze({
   schedule: payload => ipcRenderer.invoke('oisym:focus:notifications:schedule', payload),
   cancel: () => ipcRenderer.invoke('oisym:focus:notifications:cancel')
@@ -17,5 +23,6 @@ const focusAlarms = Object.freeze({
 
 contextBridge.exposeInMainWorld('oisym', Object.freeze({
   storage,
-  focusAlarms
+  focusAlarms,
+  notifications
 }));
