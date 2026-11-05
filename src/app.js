@@ -1779,7 +1779,12 @@ root.addEventListener('click', async event => {
   }
   if (action === 'toggle-task') {
     const task = taskById(id);
-    if (task) { state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { status: item.status === 'done' ? 'pending' : 'done' }) : item); await save(); updateShell(); }
+    if (task) {
+      const previousProfile = cloneActiveProfile();
+      state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { status: item.status === 'done' ? 'pending' : 'done' }) : item);
+      if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+      updateShell();
+    }
   }
   if (action === 'edit-task') {
     if (!taskById(id)) return;
@@ -1798,17 +1803,21 @@ root.addEventListener('click', async event => {
   if (action === 'task-menu') {
     const task = taskById(id);
     if (!task) return;
+    const previousProfile = cloneActiveProfile();
     const choice = prompt('Escribe: bloquear, desbloquear, eliminar o posponer', task.locked ? 'desbloquear' : 'bloquear');
     if (choice === 'eliminar' && confirm('¿Eliminar esta tarea?')) state.profile.tasks = state.profile.tasks.filter(item => item.id !== id);
     else if (choice === 'bloquear' || choice === 'desbloquear') state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { locked: choice === 'bloquear' }) : item);
     else if (choice === 'posponer') state.profile.tasks = state.profile.tasks.map(item => item.id === id && !item.locked ? updateTask(item, { scheduledDate: shiftDate(localDate(), 1), startTime: '', endTime: '' }) : item);
-    await save(); updateShell();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    updateShell();
   }
   if (action === 'task-from-activity') {
     const activity = activityById(id);
     if (activity) {
+      const previousProfile = cloneActiveProfile();
       state.profile.tasks.unshift(createTask({ title: activity.name, description: activity.description, estimatedMinutes: activity.durationMinutes, activityId: id, scheduledDate: state.selectedDate }));
-      await save(); showToast('Tarea creada desde la actividad.'); updateShell();
+      if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+      showToast('Tarea creada desde la actividad.'); updateShell();
     }
   }
   if (action === 'edit-activity') {
@@ -1822,9 +1831,11 @@ root.addEventListener('click', async event => {
   }
   if (action === 'cancel-edit-activity') { state.editingActivityId = null; state.showActivityForm=false; updateShell(); }
   if (action === 'archive-activity') {
+    const previousProfile = cloneActiveProfile();
     state.profile.activities = state.profile.activities.map(item => item.id === id ? { ...item, archived: true } : item);
     if (state.editingActivityId === id) state.editingActivityId = null;
-    await save(); updateShell();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    updateShell();
   }
   if (action === 'select-date') { state.selectedDate = target.dataset.date; updateShell(); }
   if (action === 'calendar-prev') { state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() - 1, 1); updateShell(); }
@@ -1853,8 +1864,10 @@ root.addEventListener('click', async event => {
   if (action === 'apply-recommendation') {
     const task = taskById(id);
     if (task && !task.locked && task.status === 'pending') {
+      const previousProfile = cloneActiveProfile();
       state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { scheduledDate: target.dataset.date, startTime: '', endTime: '' }) : item);
-      await save(); updateShell(); showToast('Propuesta aplicada.');
+      if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+      updateShell(); showToast('Propuesta aplicada.');
     }
   }
   if (action === 'generate-plan') {
@@ -1874,6 +1887,7 @@ root.addEventListener('click', async event => {
       updateShell();
       return showToast('La agenda cambió. Revisa la vista previa actualizada antes de aplicar.', 'error');
     }
+    const previousProfile = cloneActiveProfile();
     const map = new Map(analysis.proposals.map(item => [item.taskId, item]));
     let applied = 0;
     state.profile.tasks = state.profile.tasks.map(task => {
@@ -1885,7 +1899,8 @@ root.addEventListener('click', async event => {
       return updateTask(task, { scheduledDate: proposal.date, startTime: proposal.startTime, endTime: proposal.endTime });
     });
     state.plannerAnalysis = null;
-    await save(); updateShell();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    updateShell();
     showToast(applied + ' propuestas aplicadas.');
   }
   if (action === 'discard-plan') {
@@ -1962,8 +1977,10 @@ root.addEventListener('click', async event => {
     updateShell();
   }
   if (action === 'goal-progress') {
+    const previousProfile = cloneActiveProfile();
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, progress: Math.max(0, Math.min(goal.target, goal.progress + Number(target.dataset.amount))) } : goal);
-    await save(); updateShell();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    updateShell();
   }
   if (action === 'edit-goal') {
     if (!goalById(id)) return;
@@ -1976,9 +1993,11 @@ root.addEventListener('click', async event => {
   }
   if (action === 'cancel-edit-goal') { state.editingGoalId = null; state.showGoalForm=false; updateShell(); }
   if (action === 'archive-goal') {
+    const previousProfile = cloneActiveProfile();
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, archived: true } : goal);
     if (state.editingGoalId === id) state.editingGoalId = null;
-    await save(); updateShell();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    updateShell();
   }
   if (action === 'export-data') {
     const blob = new Blob([JSON.stringify(state.snapshot, null, 2)], { type: 'application/json' });
@@ -2068,8 +2087,10 @@ root.addEventListener('click', async event => {
         if (/^#[0-9a-f]{6}$/i.test(colors.accent || '')) state.profile.color = colors.accent;
       } catch {}
     }
+    const previousProfile = cloneActiveProfile();
     state.profile.legacyImportedAt = new Date().toISOString();
-    await save(); updateShell(); showToast(importedCount + ' registros importados. El prototipo original sigue intacto.');
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    updateShell(); showToast(importedCount + ' registros importados. El prototipo original sigue intacto.');
   }
   if (action === 'switch-profile') {
     const profile = state.snapshot.profiles.find(item => item.id === id);
