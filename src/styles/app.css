@@ -643,3 +643,19 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .profile-modal-backdrop { padding: 8px; }
   .profile-modal { max-height: calc(100vh - 16px); }
 }
+
+
+/* Formularios contextuales para actividades y objetivos */
+.activity-catalog-card, .goal-list-card { min-width: 0; }
+.goal-summary-card { display: flex; align-items: baseline; gap: 8px; padding: 16px 20px; box-shadow: none; }
+.goal-summary-card > strong { color: var(--accent-dark); font-size: 27px; font-variant-numeric: tabular-nums; }
+.goal-summary-card > span { color: var(--muted); font-size: 12px; }
+.goal-summary-card .goal-summary-completed { margin-left: auto; color: var(--accent-dark); font-weight: 650; }
+.activity-modal-form .activity-ideas { margin-top: 2px; }
+.activity-modal-form .activity-idea-list { max-height: 130px; overflow-y: auto; }
+@media (max-width: 560px) {
+  .goal-summary-card { flex-wrap: wrap; }
+  .goal-summary-card .goal-summary-completed { margin-left: 0; width: 100%; }
+  .activity-row { align-items: flex-start; flex-wrap: wrap; }
+  .activity-row > div { flex-basis: 100%; }
+}
