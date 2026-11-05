@@ -59,6 +59,9 @@ La importación del prototipo es manual y no elimina sus claves antiguas. Export
 - \`src/domain.js\`: modelos y reglas de dominio.
 - \`src/app.js\`: interfaz y flujos de aplicación.
 - \`src/styles/app.css\`: sistema visual.
+- \`assets/avatars/\`: avatares de perfiles.
+- \`assets/icons/\`: iconografía de navegación, Focus, tareas e interfaz; incluye un catálogo en \`assets/icons/README.md\`.
+- \`assets/audio/\`: música y sonidos de Focus.
 - \`tests/\`: pruebas automatizadas.
 - \`docs/ROADMAP_OISYM_5.md\`: plan y estado.
 
