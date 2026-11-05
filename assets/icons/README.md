@@ -32,6 +32,17 @@ Los PNG se organizan por función para evitar una carpeta de recursos desordenad
 | `tasks/reminder.png` | Reservado: la interfaz actual no tiene una función de recordatorio individual que justifique mostrarlo |
 | `tasks/repeat.png` | Reservado: la interfaz actual no implementa tareas recurrentes |
 
+## Acciones
+
+| Archivo | Uso |
+|---|---|
+| `actions/edit.png` | Editar tareas, actividades, objetivos y perfiles |
+| `actions/profiles.png` | Vista Perfiles y su acceso en la navegación |
+| `actions/save.png` | Guardar cambios en formularios y ajustes |
+| `actions/export.png` | Exportar perfiles y copias de datos |
+| `actions/duplicate.png` | Duplicar la configuración de un perfil |
+| `actions/archivate.png` | Archivar actividades y objetivos |
+
 ## Interfaz
 
 | Archivo | Uso |
