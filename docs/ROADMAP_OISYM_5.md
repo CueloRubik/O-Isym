@@ -100,7 +100,7 @@ Esta sección sirve como registro de lo que O-Isym ya tiene. No son tareas para 
 ## 3. Plan de producto pendiente
 
 ### P2 — Reorganización de Ajustes
-**Estado: primera etapa implementada; quedan categorías y pulido por verificar.**
+**Estado: primera etapa implementada; falta revisión manual y pulido.**
 
 Ajustes ahora tiene navegación secundaria y paneles separados para Mi perfil, Planificación, Focus y sonido, Datos y copias, Atajos y ayuda, y Perfiles. La implementación inicial mantiene los controles de audio centralizados en Enfoque para evitar duplicados. Falta prueba visual y ampliar la sección de notificaciones/ayuda si corresponde.
 
@@ -120,7 +120,7 @@ Objetivo: que cada configuración esté en su lugar y sea fácil de encontrar.
 Criterio de aceptación: cada opción tiene una ubicación lógica, se encuentra sin recorrer una pantalla interminable y conserva su comportamiento actual.
 
 ### P3 — Administración avanzada de perfiles
-**Estado: primera etapa implementada; funciones individuales restantes pendientes.**
+**Estado: primera etapa implementada; importación y duplicación ya disponibles.**
 
 Ya existe una vista dedicada con lista/ficha, contadores calculados, preferencias resumidas, selección administrativa separada del perfil activo, edición de perfiles inactivos, duplicación solo de preferencias, exportación individual y eliminación del perfil seleccionado con resumen de contenido y protección del último perfil. El cambio de perfil guarda primero el actual y gestiona recursos Focus. Pendiente: importación individual con validación, reemplazar el prompt de duplicación por un diálogo propio, y completar pruebas manuales de Focus y fallos de almacenamiento.
 
