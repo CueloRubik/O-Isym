@@ -486,8 +486,26 @@ Primera entrega de código realizada en `oisym-5-development`:
 - [x] Confirmación al descartar cambios del modal y corrección del foco del teclado.
 - [x] Importación individual de perfiles con validación del formato, versión, nombre, arrays y preferencias; los IDs repetidos se regeneran y el perfil se añade sin activarlo.
 - [x] Diálogo visual de duplicación, con explicación de los datos que se copian y los que se dejan fuera.
-- [ ] Reorganización de Hoy, Tareas, Actividades, Calendario, Planificador, Focus, Objetivos e Insights.
+- [ ] Reorganización visual final de Hoy y Focus; Tareas, Actividades, Calendario, Planificador, Objetivos e Insights ya tienen una primera pasada de distribución.
+- [x] Formularios de Tareas, Actividades y Objetivos movidos a diálogos contextuales; acciones primarias colocadas en sus encabezados.
+- [x] Calendario e Insights agrupados en cuadrículas adaptables; Planificador dividido en agenda y panel de tareas por organizar.
+- [x] Guardado fallido de tareas, actividades y objetivos conserva el formulario abierto y revierte el cambio en memoria.
 - [ ] Pruebas manuales visuales en macOS Catalina y ventanas estrechas.
 - [ ] Ampliar pruebas automatizadas de los recorridos de perfil.
 
 La CI automatizada ejecutó `npm test` y `node --check` para los archivos indicados en `.github/workflows/tests.yml`. Esto no sustituye la prueba visual/manual de Electron.
+
+
+## Segunda entrega de reorganización de interfaz
+
+- [x] Tareas: creación y edición en diálogo contextual; la lista ya no queda separada del formulario largo.
+- [x] Actividades: alta y edición en diálogo; el catálogo queda como contenido principal.
+- [x] Objetivos: alta y edición en diálogo; el listado y el progreso quedan en primer plano.
+- [x] Calendario: detalle del día al lado de la cuadrícula en escritorio y debajo en ventanas estrechas.
+- [x] Insights: métricas y gráficos agrupados en una cuadrícula de dos columnas adaptable.
+- [x] Planificador: agenda, tareas sin asignar y reserva de bloque organizadas en columnas relacionadas.
+- [x] Formularios de tareas, actividades y objetivos conservan su contenido en pantalla si falla el guardado; se restaura el estado anterior.
+- [x] La acción global «Nueva tarea» se limita a Hoy; Tareas tiene su propio botón contextual.
+- [ ] Reorganizar visualmente la vista Hoy y revisar jerarquía/estados de Focus.
+- [ ] Pruebas visuales en Electron sobre macOS Catalina, distintas anchuras y alturas.
+- [ ] Pruebas manuales de recorridos completos y regresión de las vistas existentes.
