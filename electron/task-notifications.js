@@ -18,6 +18,7 @@ function localDateTime(dateKey, timeKey) {
 function createTaskNotificationScheduler({
   Notification,
   powerMonitor,
+  platform = process.platform,
   iconPath = '',
   sentPath = '',
   onOpenTask = () => {},
@@ -70,7 +71,8 @@ function createTaskNotificationScheduler({
         subtitle: 'Hora de ' + reminder.activityName,
         body: reminder.body,
         icon: iconPath || undefined,
-        silent: !reminder.soundEnabled
+        silent: !reminder.soundEnabled,
+        ...(platform === 'darwin' && reminder.soundEnabled ? { sound: 'Ping' } : {})
       });
       notification.on('failed', (_event, error) => console.error('[O-Isym] Falló una notificación de tarea:', error));
       notification.on('click', () => onOpenTask(reminder));
