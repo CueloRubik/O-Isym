@@ -209,12 +209,13 @@ La suite de CI no puede confirmar permisos reales de notificaciones, sonido Ping
 - [ ] Evaluar una CSP más estricta cuando se hayan eliminado los estilos inline que la requieren actualmente.
 - [ ] Añadir una licencia si se decide permitir reutilización o distribución del código.
 - [ ] Revisar y mantener actualizados los documentos de instalación, recuperación y compilación.
+- [ ] Revisar la advertencia de GitHub Actions sobre las acciones `actions/checkout@v4` y `actions/setup-node@v4` ejecutándose con el runtime Node 24; actualizar versiones solo después de comprobar compatibilidad.
 
 ## 6. Pruebas y evidencia
 
 ### GitHub Actions
 
-- **Ejecución:** [42053118563](https://github.com/CueloRubik/O-Isym/actions/runs/42052395821)
+- **Ejecución:** [42053118563](https://github.com/CueloRubik/O-Isym/actions/runs/42053118563)
 - **Commit:** `be747362fe763f79f593101e88e4ab3127ee0656`
 - **Resultado:** 62 tests, 62 aprobados, 0 fallidos, 0 omitidos.
 - **Sintaxis:** `node --check` pasó para los archivos activos de renderer, dominio, audio y proceso Electron.
