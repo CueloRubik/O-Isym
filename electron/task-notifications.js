@@ -7,7 +7,7 @@ const ALLOWED_LEAD_MINUTES = [0, 5, 10, 15, 30, 60];
 const MISSED_GRACE_MS = 12 * 60 * 60 * 1000;
 
 function localDateTime(dateKey, timeKey) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(dateKey || '')) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(timeKey || ''))) return NaN;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || '')) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(timeKey || ''))) return NaN;
   const [year, month, day] = dateKey.split('-').map(Number);
   const [hour, minute] = timeKey.split(':').map(Number);
   const date = new Date(year, month - 1, day, hour, minute, 0, 0);
