@@ -1,6 +1,6 @@
 'use strict';
 
-function createFocusNotificationScheduler({ Notification, powerMonitor, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout }) {
+function createFocusNotificationScheduler({ Notification, powerMonitor, hasWindow = () => false, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let active = null;
   let timer = null;
 
@@ -9,10 +9,11 @@ function createFocusNotificationScheduler({ Notification, powerMonitor, now = Da
     timer = null;
   }
 
-  function show(title, body) {
+  function show(title, body, options = {}) {
     try {
       if (!Notification || (typeof Notification.isSupported === 'function' && !Notification.isSupported())) return;
-      const notification = new Notification({ title, body, silent: false });
+      const notification = new Notification({ title, body, silent: options.silent === true });
+      notification.on('failed', (_event, error) => console.error('[O-Isym] No se pudo mostrar una notificación:', error));
       notification.show();
     } catch (error) {
       // A notification can be unavailable or disabled by the operating system.
@@ -32,7 +33,8 @@ function createFocusNotificationScheduler({ Notification, powerMonitor, now = Da
           ? 'Tu descanso terminó. Cuando quieras, puedes volver a concentrarte.'
           : (completed.taskTitle
             ? 'Terminaste tu sesión de ' + completed.taskTitle + '. Tómate un descanso.'
-            : 'Terminaste tu sesión de concentración. Tómate un descanso.'));
+            : 'Terminaste tu sesión de concentración. Tómate un descanso.'),
+        { silent: Boolean(hasWindow()) && completed.soundEnabled });
       return;
     }
 
@@ -64,6 +66,7 @@ function createFocusNotificationScheduler({ Notification, powerMonitor, now = Da
       endsAt,
       isBreak,
       taskTitle: typeof payload.taskTitle === 'string' ? payload.taskTitle.slice(0, 140) : '',
+      soundEnabled: payload.soundEnabled !== false,
       reminderMinutes,
       nextReminderAt: reminderMinutes > 0 && Number.isFinite(requestedReminderAt) && requestedReminderAt < endsAt
         ? requestedReminderAt
