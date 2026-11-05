@@ -1,6 +1,6 @@
 # O-Isym 5 — Especificación de perfiles y reorganización de la interfaz
 
-**Estado:** diseño funcional y visual documentado; implementación aún no iniciada.  
+**Estado:** especificación funcional y visual; primera entrega de perfiles y Ajustes implementada parcialmente. Consulta el estado de implementación al final del documento.  
 **Rama:** `oisym-5-development`. `main` debe permanecer intacta.  
 **Compatibilidad:** Electron 28.3.3, Node 18.x, macOS Intel/Catalina.
 
@@ -467,3 +467,27 @@ UI terminada: cada vista con jerarquía clara y acciones próximas; Ajustes por 
 ---
 
 **Resultado esperado:** O-Isym debe sentirse como una aplicación con espacios independientes bien administrados. Cada vista debe poner lo importante a mano, con acciones donde se necesitan y sin obligar a recorrer páginas largas para encontrar controles básicos.
+
+
+## Estado de implementación de la especificación (actualización)
+
+Primera entrega de código realizada en `oisym-5-development`:
+- [x] Vista dedicada «Perfiles» con lista y ficha seleccionable.
+- [x] Resumen de tareas, actividades, objetivos y sesiones calculado desde datos.
+- [x] Edición de perfil activo o inactivo sin activar el perfil editado.
+- [x] Edad opcional en la creación y edición.
+- [x] Duplicación de preferencias sin copiar tareas ni historial.
+- [x] Exportación JSON de un perfil individual.
+- [x] Eliminación del perfil seleccionado, resumen de contenido, bloqueo del último perfil y transición del perfil activo.
+- [x] Navegación secundaria de Ajustes y separación inicial de categorías.
+- [x] Guardado separado para identidad/apariencia y planificación.
+- [x] Adaptación responsive inicial para Perfiles y Ajustes.
+- [x] Ajustes de recuperación de estado Focus al cambiar/crear/eliminar perfil.
+- [x] Confirmación al descartar cambios del modal y corrección del foco del teclado.
+- [ ] Importación individual de perfiles con validación completa.
+- [ ] Diálogo visual de duplicación (actualmente utiliza el prompt nativo).
+- [ ] Reorganización de Hoy, Tareas, Actividades, Calendario, Planificador, Focus, Objetivos e Insights.
+- [ ] Pruebas manuales visuales en macOS Catalina y ventanas estrechas.
+- [ ] Ampliar pruebas automatizadas de los recorridos de perfil.
+
+La CI automatizada ejecutó `npm test` y `node --check` para los archivos indicados en `.github/workflows/tests.yml`. Esto no sustituye la prueba visual/manual de Electron.
