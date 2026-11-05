@@ -308,3 +308,15 @@ test('Focus alarm preferences normalize tone choices and volume safely', () => {
   assert.equal(invalid.preferences.breakEndTone, 'bell');
   assert.equal(invalid.preferences.focusAlarmVolume, 0);
 });
+
+
+test('Focus reminder interval defaults off and rejects unsupported values', () => {
+  const { createProfile, normalizeProfile, FOCUS_REMINDER_INTERVALS } = require('../src/domain.js');
+  const fresh = createProfile('Recordatorios');
+  assert.equal(fresh.preferences.focusReminderMinutes, 0);
+  assert.deepEqual(FOCUS_REMINDER_INTERVALS, [0, 5, 10, 15, 20, 25, 30, 45, 60]);
+  const enabled = normalizeProfile({ name: 'Activo', preferences: { focusReminderMinutes: 15 } });
+  assert.equal(enabled.preferences.focusReminderMinutes, 15);
+  const invalid = normalizeProfile({ name: 'Inválido', preferences: { focusReminderMinutes: 17 } });
+  assert.equal(invalid.preferences.focusReminderMinutes, 0);
+});
