@@ -41,6 +41,7 @@ La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración 
 - Panel Hoy, calendario mensual y agenda diaria.
 - Planificador con propuestas de horarios; no modifica compromisos bloqueados.
 - Temporizador Focus con pausa, reanudación e historial persistente.
+- Alarmas configurables por perfil, recordatorios periódicos y notificaciones nativas gestionadas por el proceso principal.
 - Objetivos con progreso e Insights semanales.
 - Recomendaciones locales, configurables y descartables.
 - Exportación e importación de copias JSON.
