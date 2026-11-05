@@ -51,7 +51,8 @@ const state = {
   editingGoalId: null,
   plannerAnalysis: null,
   selectedProfileId: null,
-  settingsSection: 'profile'
+  settingsSection: 'profile',
+  showTaskForm: false
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -411,8 +412,11 @@ function renderToday(main) {
 }
 
 function renderTasks(main) {
-  main.append(heading('Tareas', 'Todo lo que quieres hacer, en un solo lugar.'));
-  const toolbar = element('div', 'toolbar');
+  const header=element('div','view-heading-row');
+  header.append(heading('Tareas','Todo lo que quieres hacer, en un solo lugar.'));
+  const create=button('+ Nueva tarea','new-task','button primary');create.id='task-create-button';
+  header.append(create);main.append(header);
+  const toolbar = element('div', 'toolbar task-toolbar');
   const filter = select('task-filter', [
     { value: 'active', label: 'Pendientes' }, { value: 'all', label: 'Todas' }, { value: 'done', label: 'Completadas' }
   ], 'active');
@@ -423,7 +427,7 @@ function renderTasks(main) {
   searchWrap.append(iconImage('interface/search.png', '', 'search-icon'), search);
   toolbar.append(iconImage('tasks/filter.png', '', 'filter-icon'), filter, searchWrap);
   main.append(toolbar);
-  const list = card();
+  const list = card('tasks-results-card');
   list.id = 'tasks-results';
   const render = () => {
     list.replaceChildren();
@@ -441,7 +445,15 @@ function renderTasks(main) {
   render();
   main.append(list);
   const editing = state.editingTaskId ? taskById(state.editingTaskId) : null;
-  addTaskForm(main, editing || {});
+  if(state.showTaskForm||editing){
+    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='task-create-button';
+    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','task-modal-title');
+    const form=addTaskForm(dialog,editing||{});form.classList.add('profile-modal-form');
+    const title=form.querySelector('h3');if(title)title.id='task-modal-title';
+    if(!editing)form.querySelector('.form-actions').append(button('Cancelar','close-task-form','button secondary'));
+    overlay.append(dialog);main.append(overlay);
+    $('.task-form input[name="title"]',overlay)?.focus();
+  }
 }
 
 function renderActivities(main) {
@@ -1239,6 +1251,7 @@ async function handleSubmit(form) {
         showToast('Cambios guardados.');
       } else {
         state.profile.tasks.unshift(createTask(data));
+        state.showTaskForm = false;
         showToast('Tarea guardada.');
       }
       await save();
@@ -1380,7 +1393,7 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; event.target.remove(); $('.profile-add')?.focus(); return; }
+  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
@@ -1411,6 +1424,8 @@ root.addEventListener('click', async event => {
     return;
   }
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
+  if (action === 'new-task') { state.view='tasks';state.editingTaskId=null;state.showTaskForm=true;updateShell();return; }
+  if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
   if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }
   if (action === 'edit-profile') { openProfileEditor(state.snapshot.profiles.find(item => item.id === id)); return; }
@@ -1435,7 +1450,7 @@ root.addEventListener('click', async event => {
     showToast('Perfil exportado.');
     return;
   }
-  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
+  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
   if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(age.value&&!age.checkValidity()){age.focus();return showToast('La edad debe estar entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme&&age.value)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
@@ -1475,6 +1490,7 @@ root.addEventListener('click', async event => {
   if (action === 'edit-task') {
     if (!taskById(id)) return;
     state.editingTaskId = id;
+    state.showTaskForm = true;
     state.view = 'tasks';
     updateShell();
     const titleInput = $('.task-form input[name="title"]');
@@ -1482,6 +1498,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'cancel-edit-task') {
     state.editingTaskId = null;
+    state.showTaskForm = false;
     updateShell();
   }
   if (action === 'task-menu') {
@@ -1529,6 +1546,7 @@ root.addEventListener('click', async event => {
   if (action === 'calendar-add-task') {
     state.view = 'tasks';
     state.editingTaskId = null;
+    state.showTaskForm = true;
     updateShell();
     const dateField = $('.task-form input[name="scheduledDate"]');
     const titleField = $('.task-form input[name="title"]');
@@ -1792,7 +1810,7 @@ document.addEventListener('keydown', event => {
     event.preventDefault();
     if(profileModal.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
     profileModal.remove();
-    $('.profile-add')?.focus();
+    if(profileModal.dataset.returnFocus)document.getElementById(profileModal.dataset.returnFocus)?.focus();else $('.profile-add')?.focus();
     return;
   }
   if (profileModal && event.key === 'Tab') {
