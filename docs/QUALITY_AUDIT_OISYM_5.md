@@ -2,7 +2,7 @@
 
 **Última revisión:** 2026-11-05  
 **Rama auditada:** `oisym-5-development`  
-**Commit de código revisado:** `b8c83170c8964a6daa26092a1031f0bcd32c2779`  
+**Commit de código revisado:** `be747362fe763f79f593101e88e4ab3127ee0656`  
 **Estado de referencia:** 62 pruebas aprobadas en GitHub Actions  
 **Documento principal:** este archivo es el registro vigente de errores, riesgos, correcciones y prioridades.
 
@@ -77,6 +77,14 @@ Se corrigieron los caminos de guardar de:
 
 Si el guardado falla, la interfaz recupera el estado anterior y no muestra el cambio como completado.
 
+### [P2] Clic en notificación abre la tarea correspondiente — RESUELTO
+
+**Problema:** el clic en un recordatorio abría la ventana, pero no llevaba a la tarea.
+
+**Solución:** el scheduler ahora adjunta el identificador y la fecha. El proceso principal entrega el recordatorio al renderer a través de un canal limitado del preload; O-Isym abre la tarea correspondiente o, si ya no existe, el día de su agenda. El evento también se conserva si la ventana todavía está iniciando.
+
+**Prueba:** la prueba de clic comprueba que el recordatorio conserva el identificador de tarea y la fecha.
+
 ### [P2] Fallos de entrega de notificaciones — RESUELTO
 
 **Problema:** si Electron notificaba que una notificación había fallado después de llamar a `show()`, el recordatorio podía permanecer marcado como enviado.
@@ -140,14 +148,6 @@ Esta lista consolida el trabajo realizado antes de la auditoría actual. Se mant
 ## 5. Hallazgos pendientes y prioridades
 
 ### P2 — Prioridad media
-
-#### A-01. El clic en una notificación no abre directamente la tarea
-
-**Estado:** confirmado en código; pendiente.
-
-El scheduler entrega el recordatorio al callback `onOpenTask`, pero el proceso principal lo conecta a `showMainWindow`, que solo muestra la ventana y no utiliza el identificador de tarea. El clic abre O-Isym, pero no lleva al usuario a la tarea concreta.
-
-**Mejora recomendada:** enviar el identificador y la fecha a través del preload y abrir la tarea correspondiente o el día de su agenda. Añadir una prueba de integración del recorrido completo.
 
 #### A-02. Falta una prueba de integración de Electron e IPC
 
@@ -214,8 +214,8 @@ La suite de CI no puede confirmar permisos reales de notificaciones, sonido Ping
 
 ### GitHub Actions
 
-- **Ejecución:** [42052395821](https://github.com/CueloRubik/O-Isym/actions/runs/42052395821)
-- **Commit:** `b8c83170c8964a6daa26092a1031f0bcd32c2779`
+- **Ejecución:** [42053118563](https://github.com/CueloRubik/O-Isym/actions/runs/42052395821)
+- **Commit:** `be747362fe763f79f593101e88e4ab3127ee0656`
 - **Resultado:** 62 tests, 62 aprobados, 0 fallidos, 0 omitidos.
 - **Sintaxis:** `node --check` pasó para los archivos activos de renderer, dominio, audio y proceso Electron.
 
@@ -242,7 +242,7 @@ Los elementos de prioridad P2 son mejoras pendientes, no una afirmación de que 
 
 - Rama de trabajo: `oisym-5-development`.
 - `main` no se modificó.
-- En la comparación consultada, desarrollo tenía 304 commits que no están en `main`, mientras que `main` tenía 2 commits no incorporados. Esos dos commits añadían iconos PNG antiguos en la raíz; no se integraron automáticamente porque la rama de desarrollo ya organiza esos recursos bajo `assets/icons/`.
+- En la comparación consultada al cierre de esta revisión, desarrollo tenía 314 commits que no están en `main`, mientras que `main` tenía 2 commits no incorporados. Esos dos commits añadían iconos PNG antiguos en la raíz; no se integraron automáticamente porque la rama de desarrollo ya organiza esos recursos bajo `assets/icons/`.
 - No fusionar ni reescribir ramas sin autorización explícita.
 
 ## 9. Registro de actualizaciones
@@ -254,6 +254,7 @@ Los elementos de prioridad P2 son mejoras pendientes, no una afirmación de que 
 | 2026-11-05 | Validación profunda de perfiles, rollback de Focus y selector de perfil | Corregido |
 | 2026-11-05 | Rollback de acciones de tareas, objetivos, planificación y preferencias | Corregido |
 | 2026-11-05 | Reintento tras fallo de notificación y prueba de sonido respetuosa con preferencias | Corregido |
+| 2026-11-05 | El clic de recordatorio abre la tarea o su día en la agenda | Corregido |
 | 2026-11-05 | Suite completa | 62/62 aprobadas |
 
 ---
