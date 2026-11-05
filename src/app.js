@@ -1066,6 +1066,9 @@ function openProfileEditor(profile) {
   preferenceGrid.append(field('Minutos de descanso',input('breakMinutes','5','number',profile.preferences.breakMinutes || 5)));
   preferenceGrid.append(field('Inicio habitual',input('workingDayStart','','time',profile.preferences.workingDayStart || '09:00')));
   preferenceGrid.append(field('Fin habitual',input('workingDayEnd','','time',profile.preferences.workingDayEnd || '17:00')));
+  preferenceGrid.append(field('Inicio de semana',select('weekStartsOn',[
+    {value:'1',label:'Lunes'},{value:'0',label:'Domingo'}
+  ],String(profile.preferences.weekStartsOn ?? 1))));
   preferenceGrid.append(field('Música de Focus',select('focusMusicTrack',[
     {value:'',label:'Sin música'},...FOCUS_MUSIC_CATALOG.map(track=>({value:track.id,label:track.name}))
   ],profile.preferences.focusMusicTrack || '')));
@@ -1075,6 +1078,9 @@ function openProfileEditor(profile) {
   ],String(profile.preferences.focusEndAlarmEnabled !== false))));
   preferenceGrid.append(field('Sonido de alarma',select('focusEndTone',FOCUS_ALARM_CATALOG.map(sound=>({value:sound.id,label:sound.name})),profile.preferences.focusEndTone || 'clock')));
   preferenceGrid.append(field('Volumen de alarma (%)',input('focusAlarmVolume','70','number',profile.preferences.focusAlarmVolume ?? 70)));
+  preferenceGrid.append(field('Repeticiones de alarma',select('focusAlarmRepeats',Array.from({length:10},(_,i)=>({value:String(i+1),label:(i+1)+(i?' veces':' vez')})),String(profile.preferences.focusAlarmRepeats || 3))));
+  preferenceGrid.append(field('Intervalo entre repeticiones',select('focusAlarmIntervalSeconds',Array.from({length:15},(_,i)=>({value:String(i+1),label:(i+1)+' segundos'})),String(profile.preferences.focusAlarmIntervalSeconds || 2))));
+  preferenceGrid.append(field('Duración máxima de alarma',select('focusAlarmMaxSeconds',[5,10,15,20,30,45,60,90,120].map(value=>({value:String(value),label:value+' segundos'})),String(profile.preferences.focusAlarmMaxSeconds || 30))));
   preferenceGrid.append(field('Notificaciones de Focus',select('focusNotifications',[
     {value:'true',label:'Activadas'},{value:'false',label:'Desactivadas'}
   ],String(profile.preferences.focusNotifications !== false))));
@@ -1271,6 +1277,9 @@ async function handleSubmit(form) {
       if (name.length > 60) throw new Error('El nombre admite hasta 60 caracteres.');
       const ageText = String(data.age || '').trim();
       if (ageText && (!Number.isInteger(Number(ageText)) || Number(ageText) < 1 || Number(ageText) > 120)) throw new Error('La edad debe estar entre 1 y 120 años.');
+      const workStart=String(data.workingDayStart||'');
+      const workEnd=String(data.workingDayEnd||'');
+      if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(workStart)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(workEnd)||workEnd<=workStart)throw new Error('El horario habitual debe terminar después de comenzar.');
       const nextProfile = normalizeProfile({
         ...current,
         name,
@@ -1283,13 +1292,17 @@ async function handleSubmit(form) {
           autonomy: ['manual','suggested','hybrid','automatic'].includes(data.autonomy) ? data.autonomy : current.preferences.autonomy,
           focusMinutes: data.focusMinutes,
           breakMinutes: data.breakMinutes,
-          workingDayStart: /^([01]\d|2[0-3]):[0-5]\d$/.test(data.workingDayStart || '') ? data.workingDayStart : current.preferences.workingDayStart,
-          workingDayEnd: /^([01]\d|2[0-3]):[0-5]\d$/.test(data.workingDayEnd || '') ? data.workingDayEnd : current.preferences.workingDayEnd,
+          workingDayStart: workStart,
+          workingDayEnd: workEnd,
+          weekStartsOn: data.weekStartsOn === '0' ? 0 : 1,
           focusMusicTrack: musicTrackById(data.focusMusicTrack) ? data.focusMusicTrack : '',
           focusMusicVolume: data.focusMusicVolume,
           focusEndAlarmEnabled: data.focusEndAlarmEnabled === 'true',
           focusEndTone: alarmSoundById(data.focusEndTone) ? data.focusEndTone : current.preferences.focusEndTone,
           focusAlarmVolume: data.focusAlarmVolume,
+          focusAlarmRepeats: data.focusAlarmRepeats,
+          focusAlarmIntervalSeconds: data.focusAlarmIntervalSeconds,
+          focusAlarmMaxSeconds: data.focusAlarmMaxSeconds,
           focusNotifications: data.focusNotifications === 'true',
           motionEnabled: data.motionEnabled === 'true'
         },
