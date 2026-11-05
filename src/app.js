@@ -880,9 +880,14 @@ function renderProfiles(main) {
   const header = element('div', 'profiles-page-heading');
   const headingCopy = element('div', 'section-heading');
   headingCopy.append(element('h1', '', 'Perfiles'), element('p', 'muted', 'Administra tus espacios y mantén cada organización independiente.'));
+  const headerActions=element('div','profiles-header-actions');
+  const importButton=button('Importar perfil','import-profile','button secondary');
   const createButton = button('+ Crear perfil', 'new-profile', 'button primary');
-  createButton.disabled = profiles.length >= 50;
-  header.append(headingCopy, createButton);
+  createButton.disabled = profiles.length >= 50;importButton.disabled=profiles.length>=50;
+  headerActions.append(importButton,createButton);
+  header.append(headingCopy, headerActions);
+  const importInput=input('profileImportFile','','file');importInput.id='profile-import-file';importInput.accept='application/json,.json';importInput.hidden=true;
+  main.append(importInput);
   const count = element('p', 'profiles-count', profiles.length + ' de 50 perfiles utilizados');
   const countTrack = element('div', 'profiles-count-track');
   const countFill = element('span', 'profiles-count-fill');
@@ -971,6 +976,19 @@ function renderProfiles(main) {
   if (selected.activeFocus) detail.append(element('p','profile-focus-note','Este perfil conserva una sesión Focus ' + (selected.activeFocus.pausedAt ? 'en pausa.' : 'en curso.') + ' La sesión no se elimina al cambiar de perfil.'));
   layout.append(listPanel, detail);
   main.append(layout);
+}
+
+function openDuplicateProfileModal(source) {
+  const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';
+  const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','duplicate-profile-title');
+  const form=element('form','form-card profile-modal-form');form.dataset.form='profile-duplicate';form.dataset.sourceId=source.id;
+  const title=element('h2','','Duplicar configuración');title.id='duplicate-profile-title';
+  form.append(title,element('p','muted','Se copiarán la apariencia y las preferencias. Las tareas, actividades, objetivos y el historial no se copiarán.'));
+  form.append(field('Nombre del nuevo perfil',input('name','Nombre del perfil', 'text',source.name+' (copia)')));
+  const actions=element('div','form-actions profile-wizard-actions');
+  actions.append(button('Cancelar','close-profile-modal','button secondary'),button('Crear copia','submit-form','button primary'));
+  form.append(actions);dialog.append(form);overlay.append(dialog);root.append(overlay);
+  $('input[name="name"]',form).focus();$('input[name="name"]',form).select();
 }
 
 function openProfileEditor(profile) {
@@ -1153,6 +1171,22 @@ async function handleSubmit(form) {
       const modal = $('[data-profile-modal]');
       if (modal) modal.remove();
       showToast('Perfil creado.');
+    } else if (form.dataset.form === 'profile-duplicate') {
+      const source=state.snapshot.profiles.find(item=>item.id===form.dataset.sourceId);
+      const name=String(data.name||'').trim();
+      if(!source)throw new Error('El perfil original ya no existe.');
+      if(!name)throw new Error('Escribe un nombre para el perfil.');
+      if(name.length>60)throw new Error('El nombre admite hasta 60 caracteres.');
+      if(state.snapshot.profiles.length>=50)throw new Error('Has alcanzado el máximo de 50 perfiles.');
+      const copy=createProfile(name,source.color,source.age);
+      copy.avatarId=source.avatarId;
+      copy.preferences={...copy.preferences,...source.preferences};
+      copy.tasks=[];copy.activities=[];copy.goals=[];copy.focusSessions=[];copy.activeFocus=null;copy.legacyImportedAt=null;
+      const next={...state.snapshot,profiles:[...state.snapshot.profiles,copy],updatedAt:new Date().toISOString()};
+      state.snapshot=await window.oisym.storage.save(next);
+      state.selectedProfileId=copy.id;
+      const modal=$('[data-profile-modal]');if(modal)modal.remove();
+      showToast('Configuración duplicada. El nuevo perfil empieza sin contenido ni historial.');
     } else if (form.dataset.form === 'profile-edit') {
       const profileId = form.dataset.profileId;
       const current = state.snapshot.profiles.find(item => item.id === profileId);
@@ -1380,26 +1414,12 @@ root.addEventListener('click', async event => {
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
   if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }
   if (action === 'edit-profile') { openProfileEditor(state.snapshot.profiles.find(item => item.id === id)); return; }
+  if (action === 'import-profile') { $('#profile-import-file')?.click(); return; }
   if (action === 'duplicate-profile') {
     const source = state.snapshot.profiles.find(item => item.id === id);
     if (!source) return showToast('No se encontró el perfil.', 'error');
     if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de 50 perfiles.', 'error');
-    const name = prompt('Nombre del nuevo perfil:', source.name + ' (copia)');
-    if (name === null) return;
-    if (!name.trim()) return showToast('Escribe un nombre para el perfil.', 'error');
-    const copy = createProfile(name.trim(), source.color, source.age);
-    copy.avatarId = source.avatarId;
-    copy.preferences = { ...copy.preferences, ...source.preferences };
-    copy.preferences.theme = source.preferences.theme;
-    copy.preferences.motionEnabled = source.preferences.motionEnabled;
-    const previous = state.snapshot;
-    const next = { ...previous, profiles: [...previous.profiles, copy], updatedAt: new Date().toISOString() };
-    try {
-      state.snapshot = await window.oisym.storage.save(next);
-      state.selectedProfileId = copy.id;
-      showToast('Configuración duplicada. El nuevo perfil empieza sin tareas ni historial.');
-      updateShell();
-    } catch (error) { state.snapshot = previous; showToast('No se pudo duplicar el perfil: ' + error.message, 'error'); }
+    openDuplicateProfileModal(source);
     return;
   }
   if (action === 'export-profile') {
@@ -1850,7 +1870,30 @@ root.addEventListener('input', event => {
     focusAudioController.setMusicVolume(Math.max(0, Math.min(100, Number(event.target.value))) / 100);
   }
 });
-root.addEventListener('change', event => {
+root.addEventListener('change', async event => {
+  if(event.target.id==='profile-import-file'){
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    if(state.snapshot.profiles.length>=50)return showToast('Has alcanzado el máximo de 50 perfiles.','error');
+    try{
+      const payload=JSON.parse(await file.text());
+      if(!payload||payload.format!=='oisym-profile'||payload.version!==1||!payload.profile||typeof payload.profile!=='object')throw new Error('El archivo no es una exportación de perfil O-Isym compatible.');
+      const raw=payload.profile;
+      if(typeof raw.name!=='string'||!raw.name.trim())throw new Error('El perfil no tiene un nombre válido.');
+      for(const key of ['tasks','activities','goals','focusSessions'])if(raw[key]!==undefined&&!Array.isArray(raw[key]))throw new Error('El perfil contiene una lista de datos inválida: '+key+'.');
+      if(raw.preferences!==undefined&&(!raw.preferences||typeof raw.preferences!=='object'||Array.isArray(raw.preferences)))throw new Error('Las preferencias del perfil no son válidas.');
+      let imported=normalizeProfile(raw);
+      if(state.snapshot.profiles.some(item=>item.id===imported.id))imported.id=createProfile(imported.name).id;
+      imported.activeFocus=normalizeProfile({...imported,activeFocus:raw.activeFocus}).activeFocus;
+      imported.updatedAt=new Date().toISOString();
+      const next={...state.snapshot,profiles:[...state.snapshot.profiles,imported],updatedAt:new Date().toISOString()};
+      state.snapshot=await window.oisym.storage.save(next);
+      state.selectedProfileId=imported.id;
+      state.view='profiles';updateShell();
+      showToast('Perfil importado. Se añadió sin cambiar tu espacio actual.');
+    }catch(error){showToast('No se pudo importar el perfil: '+error.message,'error');}
+    return;
+  }
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
