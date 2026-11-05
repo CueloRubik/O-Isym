@@ -1393,7 +1393,7 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
