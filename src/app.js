@@ -1,7 +1,7 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
-  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
+  validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
 } = window.OIsymDomain;
 
 const root = document.getElementById('app');
@@ -1786,11 +1786,13 @@ root.addEventListener('click', async event => {
     const previousProfile = state.profile;
     const previousSelectedProfileId = state.selectedProfileId;
     try {
+      if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera el límite de 5 MB.');
       const imported = JSON.parse(await file.text());
       validateSnapshot(imported);
       if (!Array.isArray(imported.profiles) || imported.profiles.length === 0) {
         throw new Error('La copia no contiene perfiles. No se modificó tu información actual.');
       }
+      imported.profiles.forEach(validateImportedProfile);
       const normalizedProfiles = imported.profiles.map(normalizeProfile);
       const activeProfile = normalizedProfiles.find(profile => profile.id === imported.activeProfileId) || normalizedProfiles[0];
       if (!confirm('La importación reemplazará los datos actuales. O-Isym conservará una copia de seguridad. ¿Continuar?')) return;
@@ -2023,12 +2025,11 @@ root.addEventListener('change', async event => {
     if(!file)return;
     if(state.snapshot.profiles.length>=50)return showToast('Has alcanzado el máximo de 50 perfiles.','error');
     try{
+      if(file.size>5*1024*1024)throw new Error('El archivo supera el límite de 5 MB.');
       const payload=JSON.parse(await file.text());
       if(!payload||payload.format!=='oisym-profile'||payload.version!==1||!payload.profile||typeof payload.profile!=='object')throw new Error('El archivo no es una exportación de perfil O-Isym compatible.');
       const raw=payload.profile;
-      if(typeof raw.name!=='string'||!raw.name.trim())throw new Error('El perfil no tiene un nombre válido.');
-      for(const key of ['tasks','activities','goals','focusSessions'])if(raw[key]!==undefined&&!Array.isArray(raw[key]))throw new Error('El perfil contiene una lista de datos inválida: '+key+'.');
-      if(raw.preferences!==undefined&&(!raw.preferences||typeof raw.preferences!=='object'||Array.isArray(raw.preferences)))throw new Error('Las preferencias del perfil no son válidas.');
+      validateImportedProfile(raw);
       let imported=normalizeProfile(raw);
       if(state.snapshot.profiles.some(item=>item.id===imported.id))imported.id=createProfile(imported.name).id;
       imported.activeFocus=normalizeProfile({...imported,activeFocus:raw.activeFocus}).activeFocus;
