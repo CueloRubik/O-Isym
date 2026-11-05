@@ -54,6 +54,7 @@ function makeHarness() {
   return {
     scheduler, notifications, dateKey, now: () => now, snapshot, advance,
     openNotification(index = 0) { notifications[index].emit('click'); return openedTask; },
+    failNotification(index = 0) { notifications[index].emit('failed', new Error('No disponible')); },
     resume() { powerMonitor.emit('resume'); },
     dispose() { scheduler.dispose(); }
   };
@@ -137,5 +138,29 @@ test('al hacer clic en una notificación entrega el recordatorio correspondiente
   h.scheduler.scheduleSnapshot(h.snapshot(time));
   h.advance(5 * 60 * 1000);
   assert.equal(h.openNotification().key.includes('task-1'), true);
+  h.dispose();
+});
+
+
+test('la notificación de prueba respeta la preferencia de sonido del perfil', () => {
+  const h = makeHarness();
+  h.scheduler.scheduleSnapshot(h.snapshot('10:00', { preferences: { taskNotificationSound: false } }));
+  assert.equal(h.scheduler.sendTestNotification(), true);
+  assert.equal(h.notifications.at(-1).options.silent, true);
+  assert.equal(h.notifications.at(-1).options.sound, undefined);
+  h.dispose();
+});
+
+test('un fallo del sistema no deja el recordatorio marcado permanentemente como enviado', () => {
+  const h = makeHarness();
+  const start = new Date(h.now() + 5 * 60 * 1000);
+  const time = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
+  const snapshot = h.snapshot(time);
+  h.scheduler.scheduleSnapshot(snapshot);
+  h.advance(5 * 60 * 1000);
+  assert.equal(h.notifications.length, 1);
+  h.failNotification();
+  h.scheduler.scheduleSnapshot(snapshot);
+  assert.equal(h.notifications.length, 2);
   h.dispose();
 });
