@@ -593,3 +593,29 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .profile-management-actions { align-items: stretch; flex-direction: column; }
   .profile-management-actions .button, .profile-management-actions .text-button { width: 100%; text-align: center; }
 }
+
+
+/* Ajustes organizados por categorías */
+.settings-layout { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 18px; align-items: start; }
+.settings-navigation { position: sticky; top: 18px; display: flex; flex-direction: column; gap: 5px; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
+.settings-navigation > .eyebrow { padding: 4px 9px 8px; }
+.settings-nav-item { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; padding: 10px 11px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--text); text-align: left; }
+.settings-nav-item:hover { background: var(--surface-soft); }
+.settings-nav-item.active { border-color: color-mix(in srgb,var(--accent) 28%,white); background: var(--accent-soft); color: var(--accent-dark); }
+.settings-nav-item strong { font-size: 12px; }
+.settings-nav-item small { color: var(--muted); font-size: 10px; }
+.settings-panel { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
+.settings-panel > .section-heading { margin-bottom: 0; }
+.settings-form { width: 100%; }
+.settings-info-card { display: flex; flex-direction: column; align-items: flex-start; gap: 13px; }
+.settings-info-card > p { max-width: 680px; }
+.shortcut-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.shortcut-row:last-child { border-bottom: 0; }
+.shortcut-row kbd { min-width: 42px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); color: var(--text); text-align: center; font: 600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.shortcut-row span { color: var(--muted); font-size: 12px; }
+@media (max-width: 760px) {
+  .settings-layout { grid-template-columns: minmax(0,1fr); }
+  .settings-navigation { position: static; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .settings-navigation > .eyebrow { grid-column: 1/-1; }
+}
+@media (max-width: 460px) { .settings-navigation { grid-template-columns: minmax(0,1fr); } }
