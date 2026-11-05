@@ -13,7 +13,13 @@ const storage = Object.freeze({
 const notifications = Object.freeze({
   getStatus: () => ipcRenderer.invoke('oisym:notifications:status'),
   sendTest: () => ipcRenderer.invoke('oisym:notifications:test'),
-  setLaunchAtLogin: enabled => ipcRenderer.invoke('oisym:notifications:launch-at-login', enabled)
+  setLaunchAtLogin: enabled => ipcRenderer.invoke('oisym:notifications:launch-at-login', enabled),
+  onOpenTask: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, reminder) => callback(reminder);
+    ipcRenderer.on('oisym:notifications:open-task', listener);
+    return () => ipcRenderer.removeListener('oisym:notifications:open-task', listener);
+  }
 });
 
 const focusAlarms = Object.freeze({
