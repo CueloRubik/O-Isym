@@ -95,11 +95,11 @@ function createTaskNotificationScheduler({
     const reminders = [];
     for (const task of profile.tasks) {
       if (!task || task.status !== 'pending' || task.reminderEnabled === false || !task.scheduledDate || !task.startTime) continue;
-      if (scope === 'activity' && !task.activityId) continue;
       if (scope === 'high' && task.priority !== 'high') continue;
+      const activity = (profile.activities || []).find(item => item && item.id === task.activityId && !item.archived);
+      if (scope === 'activity' && !activity) continue;
       const dueAt = localDateTime(task.scheduledDate, task.startTime);
       if (!Number.isFinite(dueAt)) continue;
-      const activity = (profile.activities || []).find(item => item && item.id === task.activityId && !item.archived);
       const activityName = activity ? activity.name : task.title;
       const dateText = new Date(dueAt).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
       const range = task.endTime ? task.startTime + '–' + task.endTime : task.startTime;
@@ -122,8 +122,11 @@ function createTaskNotificationScheduler({
     for (const reminder of reminders) {
       if (sent.has(reminder.key) || reminder.triggerAt > current) continue;
       const missedBy = current - reminder.triggerAt;
-      if (missedBehavior === 'notify' && missedBy <= MISSED_GRACE_MS) showReminder(reminder);
-      markSent(reminder.key);
+      if (missedBehavior === 'notify' && missedBy <= MISSED_GRACE_MS) {
+        if (showReminder(reminder)) markSent(reminder.key);
+      } else {
+        markSent(reminder.key);
+      }
     }
   }
 
