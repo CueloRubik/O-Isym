@@ -120,23 +120,21 @@ Objetivo: que cada configuración esté en su lugar y sea fácil de encontrar.
 Criterio de aceptación: cada opción tiene una ubicación lógica, se encuentra sin recorrer una pantalla interminable y conserva su comportamiento actual.
 
 ### P3 — Administración avanzada de perfiles
-**Estado: primera etapa implementada; importación y duplicación ya disponibles.**
+**Estado: administración funcional implementada; falta ampliar la cobertura de pruebas.**
 
-Ya existe una vista dedicada con lista/ficha, contadores calculados, preferencias resumidas, selección administrativa separada del perfil activo, edición de perfiles inactivos, duplicación solo de preferencias, exportación individual y eliminación del perfil seleccionado con resumen de contenido y protección del último perfil. El cambio de perfil guarda primero el actual y gestiona recursos Focus. Pendiente: importación individual con validación, reemplazar el prompt de duplicación por un diálogo propio, y completar pruebas manuales de Focus y fallos de almacenamiento.
+La vista dedicada incluye lista/ficha, contadores calculados, selección administrativa separada del perfil activo, creación, edición de perfiles activos e inactivos, duplicación de preferencias, exportación e importación individual, eliminación protegida y cambio seguro de perfil. El editor permite modificar identidad, apariencia, planificación y preferencias de Focus sin activar el perfil editado. Las pruebas manuales de regresión y la comprobación visual en Catalina siguen pendientes de esta entrega.
 
 La especificación completa está en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md). Define el centro de perfiles, creación, edición de perfiles inactivos, cambio seguro, duplicación de preferencias, exportación/importación individual, eliminación protegida, estados especiales, pruebas y criterios de aceptación.
 
 Objetivo: dar al usuario control completo sobre sus perfiles y su presentación.
 
-- [ ] Diseñar una pantalla o panel de administración de perfiles.
-- [ ] Permitir crear, editar y cambiar entre perfiles desde un flujo consistente.
-- [ ] Implementar eliminación de perfiles con confirmación explícita.
-- [ ] Explicar qué datos se eliminarán.
-- [ ] Proteger el perfil activo y el perfil principal frente a eliminaciones accidentales.
-- [ ] Definir qué ocurre al intentar borrar el último perfil o el perfil principal.
-- [ ] Mejorar la edición visual: avatar con vista previa, nombre, edad, tema, color y preferencias disponibles.
-- [ ] Asegurar que los datos de cada perfil permanezcan aislados.
-- [ ] Probar migración y compatibilidad con perfiles antiguos.
+- [x] Diseñar una pantalla dedicada de administración con lista y ficha.
+- [x] Crear, editar y cambiar entre perfiles desde flujos diferenciados.
+- [x] Eliminar perfiles con confirmación, resumen de datos y protección del último perfil.
+- [x] Duplicar, exportar e importar perfiles individuales.
+- [x] Editar preferencias de identidad, apariencia, planificación y Focus también en perfiles inactivos.
+- [x] Mantener los datos de cada perfil aislados durante la duplicación y el cambio.
+- [ ] Completar pruebas de regresión, migración y fallos de almacenamiento.
 
 Criterio de aceptación: crear, editar, cambiar y eliminar perfiles funciona sin pérdida accidental de datos de otros perfiles y con confirmaciones comprensibles.
 
@@ -163,9 +161,9 @@ Pendiente:
 Criterio de aceptación: los iconos se sienten parte del mismo producto, son reconocibles y mejoran la orientación sin añadir ruido visual.
 
 ### P5 — Pulido general
-**Estado: iniciado; perfiles y Ajustes tienen una primera reorganización responsive.**
+**Estado: iniciado; Hoy ya recibió una segunda pasada de jerarquía y contenido.**
 
-La nueva vista Perfiles y la navegación secundaria de Ajustes ya están implementadas. Las demás vistas principales siguen pendientes de reorganización y revisión visual.
+Perfiles, Ajustes, Tareas, Actividades, Objetivos, Calendario, Planificador e Insights ya tienen reorganizaciones funcionales. Hoy ahora separa tareas vencidas, tareas correspondientes al día y tareas completadas durante el día, con progreso accesible. Falta revisión visual en Electron y pulido transversal de mensajes, accesibilidad y detalles de interacción.
 
 La distribución objetivo de todas las vistas, jerarquía de tarjetas, acciones, formularios, modales, textos, accesibilidad y responsive está definida en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md).
 
@@ -174,6 +172,9 @@ Primera pasada realizada:
 - [x] Refinar espaciado, radios, sombras y alineación de controles principales.
 - [x] Mejorar la adaptación de la barra de navegación, panel Focus y herramientas de Tareas a ventanas estrechas.
 - [x] Corregir referencias CSS a `--border` para usar la variable existente `--line`.
+- [x] Reorganizar Hoy para distinguir tareas de hoy, pendientes vencidos y tareas completadas.
+- [x] Añadir atributos accesibles al indicador de progreso diario.
+- [x] Ampliar el editor de perfiles para gestionar sus preferencias de planificación y Focus.
 
 Pendiente de revisión manual:
 
