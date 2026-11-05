@@ -1340,6 +1340,7 @@ async function handleSubmit(form) {
         state.snapshot.profiles = state.snapshot.profiles.filter(item => item.id !== profile.id);
         state.profile = state.snapshot.profiles.find(item => item.id === previousProfileId) || state.snapshot.profiles[0];
         state.snapshot.activeProfileId = state.profile.id;
+        syncLaunchAtLogin();
         if(state.profile.activeFocus&&!state.profile.activeFocus.pausedAt)startFocusTicker();
         syncFocusNotificationSchedule();startFocusMusic();
         throw new Error('No se pudo guardar el perfil.');
@@ -1921,10 +1922,12 @@ root.addEventListener('click', async event => {
         state.snapshot = previousSnapshot;
         state.profile = previousProfile;
         state.selectedProfileId = previousSelectedProfileId;
+        syncLaunchAtLogin();
         syncFocusNotificationSchedule();
         startFocusMusic();
         return;
       }
+      syncLaunchAtLogin();
       syncFocusNotificationSchedule();
       startFocusMusic();
       updateShell();
@@ -1933,6 +1936,7 @@ root.addEventListener('click', async event => {
       state.snapshot = previousSnapshot;
       state.profile = previousProfile;
       state.selectedProfileId = previousSelectedProfileId;
+      syncLaunchAtLogin();
       syncFocusNotificationSchedule();
       startFocusMusic();
       showToast('No se pudo importar: ' + error.message, 'error');
