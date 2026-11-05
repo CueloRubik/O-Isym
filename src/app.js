@@ -2320,15 +2320,17 @@ root.addEventListener('change', async event => {
   }
   if (event.target.id === 'focus-activity') updateFocusDurationSuggestion();
   if (event.target.name === 'focusEndAlarmEnabled' || event.target.name === 'focusNotifications') {
+    const previousProfile = cloneActiveProfile();
     state.profile.preferences[event.target.name] = event.target.checked;
     if (event.target.name === 'focusEndAlarmEnabled') {
       $('.focus-alarm-settings select, .focus-alarm-settings input[type="range"], .focus-alarm-settings [data-action="preview-focus-alarm"]').forEach(control => {
         control.disabled = Boolean(state.profile.activeFocus) || !event.target.checked;
       });
     }
-    save();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
   }
   if (event.target.name === 'focusMusicTrack') {
+    const previousProfile = cloneActiveProfile();
     state.profile.preferences.focusMusicTrack = FOCUS_MUSIC_CATALOG.some(track => track.id === event.target.value) ? event.target.value : '';
     const track = musicTrackById(state.profile.preferences.focusMusicTrack);
     const description = $('.music-description');
@@ -2336,20 +2338,22 @@ root.addEventListener('change', async event => {
     const preview = $('#focus-music-preview');
     if (preview) preview.disabled = !track || Boolean(state.profile.activeFocus);
     stopFocusMusicPreview();
-    save();
+    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
   }
   if (event.target.name === 'focusMusicVolume') {
+    const previousProfile = cloneActiveProfile();
     state.profile.preferences.focusMusicVolume = clampNumber(event.target.value, 0, 100, 35);
     focusAudioController.setMusicVolume(state.profile.preferences.focusMusicVolume / 100);
-    save();
+    if (!await save()) { restoreActiveProfile(previousProfile); focusAudioController.setMusicVolume(previousProfile.preferences.focusMusicVolume / 100); updateShell(); return; }
   }
   if (['focusEndTone','focusAlarmVolume','focusAlarmRepeats','focusAlarmIntervalSeconds','focusAlarmMaxSeconds'].includes(event.target.name)) {
+    const previousProfile = cloneActiveProfile();
     const name=event.target.name;
     if(name==='focusEndTone'){state.profile.preferences.focusEndTone=FOCUS_ALARM_CATALOG.some(x=>x.id===event.target.value)?event.target.value:'clock';stopFocusAlarmPlayback();}
     else{const b={focusAlarmVolume:[0,100,70],focusAlarmRepeats:[1,10,3],focusAlarmIntervalSeconds:[1,15,2],focusAlarmMaxSeconds:[5,120,30]}[name];state.profile.preferences[name]=Math.round(clampNumber(event.target.value,b[0],b[1],b[2]));}
     const value=$('.alarm-volume-value');if(value&&name==='focusAlarmVolume')value.textContent=state.profile.preferences.focusAlarmVolume+'%';
     if(name==='focusAlarmVolume')focusAudioController.setAlarmVolume(state.profile.preferences.focusAlarmVolume/100);
-    save();
+    if (!await save()) { restoreActiveProfile(previousProfile); focusAudioController.setAlarmVolume(previousProfile.preferences.focusAlarmVolume / 100); updateShell(); return; }
   }
 });
 
