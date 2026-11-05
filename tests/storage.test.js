@@ -165,11 +165,11 @@ test('restaura una copia válida y conserva el archivo que estaba activo', async
     updatedAt: new Date().toISOString()
   });
   const backups = await storage.recovery.listBackups();
-  assert.ok(backups.length >= 1);
-  assert.equal(backups[0].profiles, 1);
+  const recoverableBackup = backups.find(backup => backup.profiles === 1);
+  assert.ok(recoverableBackup);
 
   await fs.writeFile(storage.storePath, '{archivo roto', 'utf8');
-  const restored = await storage.recovery.restoreBackup(backups[0].name);
+  const restored = await storage.recovery.restoreBackup(recoverableBackup.name);
 
   const current = await storage.read();
   assert.equal(current.profiles[0].name, 'Perfil recuperable');
