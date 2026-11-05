@@ -1,7 +1,7 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
-  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_REMINDER_INTERVALS, FOCUS_ALARM_TONES
+  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
 } = window.OIsymDomain;
 
 const root = document.getElementById('app');
@@ -636,9 +636,13 @@ function renderFocus(main) {
   const selectedMusic = musicTrackById(state.profile.preferences.focusMusicTrack);
   musicOptions.append(element('p', 'small-note music-description', selectedMusic ? selectedMusic.description : 'No se reproducirá música durante la sesión.'));
   const musicControls = element('div', 'focus-music-controls');
-  const musicPreviewButton = button('Escuchar vista previa', 'preview-focus-music', 'button secondary small', { track: state.profile.preferences.focusMusicTrack || '' });
-  musicPreviewButton.disabled = Boolean(focus);
-  musicControls.append(musicPreviewButton);
+  const musicPreviewButton = button('Escuchar vista previa', 'preview-focus-music', 'button secondary small');
+  musicPreviewButton.id = 'focus-music-preview';
+  musicPreviewButton.disabled = Boolean(focus) || !selectedMusic;
+  const musicPreviewStopButton = button('Detener vista previa', 'stop-focus-music-preview', 'button ghost small');
+  musicPreviewStopButton.id = 'focus-music-preview-stop';
+  musicPreviewStopButton.disabled = !focusMusicPreviewPlayback;
+  musicControls.append(musicPreviewButton, musicPreviewStopButton);
   const musicVolume = input('focusMusicVolume', '', 'range', state.profile.preferences.focusMusicVolume ?? 35);
   musicVolume.min = '0'; musicVolume.max = '100'; musicVolume.step = '5'; musicVolume.disabled = Boolean(focus);
   const musicVolumeField = field('Volumen de la música', musicVolume);
@@ -648,43 +652,24 @@ function renderFocus(main) {
   musicOptions.append(musicControls);
   focusCard.append(musicOptions);
 
-  const alarmOptions = element('div', 'focus-alarm-settings');
-  alarmOptions.append(element('h3', '', 'Alarmas'));
-  alarmOptions.append(element('p', 'muted small-note', 'Cada alarma repite su sonido tres veces, con una pausa breve entre repeticiones. La vista previa utiliza el mismo patrón.'));
-  const toneRows = [
-    ['Inicio de Focus', 'focusStartTone', state.profile.preferences.focusStartTone || 'off', 'start'],
-    ['Fin de Focus', 'focusEndTone', state.profile.preferences.focusEndTone || 'clock', 'focus-end'],
-    ['Fin del descanso', 'breakEndTone', state.profile.preferences.breakEndTone || 'ringtone2', 'break-end'],
-    ['Recordatorio', 'focusReminderTone', state.profile.preferences.focusReminderTone || 'digital', 'reminder']
-  ];
-  toneRows.forEach(([label, name, value, kind]) => {
-    const row = element('div', 'focus-alarm-row');
-    const control = select(name, alarmToneOptions, value);
-    control.disabled = Boolean(focus);
-    const previewButton = button('Probar patrón', 'preview-focus-alarm', 'button secondary small', { alarm: kind });
-    previewButton.disabled = Boolean(focus);
-    row.append(field(label, control), previewButton);
-    alarmOptions.append(row);
-  });
-  const volume = input('focusAlarmVolume', '', 'range', state.profile.preferences.focusAlarmVolume ?? 70);
-  volume.min = '0'; volume.max = '100'; volume.step = '5'; volume.disabled = Boolean(focus);
-  const volumeField = field('Volumen de las alarmas', volume);
-  const volumeValue = element('span', 'focus-volume-value alarm-volume-value', String(volume.value) + '%');
-  volumeField.append(volumeValue);
-  alarmOptions.append(volumeField);
-  const reminder = select('focusReminderMinutes', FOCUS_REMINDER_INTERVALS.map(minutes => ({ value: String(minutes), label: minutes === 0 ? 'Desactivados' : 'Cada ' + minutes + ' minutos' })), String(state.profile.preferences.focusReminderMinutes || 0));
-  reminder.disabled = Boolean(focus);
-  alarmOptions.append(field('Recordatorios durante Focus', reminder));
-  alarmOptions.append(element('p', 'small-note', 'Los sonidos MP3 se reproducen mientras la ventana esté abierta o minimizada. Si cierras la ventana, macOS puede mostrar la notificación con un sonido del sistema; al salir con Cmd + Q, los avisos se detienen.'));
-  const toggles = element('div', 'focus-options');
-  const soundLabel = element('label', 'focus-option');
-  const sound = input('focusSound', '', 'checkbox'); sound.checked = state.profile.preferences.focusSound !== false; sound.disabled = Boolean(focus);
-  soundLabel.append(sound, element('span', '', 'Activar sonidos de alarma'));
-  const notificationLabel = element('label', 'focus-option');
-  const notifications = input('focusNotifications', '', 'checkbox'); notifications.checked = state.profile.preferences.focusNotifications !== false; notifications.disabled = Boolean(focus);
-  notificationLabel.append(notifications, element('span', '', 'Avisos del sistema'));
-  toggles.append(soundLabel, notificationLabel);
-  alarmOptions.append(toggles);
+  const alarmOptions=element('div','focus-alarm-settings');
+  alarmOptions.append(element('h3','','Al terminar Focus'));
+  alarmOptions.append(element('p','muted small-note','La música se detiene primero. Después suena esta única alarma; no hay sonidos al iniciar ni al terminar descansos.'));
+  const enabledLabel=element('label','focus-option'),enabled=input('focusEndAlarmEnabled','','checkbox');enabled.checked=state.profile.preferences.focusEndAlarmEnabled!==false;enabled.disabled=Boolean(focus);
+  enabledLabel.append(enabled,element('span','','Reproducir alarma al terminar Focus'));alarmOptions.append(enabledLabel);
+  const disabled=Boolean(focus)||!enabled.checked,tone=select('focusEndTone',alarmToneOptions,state.profile.preferences.focusEndTone||'clock');tone.disabled=disabled;alarmOptions.append(field('Sonido',tone));
+  const repeats=select('focusAlarmRepeats',Array.from({length:10},(_,i)=>({value:String(i+1),label:(i+1)+(i?' veces':' vez')})),String(state.profile.preferences.focusAlarmRepeats||3));
+  const interval=select('focusAlarmIntervalSeconds',Array.from({length:15},(_,i)=>({value:String(i+1),label:(i+1)+' segundos'})),String(state.profile.preferences.focusAlarmIntervalSeconds||2));
+  const max=select('focusAlarmMaxSeconds',[5,10,15,20,30,45,60,90,120].map(n=>({value:String(n),label:n+' segundos'})),String(state.profile.preferences.focusAlarmMaxSeconds||30));
+  [repeats,interval,max].forEach(x=>x.disabled=disabled);
+  const pattern=element('div','focus-alarm-pattern');pattern.append(field('Número de repeticiones',repeats),field('Pausa entre repeticiones',interval),field('Duración máxima',max));alarmOptions.append(pattern);
+  const volume=input('focusAlarmVolume','','range',state.profile.preferences.focusAlarmVolume??70);volume.min='0';volume.max='100';volume.step='5';volume.disabled=disabled;
+  const vf=field('Volumen',volume),vv=element('span','focus-volume-value alarm-volume-value',String(volume.value)+'%');vf.append(vv);alarmOptions.append(vf);
+  const actions=element('div','focus-audio-actions'),preview=button('Probar alarma','preview-focus-alarm','button secondary small');preview.disabled=disabled;actions.append(preview);
+  const stop=button('Detener alarma','stop-focus-alarm','button ghost small');stop.id='focus-alarm-stop';stop.disabled=!focusAlarmPlayback;actions.append(stop);alarmOptions.append(actions);
+  const notificationLabel=element('label','focus-option'),notifications=input('focusNotifications','','checkbox');notifications.checked=state.profile.preferences.focusNotifications!==false;notifications.disabled=Boolean(focus);
+  notificationLabel.append(notifications,element('span','','Mostrar notificación del sistema al terminar'));alarmOptions.append(notificationLabel);
+  alarmOptions.append(element('p','small-note','El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
   focusCard.append(alarmOptions);
   const actions = element('div', 'button-group center');
   if (!focus) {
@@ -1052,159 +1037,16 @@ async function handleSubmit(form) {
   }
 }
 
-let focusAlarmPlayback = null;
-let focusMusicPlayback = null;
-let focusMusicPreviewPlayback = null;
-let focusMusicPreviewTimer = null;
-let focusReminderTimer = null;
-
-async function prepareFocusAlarm() {
-  try {
-    if (state.profile.preferences.focusNotifications !== false && 'Notification' in window && Notification.permission === 'default') {
-      await Notification.requestPermission();
-    }
-  } catch (error) {
-    // La sesión sigue funcionando aunque el sistema no permita notificaciones.
-  }
-}
-function stopFocusAlarmPlayback() {
-  if (!focusAlarmPlayback) return;
-  if (focusAlarmPlayback.timer) clearTimeout(focusAlarmPlayback.timer);
-  if (focusAlarmPlayback.audio) {
-    focusAlarmPlayback.audio.onended = null;
-    focusAlarmPlayback.audio.onerror = null;
-    focusAlarmPlayback.audio.pause();
-    focusAlarmPlayback.audio.currentTime = 0;
-  }
-  focusAlarmPlayback = null;
-}
-function playFocusAlarm(kind = 'focus-end', preview = false) {
-  if (!preview && state.profile.preferences.focusSound === false) return;
-  const key = kind === 'start' ? 'focusStartTone' : kind === 'break-end' ? 'breakEndTone' : kind === 'reminder' ? 'focusReminderTone' : 'focusEndTone';
-  const sound = alarmSoundById(state.profile.preferences[key]);
-  const volume = Math.max(0, Math.min(100, Number(state.profile.preferences.focusAlarmVolume ?? 70))) / 100;
-  stopFocusAlarmPlayback();
-  if (!sound || volume <= 0) return;
-  const playback = { audio: null, timer: null, cycle: 0 };
-  focusAlarmPlayback = playback;
-  const playCycle = () => {
-    if (focusAlarmPlayback !== playback) return;
-    playback.cycle += 1;
-    const audio = new Audio('assets/audio/alarms/' + sound.file);
-    playback.audio = audio;
-    audio.preload = 'auto';
-    audio.volume = volume;
-    audio.onended = () => {
-      if (focusAlarmPlayback !== playback) return;
-      if (playback.cycle >= 3) {
-        playback.audio = null;
-        focusAlarmPlayback = null;
-        return;
-      }
-      playback.timer = setTimeout(playCycle, 700);
-    };
-    audio.onerror = () => {
-      if (focusAlarmPlayback === playback) {
-        focusAlarmPlayback = null;
-        if (preview) showToast('No se pudo cargar el sonido «' + sound.name + '».', 'error');
-      }
-    };
-    audio.play().catch(() => {
-      if (focusAlarmPlayback === playback) {
-        focusAlarmPlayback = null;
-        if (preview) showToast('No se pudo reproducir el sonido «' + sound.name + '».', 'error');
-      }
-    });
-  };
-  playCycle();
-}
-function stopFocusMusic() {
-  if (focusMusicPlayback) {
-    focusMusicPlayback.pause();
-    focusMusicPlayback.currentTime = 0;
-    focusMusicPlayback = null;
-  }
-}
-function stopFocusMusicPreview() {
-  if (focusMusicPreviewTimer) clearTimeout(focusMusicPreviewTimer);
-  focusMusicPreviewTimer = null;
-  if (focusMusicPreviewPlayback) {
-    focusMusicPreviewPlayback.pause();
-    focusMusicPreviewPlayback.currentTime = 0;
-    focusMusicPreviewPlayback = null;
-  }
-}
-function startFocusMusic() {
-  const focus = state.profile?.activeFocus;
-  const track = musicTrackById(state.profile?.preferences?.focusMusicTrack);
-  if (!focus || focus.pausedAt || !track) {
-    stopFocusMusic();
-    return;
-  }
-  stopFocusMusicPreview();
-  const src = 'assets/audio/music/' + track.id + '.mp3';
-  if (focusMusicPlayback && focusMusicPlayback.src.endsWith(src)) {
-    focusMusicPlayback.volume = Math.max(0, Math.min(100, Number(state.profile.preferences.focusMusicVolume ?? 35))) / 100;
-    if (focusMusicPlayback.paused) focusMusicPlayback.play().catch(() => {});
-    return;
-  }
-  stopFocusMusic();
-  const audio = new Audio(src);
-  audio.loop = true;
-  audio.preload = 'auto';
-  audio.volume = Math.max(0, Math.min(100, Number(state.profile.preferences.focusMusicVolume ?? 35))) / 100;
-  focusMusicPlayback = audio;
-  audio.play().catch(() => {
-    if (focusMusicPlayback === audio) focusMusicPlayback = null;
-  });
-}
-function previewFocusMusic() {
-  stopFocusAlarmPlayback();
-  const trackId = $('#focus-music-track')?.value || state.profile.preferences.focusMusicTrack || '';
-  const track = musicTrackById(trackId);
-  if (!track) return showToast('Selecciona una pista para escucharla.', 'error');
-  stopFocusMusicPreview();
-  const audio = new Audio('assets/audio/music/' + track.id + '.mp3');
-  audio.preload = 'auto';
-  audio.volume = Math.max(0, Math.min(100, Number(state.profile.preferences.focusMusicVolume ?? 35))) / 100;
-  focusMusicPreviewPlayback = audio;
-  audio.onended = () => {
-    if (focusMusicPreviewPlayback === audio) focusMusicPreviewPlayback = null;
-  };
-  audio.play().then(() => {
-    focusMusicPreviewTimer = setTimeout(stopFocusMusicPreview, 20000);
-  }).catch(() => {
-    if (focusMusicPreviewPlayback === audio) focusMusicPreviewPlayback = null;
-    showToast('No se pudo reproducir la vista previa de música.', 'error');
-  });
-}
-function syncFocusReminderPlayback() {
-  if (focusReminderTimer) clearTimeout(focusReminderTimer);
-  focusReminderTimer = null;
-  const focus = state.profile?.activeFocus;
-  const preferences = state.profile?.preferences;
-  if (!focus || focus.pausedAt || focus.isBreak || !preferences || preferences.focusSound === false) return;
-  const interval = Number(preferences.focusReminderMinutes) || 0;
-  if (interval <= 0 || !alarmSoundById(preferences.focusReminderTone)) return;
-  const intervalSeconds = interval * 60;
-  const elapsed = getFocusElapsedSeconds(focus);
-  const nextThreshold = (Math.floor(elapsed / intervalSeconds) + 1) * intervalSeconds;
-  if (nextThreshold >= focus.durationSeconds) return;
-  focusReminderTimer = setTimeout(() => {
-    if (state.profile?.activeFocus && !state.profile.activeFocus.pausedAt) {
-      playFocusAlarm('reminder');
-      syncFocusReminderPlayback();
-    }
-  }, Math.max(0, (nextThreshold - elapsed) * 1000));
-}
-function notifyFocusFinished(taskTitle, isBreak = false) {
-  playFocusAlarm(isBreak ? 'break-end' : 'focus-end');
-  if (!window.oisym.focusAlarms && state.profile.preferences.focusNotifications !== false && 'Notification' in window && Notification.permission === 'granted') {
-    const title = isBreak ? 'Descanso terminado' : 'Focus terminado';
-    const body = isBreak ? 'Tu descanso terminó. Cuando quieras, puedes comenzar otra sesión.' : (taskTitle ? 'Terminaste tu sesión de ' + taskTitle + '. Tómate un descanso.' : 'Terminaste tu sesión de concentración. Tómate un descanso.');
-    try { new Notification(title, { body }); } catch (error) {}
-  }
-}
+let focusAlarmPlayback=null,focusMusicPlayback=null,focusMusicPreviewPlayback=null,focusMusicPreviewTimer=null,focusReminderTimer=null;
+async function prepareFocusAlarm(){try{if(state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='default')await Notification.requestPermission();}catch(error){}}
+function updateFocusAudioStopControl(){let el=$('#focus-audio-stop-control');if(focusAlarmPlayback){if(!el){el=element('div','focus-audio-stop-control');el.id='focus-audio-stop-control';el.append(element('span','','La alarma está sonando'),button('Detener alarma','stop-focus-alarm','button secondary small'));root.append(el);}}else if(el)el.remove();const ms=$('#focus-music-preview-stop');if(ms)ms.disabled=!focusMusicPreviewPlayback;const mp=$('#focus-music-preview');if(mp)mp.textContent=focusMusicPreviewPlayback?'Reproduciendo vista previa…':'Escuchar vista previa';const as=$('#focus-alarm-stop');if(as)as.disabled=!focusAlarmPlayback;}
+function stopFocusAlarmPlayback(){const p=focusAlarmPlayback;if(!p){updateFocusAudioStopControl();return;}if(p.timer)clearTimeout(p.timer);if(p.limitTimer)clearTimeout(p.limitTimer);if(p.audio){p.audio.onended=null;p.audio.onerror=null;p.audio.pause();p.audio.currentTime=0;}focusAlarmPlayback=null;updateFocusAudioStopControl();}
+function playFocusAlarm(preview=false){const prefs=state.profile.preferences;if(!preview&&prefs.focusEndAlarmEnabled===false)return;const sound=alarmSoundById(prefs.focusEndTone||'clock'),volume=Math.max(0,Math.min(100,Number(prefs.focusAlarmVolume??70)))/100;stopFocusAlarmPlayback();if(!sound||volume<=0)return;const p={audio:null,timer:null,limitTimer:null,cycle:0};focusAlarmPlayback=p;const count=Math.max(1,Math.min(10,Number(prefs.focusAlarmRepeats)||3)),gap=Math.max(1,Math.min(15,Number(prefs.focusAlarmIntervalSeconds)||2))*1000,limit=Math.max(5,Math.min(120,Number(prefs.focusAlarmMaxSeconds)||30))*1000;p.limitTimer=setTimeout(()=>stopFocusAlarmPlayback(),limit);const next=()=>{if(focusAlarmPlayback!==p)return;p.cycle++;const audio=new Audio('assets/audio/alarms/'+sound.file);p.audio=audio;audio.preload='auto';audio.volume=volume;audio.onended=()=>{if(focusAlarmPlayback!==p)return;p.audio=null;if(p.cycle>=count){stopFocusAlarmPlayback();return;}p.timer=setTimeout(next,gap);};audio.onerror=()=>{if(focusAlarmPlayback===p){stopFocusAlarmPlayback();showToast('No se pudo cargar la alarma «'+sound.name+'».','error');}};audio.play().catch(()=>{if(focusAlarmPlayback===p){stopFocusAlarmPlayback();showToast('No se pudo reproducir la alarma «'+sound.name+'».','error');}});};next();updateFocusAudioStopControl();}
+function stopFocusMusic(){if(focusMusicPlayback){focusMusicPlayback.pause();focusMusicPlayback.currentTime=0;focusMusicPlayback=null;}}
+function stopFocusMusicPreview(){if(focusMusicPreviewTimer)clearTimeout(focusMusicPreviewTimer);focusMusicPreviewTimer=null;if(focusMusicPreviewPlayback){focusMusicPreviewPlayback.onended=null;focusMusicPreviewPlayback.onerror=null;focusMusicPreviewPlayback.pause();focusMusicPreviewPlayback.currentTime=0;focusMusicPreviewPlayback=null;}updateFocusAudioStopControl();}
+function startFocusMusic(){const focus=state.profile?.activeFocus,track=musicTrackById(state.profile?.preferences?.focusMusicTrack);if(!focus||focus.pausedAt||!track){stopFocusMusic();return;}stopFocusMusicPreview();const src='assets/audio/music/'+track.id+'.mp3';if(focusMusicPlayback&&focusMusicPlayback.src.endsWith(src)){focusMusicPlayback.volume=Math.max(0,Math.min(100,Number(state.profile.preferences.focusMusicVolume??35)))/100;if(focusMusicPlayback.paused)focusMusicPlayback.play().catch(()=>{});return;}stopFocusMusic();const audio=new Audio(src);audio.loop=true;audio.preload='auto';audio.volume=Math.max(0,Math.min(100,Number(state.profile.preferences.focusMusicVolume??35)))/100;focusMusicPlayback=audio;audio.play().catch(()=>{if(focusMusicPlayback===audio)focusMusicPlayback=null;});}
+function previewFocusMusic(){if(focusMusicPreviewPlayback){stopFocusMusicPreview();return;}const track=musicTrackById($('#focus-music-track')?.value||state.profile.preferences.focusMusicTrack||'');if(!track)return showToast('Selecciona una pista para escucharla.','error');stopFocusAlarmPlayback();stopFocusMusicPreview();const audio=new Audio('assets/audio/music/'+track.id+'.mp3');audio.preload='auto';audio.volume=Math.max(0,Math.min(100,Number(state.profile.preferences.focusMusicVolume??35)))/100;focusMusicPreviewPlayback=audio;audio.onended=()=>{if(focusMusicPreviewPlayback===audio){focusMusicPreviewPlayback=null;updateFocusAudioStopControl();}};audio.onerror=()=>{if(focusMusicPreviewPlayback===audio){stopFocusMusicPreview();showToast('No se pudo reproducir la vista previa de música.','error');}};audio.play().then(()=>{if(focusMusicPreviewPlayback===audio)focusMusicPreviewTimer=setTimeout(stopFocusMusicPreview,20000);}).catch(()=>{if(focusMusicPreviewPlayback===audio){stopFocusMusicPreview();showToast('No se pudo reproducir la vista previa de música.','error');}});updateFocusAudioStopControl();}
+function notifyFocusFinished(taskTitle,isBreak=false){if(!isBreak){stopFocusMusic();playFocusAlarm(false);}if(!window.oisym.focusAlarms&&state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='granted'){try{new Notification(isBreak?'Descanso terminado':'Focus terminado',{body:isBreak?'Tu descanso terminó. Puedes volver a concentrarte.':(taskTitle?'Terminaste tu sesión de '+taskTitle+'.':'Terminaste tu sesión de concentración.'),silent:true});}catch(error){}}}
 function updateFocusDurationSuggestion() {
   const taskId = $('#focus-task')?.value || null;
   const activityId = $('#focus-activity')?.value || null;
@@ -1214,41 +1056,7 @@ function updateFocusDurationSuggestion() {
   const hint = $('.focus-hint');
   if (hint) hint.textContent = activity ? 'Duración sugerida de «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla solo para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
 }
-function syncFocusNotificationSchedule() {
-  syncFocusReminderPlayback();
-  const focus = state.profile?.activeFocus;
-  const alarms = window.oisym?.focusAlarms;
-  if (!alarms) return;
-  if (!focus || focus.pausedAt) {
-    alarms.cancel().catch(() => {});
-    return;
-  }
-  const remainingSeconds = getFocusRemainingSeconds(focus);
-  const endAt = Date.parse(focus.startedAt) + (focus.durationSeconds - (Number(focus.elapsedBeforePause) || 0)) * 1000;
-  const intervalMinutes = focus.isBreak ? 0 : Number(state.profile.preferences.focusReminderMinutes) || 0;
-  const elapsedSeconds = getFocusElapsedSeconds(focus);
-  const intervalSeconds = intervalMinutes * 60;
-  const nextThreshold = intervalSeconds > 0 ? (Math.floor(elapsedSeconds / intervalSeconds) + 1) * intervalSeconds : 0;
-  const nextReminderAt = intervalSeconds > 0 && nextThreshold < focus.durationSeconds
-    ? new Date(Date.now() + Math.max(0, nextThreshold - elapsedSeconds) * 1000).toISOString()
-    : null;
-  if (remainingSeconds <= 0) {
-    alarms.schedule({ endsAt: new Date(Date.now()).toISOString(), isBreak: focus.isBreak, taskTitle: focus.activityTitle, reminderMinutes: 0, nextReminderAt: null }).catch(() => {});
-    return;
-  }
-  alarms.schedule({
-    endsAt: new Date(endAt).toISOString(),
-    isBreak: focus.isBreak === true,
-    taskTitle: taskById(focus.taskId)?.title || focus.activityTitle || '',
-    soundEnabled: state.profile.preferences.focusSound !== false && (focus.isBreak ? state.profile.preferences.breakEndTone : state.profile.preferences.focusEndTone) !== 'off',
-    notificationsEnabled: state.profile.preferences.focusNotifications !== false,
-    reminderSoundEnabled: state.profile.preferences.focusSound !== false && state.profile.preferences.focusReminderTone !== 'off',
-    reminderTone: state.profile.preferences.focusReminderTone || 'digital',
-    endTone: focus.isBreak ? state.profile.preferences.breakEndTone : state.profile.preferences.focusEndTone,
-    reminderMinutes: intervalMinutes,
-    nextReminderAt
-  }).catch(() => {});
-}
+function syncFocusNotificationSchedule(){const focus=state.profile?.activeFocus,alarms=window.oisym?.focusAlarms;if(!alarms)return;if(!focus||focus.pausedAt){alarms.cancel().catch(()=>{});return;}const endAt=Date.parse(focus.startedAt)+(focus.durationSeconds-(Number(focus.elapsedBeforePause)||0))*1000;alarms.schedule({endsAt:new Date(Math.max(Date.now(),endAt)).toISOString(),isBreak:focus.isBreak===true,taskTitle:taskById(focus.taskId)?.title||focus.activityTitle||'',notificationsEnabled:state.profile.preferences.focusNotifications!==false,soundEnabled:false}).catch(()=>{});}
 function refreshFocusClock() {
   const focus = state.profile?.activeFocus;
   if (!focus || focus.pausedAt) return;
@@ -1474,19 +1282,18 @@ root.addEventListener('click', async event => {
     if ($('#focus-duration') && (!$('#focus-duration').value || Number($('#focus-duration').value) < 5 || Number($('#focus-duration').value) > 180)) {
       return showToast('Elige una duración entre 5 y 180 minutos.', 'error');
     }
-    state.profile.preferences.focusSound = $('.focus-panel input[name="focusSound"]')?.checked !== false;
+    state.profile.preferences.focusEndAlarmEnabled = $('.focus-panel input[name="focusEndAlarmEnabled"]')?.checked !== false;
     state.profile.preferences.focusNotifications = $('.focus-panel input[name="focusNotifications"]')?.checked !== false;
-    await prepareFocusAlarm();
+    stopFocusMusicPreview(); stopFocusAlarmPlayback();
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId, activityId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
     await save();
     syncFocusNotificationSchedule();
     startFocusMusic();
-    playFocusAlarm('start');
     updateShell();
   }
   if (action === 'focus-break' && !state.profile.activeFocus) {
-    await prepareFocusAlarm();
+    stopFocusMusicPreview(); stopFocusAlarmPlayback();
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId: null, activityTitle: '', isBreak: true, startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: state.profile.preferences.breakMinutes * 60 };
     await save(); syncFocusNotificationSchedule(); startFocusMusic(); updateShell();
@@ -1514,11 +1321,10 @@ root.addEventListener('click', async event => {
       updateShell();
     }
   }
-  if (action === 'preview-focus-alarm') {
-    await prepareFocusAlarm();
-    playFocusAlarm(target.dataset.alarm || 'focus-end', true);
-  }
+  if (action === 'preview-focus-alarm') playFocusAlarm(true);
+  if (action === 'stop-focus-alarm') stopFocusAlarmPlayback();
   if (action === 'preview-focus-music') previewFocusMusic();
+  if (action === 'stop-focus-music-preview') stopFocusMusicPreview();
   if (action === 'focus-stop') await finishFocus();
   if (action === 'focus-reset') {
     if (state.profile.activeFocus && !confirm('¿Terminar y descartar la sesión actual?')) return;
@@ -1719,7 +1525,7 @@ root.addEventListener('change', event => {
     updateFocusDurationSuggestion();
   }
   if (event.target.id === 'focus-activity') updateFocusDurationSuggestion();
-  if (event.target.name === 'focusSound' || event.target.name === 'focusNotifications') {
+  if (event.target.name === 'focusEndAlarmEnabled' || event.target.name === 'focusNotifications') {
     state.profile.preferences[event.target.name] = event.target.checked;
     save();
   }
@@ -1737,14 +1543,12 @@ root.addEventListener('change', event => {
     if (focusMusicPreviewPlayback) focusMusicPreviewPlayback.volume = state.profile.preferences.focusMusicVolume / 100;
     save();
   }
-  if (['focusStartTone', 'focusEndTone', 'breakEndTone', 'focusReminderTone', 'focusAlarmVolume', 'focusReminderMinutes'].includes(event.target.name)) {
-    state.profile.preferences[event.target.name] = event.target.name === 'focusAlarmVolume'
-      ? clampNumber(event.target.value, 0, 100, 70)
-      : event.target.name === 'focusReminderMinutes'
-        ? (FOCUS_REMINDER_INTERVALS.includes(Number(event.target.value)) ? Number(event.target.value) : 0)
-        : event.target.value;
-    const value = $('.alarm-volume-value');
-    if (value && event.target.name === 'focusAlarmVolume') value.textContent = state.profile.preferences.focusAlarmVolume + '%';
+  if (['focusEndTone','focusAlarmVolume','focusAlarmRepeats','focusAlarmIntervalSeconds','focusAlarmMaxSeconds'].includes(event.target.name)) {
+    const name=event.target.name;
+    if(name==='focusEndTone'){state.profile.preferences.focusEndTone=FOCUS_ALARM_CATALOG.some(x=>x.id===event.target.value)?event.target.value:'clock';stopFocusAlarmPlayback();}
+    else{const b={focusAlarmVolume:[0,100,70],focusAlarmRepeats:[1,10,3],focusAlarmIntervalSeconds:[1,15,2],focusAlarmMaxSeconds:[5,120,30]}[name];state.profile.preferences[name]=Math.round(clampNumber(event.target.value,b[0],b[1],b[2]));}
+    const value=$('.alarm-volume-value');if(value&&name==='focusAlarmVolume')value.textContent=state.profile.preferences.focusAlarmVolume+'%';
+    if(name==='focusAlarmVolume'&&focusAlarmPlayback?.audio)focusAlarmPlayback.audio.volume=state.profile.preferences.focusAlarmVolume/100;
     save();
   }
 });
