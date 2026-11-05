@@ -1423,7 +1423,7 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
+  if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
   if (action === 'new-task') { state.view='tasks';state.editingTaskId=null;state.showTaskForm=true;updateShell();return; }
   if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
@@ -1472,7 +1472,7 @@ root.addEventListener('click', async event => {
     updateProfilePreview(form);$('input[name="name"]',form).focus();
   }
   if (action === 'quick-task') {
-    state.view = 'tasks'; updateShell();
+    state.view = 'tasks'; state.showTaskForm = true; state.editingTaskId = null; updateShell();
     const title = $('.task-form input[name="title"]');
     if (title) title.focus();
   }
@@ -1545,6 +1545,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'calendar-add-task') {
     state.view = 'tasks';
+    state.showTaskForm = true;
     state.editingTaskId = null;
     state.showTaskForm = true;
     updateShell();
@@ -1809,6 +1810,7 @@ document.addEventListener('keydown', event => {
   if (profileModal && event.key === 'Escape') {
     event.preventDefault();
     if(profileModal.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
+    if(profileModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}
     profileModal.remove();
     if(profileModal.dataset.returnFocus)document.getElementById(profileModal.dataset.returnFocus)?.focus();else $('.profile-add')?.focus();
     return;
@@ -1835,6 +1837,7 @@ document.addEventListener('keydown', event => {
     event.preventDefault();
     state.view = 'tasks';
     state.editingTaskId = null;
+    state.showTaskForm = true;
     updateShell();
     const titleField = $('.task-form input[name="title"]');
     if (titleField) titleField.focus();
