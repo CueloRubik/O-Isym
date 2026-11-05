@@ -83,6 +83,18 @@ const button = (label, action, className = 'button secondary', data = {}) => {
   Object.entries(data).forEach(([key, value]) => node.dataset[key] = String(value));
   return node;
 };
+const actionIconButton = (label, action, icon, className = 'button secondary', data = {}) => {
+  const node = button('', action, className + ' button-with-icon', data);
+  const image = element('img', 'action-button-icon');
+  image.src = icon;
+  image.alt = '';
+  image.setAttribute('aria-hidden', 'true');
+  image.draggable = false;
+  image.decoding = 'async';
+  image.onerror = () => image.remove();
+  node.append(image, element('span', '', label));
+  return node;
+};
 const field = (labelText, control) => {
   const wrap = element('label', 'field');
   wrap.append(element('span', 'field-label', labelText), control);
@@ -306,7 +318,7 @@ function addTaskForm(parent, defaults = {}) {
   const locked = select('locked', [{ value: 'false', label: 'Tarea flexible' }, { value: 'true', label: 'Compromiso bloqueado' }], String(Boolean(defaults.locked)));
   form.append(field('Tipo de tarea', locked));
   const actions = element('div', 'form-actions');
-  actions.append(button(editing ? 'Guardar cambios' : 'Guardar tarea', 'submit-form', 'button primary'));
+  actions.append(editing ? actionIconButton('Guardar cambios', 'submit-form', 'save.png', 'button primary') : button('Guardar tarea', 'submit-form', 'button primary'));
   if (editing) actions.append(button('Cancelar', 'cancel-edit-task', 'button secondary'));
   form.append(actions);
   parent.append(form);
@@ -342,7 +354,7 @@ function renderTaskList(parent, tasks, options = {}) {
     if (task.description) meta.append(element('span', 'task-description', task.description));
     content.append(meta);
     const actions = element('div', 'task-actions');
-    actions.append(button('Editar', 'edit-task', 'icon-button', { id: task.id }));
+    actions.append(actionIconButton('Editar', 'edit-task', 'edit.png', 'button secondary small', { id: task.id }));
     actions.append(button('⋯', 'task-menu', 'icon-button', { id: task.id }));
     row.append(check, content, actions);
     list.append(row);
@@ -494,7 +506,7 @@ function renderActivities(main) {
     const detail=element('div','');
     detail.append(element('strong','',''+activity.name),element('p','muted',activity.category+' · '+activity.durationMinutes+' min · '+activity.frequency));
     if(activity.description)detail.append(element('p','muted',activity.description));
-    rowItem.append(detail,button('Editar','edit-activity','button secondary small',{id:activity.id}),button('Crear tarea','task-from-activity','button secondary small',{id:activity.id}),button('Archivar','archive-activity','text-button',{id:activity.id}));
+    rowItem.append(detail,actionIconButton('Editar','edit-activity','edit.png','button secondary small',{id:activity.id}),button('Crear tarea','task-from-activity','button secondary small',{id:activity.id}),actionIconButton('Archivar','archive-activity','archivate.png','text-button',{id:activity.id}));
     list.append(rowItem);
   });
   main.append(list);
@@ -517,7 +529,7 @@ function renderActivities(main) {
       ideasCard.append(ideaList,element('p','small-note','Son sugerencias opcionales: puedes cambiarlas o crear las tuyas.'));form.append(ideasCard);
     }
     const actions=element('div','form-actions');
-    actions.append(button(editing?'Guardar cambios':'Crear actividad','submit-form','button primary'),button('Cancelar',editing?'cancel-edit-activity':'close-activity-form','button secondary'));
+    actions.append(editing?actionIconButton('Guardar cambios','submit-form','save.png','button primary'):button('Crear actividad','submit-form','button primary'),button('Cancelar',editing?'cancel-edit-activity':'close-activity-form','button secondary'));
     form.append(actions);dialog.append(form);overlay.append(dialog);main.append(overlay);
     $('input[name="name"]',overlay)?.focus();
   }
@@ -810,7 +822,7 @@ function renderGoals(main) {
     const track=element('div','progress-track'),fill=element('div','progress-fill');
     fill.style.width=Math.min(100,goal.progress/goal.target*100)+'%';track.append(fill);
     const actions=element('div','button-group');
-    actions.append(button('+1','goal-progress','button secondary small',{id:goal.id,amount:1}),button('−1','goal-progress','button secondary small',{id:goal.id,amount:-1}),button('Editar','edit-goal','button secondary small',{id:goal.id}),button('Archivar','archive-goal','text-button',{id:goal.id}));
+    actions.append(button('+1','goal-progress','button secondary small',{id:goal.id,amount:1}),button('−1','goal-progress','button secondary small',{id:goal.id,amount:-1}),actionIconButton('Editar','edit-goal','edit.png','button secondary small',{id:goal.id}),actionIconButton('Archivar','archive-goal','archivate.png','text-button',{id:goal.id}));
     row.append(top,track,actions);list.append(row);
   });
   main.append(list);
@@ -826,7 +838,7 @@ function renderGoals(main) {
     row.append(field('Meta numérica',input('target','10','number',editing?.target||10)),field('Unidad',input('unit','sesiones','text',editing?.unit||'')));
     form.append(row,field('Fecha objetivo (opcional)',input('dueDate','','date',editing?.dueDate||'')));
     const actions=element('div','form-actions');
-    actions.append(button(editing?'Guardar cambios':'Crear objetivo','submit-form','button primary'),button('Cancelar',editing?'cancel-edit-goal':'close-goal-form','button secondary'));
+    actions.append(editing?actionIconButton('Guardar cambios','submit-form','save.png','button primary'):button('Crear objetivo','submit-form','button primary'),button('Cancelar',editing?'cancel-edit-goal':'close-goal-form','button secondary'));
     form.append(actions);dialog.append(form);overlay.append(dialog);main.append(overlay);
     $('input[name="title"]',overlay)?.focus();
   }
@@ -935,7 +947,10 @@ function renderProfiles(main) {
   const selected = profiles.find(profile => profile.id === state.selectedProfileId) || state.profile;
   const header = element('div', 'profiles-page-heading');
   const headingCopy = element('div', 'section-heading');
-  headingCopy.append(element('h1', '', 'Perfiles'), element('p', 'muted', 'Administra tus espacios y mantén cada organización independiente.'));
+  const profileTitle=element('div','profiles-heading-title');
+  const profileTitleIcon=element('img','profiles-heading-icon');profileTitleIcon.src='profiles.png';profileTitleIcon.alt='';profileTitleIcon.setAttribute('aria-hidden','true');profileTitleIcon.draggable=false;
+  profileTitle.append(profileTitleIcon,element('h1','','Perfiles'));
+  headingCopy.append(profileTitle, element('p', 'muted', 'Administra tus espacios y mantén cada organización independiente.'));
   const headerActions=element('div','profiles-header-actions');
   const importButton=button('Importar perfil','import-profile','button secondary');
   const createButton = button('+ Crear perfil', 'new-profile', 'button primary');
@@ -1022,9 +1037,9 @@ function renderProfiles(main) {
   });
   detail.append(element('h3','profile-section-title','Preferencias principales'),preferenceGrid);
   const actions = element('div', 'profile-management-actions');
-  actions.append(button('Editar perfil', 'edit-profile', 'button secondary', { id: selected.id }));
-  actions.append(button('Duplicar configuración', 'duplicate-profile', 'button secondary', { id: selected.id }));
-  actions.append(button('Exportar perfil', 'export-profile', 'button secondary', { id: selected.id }));
+  actions.append(actionIconButton('Editar perfil', 'edit-profile', 'edit.png', 'button secondary', { id: selected.id }));
+  actions.append(actionIconButton('Duplicar configuración', 'duplicate-profile', 'duplicate.png', 'button secondary', { id: selected.id }));
+  actions.append(actionIconButton('Exportar perfil', 'export-profile', 'export.png', 'button secondary', { id: selected.id }));
   const deleteButton = button('Eliminar perfil', 'delete-profile', 'text-button danger', { id: selected.id });
   deleteButton.disabled = profiles.length <= 1;
   actions.append(deleteButton);
@@ -1104,7 +1119,7 @@ function openProfileEditor(profile) {
   const preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');
   previewRow.append(preview,element('span','muted','Vista previa del perfil'));form.append(previewRow);
   const actions=element('div','form-actions profile-wizard-actions');
-  actions.append(button('Cancelar','close-profile-modal','button secondary'),button('Guardar cambios','submit-form','button primary'));
+  actions.append(button('Cancelar','close-profile-modal','button secondary'),actionIconButton('Guardar cambios','submit-form','save.png','button primary'));
   form.append(actions);dialog.append(form);overlay.append(dialog);root.append(overlay);
   updateProfilePreview(form);$('input[name="name"]',form).focus();
 }
@@ -1155,7 +1170,7 @@ function renderSettings(main) {
       {value:'false',label:'Reducido — menos movimiento'}
     ],String(state.profile.preferences.motionEnabled!==false))));
     form.append(element('p','small-note','El avatar, el color y el tema solo cambian la presentación de este perfil.'));
-    form.append(button('Guardar cambios','submit-form','button primary'));
+    form.append(actionIconButton('Guardar cambios','submit-form','save.png','button primary'));
     panel.append(form);
   } else if(state.settingsSection==='planning'){
     const form=element('form','form-card settings-form');form.dataset.form='profile-planning-settings';
@@ -1173,7 +1188,7 @@ function renderSettings(main) {
     const hours=element('div','form-grid');
     hours.append(field('Inicio habitual',input('workingDayStart','','time',state.profile.preferences.workingDayStart||'09:00')));
     hours.append(field('Fin habitual',input('workingDayEnd','','time',state.profile.preferences.workingDayEnd||'17:00')));
-    form.append(hours,button('Guardar planificación','submit-form','button primary'));
+    form.append(hours,actionIconButton('Guardar planificación','submit-form','save.png','button primary'));
     panel.append(form);
   } else if(state.settingsSection==='focus'){
     const info=card('settings-info-card');
@@ -1183,7 +1198,7 @@ function renderSettings(main) {
   } else if(state.settingsSection==='data'){
     const dataCard=card('settings-info-card');
     dataCard.append(element('h3','','Copia completa de O-Isym'),element('p','muted','Incluye todos los perfiles y sus datos. Importar una copia completa reemplaza el estado actual; O-Isym conserva una copia de seguridad antes de hacerlo.'));
-    dataCard.append(button('Exportar copia JSON','export-data','button secondary'));
+    dataCard.append(actionIconButton('Exportar copia JSON','export-data','export.png','button secondary'));
     const importLabel=field('Archivo de copia JSON',input('backupFile','','file'));
     importLabel.querySelector('input').accept='application/json,.json';importLabel.querySelector('input').id='backup-file';
     dataCard.append(importLabel,button('Importar archivo seleccionado','import-data','button secondary'));
