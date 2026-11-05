@@ -1039,7 +1039,7 @@ async function handleSubmit(form) {
 
 let focusAlarmPlayback=null,focusMusicPlayback=null,focusMusicPreviewPlayback=null,focusMusicPreviewTimer=null,focusReminderTimer=null;
 async function prepareFocusAlarm(){try{if(state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='default')await Notification.requestPermission();}catch(error){}}
-function updateFocusAudioStopControl(){let el=$('#focus-audio-stop-control');if(focusAlarmPlayback){if(!el){el=element('div','focus-audio-stop-control');el.id='focus-audio-stop-control';el.append(element('span','','La alarma está sonando'),button('Detener alarma','stop-focus-alarm','button secondary small'));root.append(el);}}else if(el)el.remove();const ms=$('#focus-music-preview-stop');if(ms)ms.disabled=!focusMusicPreviewPlayback;const mp=$('#focus-music-preview');if(mp)mp.textContent=focusMusicPreviewPlayback?'Reproduciendo vista previa…':'Escuchar vista previa';const as=$('#focus-alarm-stop');if(as)as.disabled=!focusAlarmPlayback;}
+function updateFocusAudioStopControl(){let el=document.getElementById('focus-audio-stop-control');if(focusAlarmPlayback||focusMusicPreviewPlayback){if(!el){el=element('div','focus-audio-stop-control');el.id='focus-audio-stop-control';document.body.append(el);}el.replaceChildren();if(focusAlarmPlayback){el.append(element('span','','La alarma está sonando'));const stop=button('Detener alarma','stop-focus-alarm','button secondary small');stop.addEventListener('click',stopFocusAlarmPlayback);el.append(stop);}if(focusMusicPreviewPlayback){el.append(element('span','','Vista previa musical'));const stop=button('Detener música','stop-focus-music-preview','button secondary small');stop.addEventListener('click',stopFocusMusicPreview);el.append(stop);}}else if(el)el.remove();const ms=$('#focus-music-preview-stop');if(ms)ms.disabled=!focusMusicPreviewPlayback;const mp=$('#focus-music-preview');if(mp)mp.textContent=focusMusicPreviewPlayback?'Reproduciendo vista previa…':'Escuchar vista previa';const as=$('#focus-alarm-stop');if(as)as.disabled=!focusAlarmPlayback;}
 function stopFocusAlarmPlayback(){const p=focusAlarmPlayback;if(!p){updateFocusAudioStopControl();return;}if(p.timer)clearTimeout(p.timer);if(p.limitTimer)clearTimeout(p.limitTimer);if(p.audio){p.audio.onended=null;p.audio.onerror=null;p.audio.pause();p.audio.currentTime=0;}focusAlarmPlayback=null;updateFocusAudioStopControl();}
 function playFocusAlarm(preview=false){const prefs=state.profile.preferences;if(!preview&&prefs.focusEndAlarmEnabled===false)return;const sound=alarmSoundById(prefs.focusEndTone||'clock'),volume=Math.max(0,Math.min(100,Number(prefs.focusAlarmVolume??70)))/100;stopFocusAlarmPlayback();if(!sound||volume<=0)return;const p={audio:null,timer:null,limitTimer:null,cycle:0};focusAlarmPlayback=p;const count=Math.max(1,Math.min(10,Number(prefs.focusAlarmRepeats)||3)),gap=Math.max(1,Math.min(15,Number(prefs.focusAlarmIntervalSeconds)||2))*1000,limit=Math.max(5,Math.min(120,Number(prefs.focusAlarmMaxSeconds)||30))*1000;p.limitTimer=setTimeout(()=>stopFocusAlarmPlayback(),limit);const next=()=>{if(focusAlarmPlayback!==p)return;p.cycle++;const audio=new Audio('assets/audio/alarms/'+sound.file);p.audio=audio;audio.preload='auto';audio.volume=volume;audio.onended=()=>{if(focusAlarmPlayback!==p)return;p.audio=null;if(p.cycle>=count){stopFocusAlarmPlayback();return;}p.timer=setTimeout(next,gap);};audio.onerror=()=>{if(focusAlarmPlayback===p){stopFocusAlarmPlayback();showToast('No se pudo cargar la alarma «'+sound.name+'».','error');}};audio.play().catch(()=>{if(focusAlarmPlayback===p){stopFocusAlarmPlayback();showToast('No se pudo reproducir la alarma «'+sound.name+'».','error');}});};next();updateFocusAudioStopControl();}
 function stopFocusMusic(){if(focusMusicPlayback){focusMusicPlayback.pause();focusMusicPlayback.currentTime=0;focusMusicPlayback=null;}}
@@ -1527,6 +1527,11 @@ root.addEventListener('change', event => {
   if (event.target.id === 'focus-activity') updateFocusDurationSuggestion();
   if (event.target.name === 'focusEndAlarmEnabled' || event.target.name === 'focusNotifications') {
     state.profile.preferences[event.target.name] = event.target.checked;
+    if (event.target.name === 'focusEndAlarmEnabled') {
+      $('.focus-alarm-settings select, .focus-alarm-settings input[type="range"], .focus-alarm-settings [data-action="preview-focus-alarm"]').forEach(control => {
+        control.disabled = Boolean(state.profile.activeFocus) || !event.target.checked;
+      });
+    }
     save();
   }
   if (event.target.name === 'focusMusicTrack') {
@@ -1534,6 +1539,8 @@ root.addEventListener('change', event => {
     const track = musicTrackById(state.profile.preferences.focusMusicTrack);
     const description = $('.music-description');
     if (description) description.textContent = track ? track.description : 'No se reproducirá música durante la sesión.';
+    const preview = $('#focus-music-preview');
+    if (preview) preview.disabled = !track || Boolean(state.profile.activeFocus);
     stopFocusMusicPreview();
     save();
   }
