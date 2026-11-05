@@ -121,7 +121,7 @@ function createStorage(userDataPath) {
     return next;
   }
 
-  function save(snapshot) {
+  async function save(snapshot) {
     // Capture and validate the submitted state immediately, then serialize disk writes.
     const serialized = validateSnapshot(snapshot);
     const operation = saveQueue.then(() => saveSerialized(serialized));
