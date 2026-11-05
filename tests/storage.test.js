@@ -177,6 +177,21 @@ test('restaura una copia válida y conserva el archivo que estaba activo', async
   assert.equal(await fs.readFile(path.join(storage.backupsPath, restored.emergencyBackup), 'utf8'), '{archivo roto');
 });
 
+test('rechaza perfiles con registros internos inválidos antes de guardarlos', async t => {
+  const { storage } = await makeTemporaryStorage(t);
+  const initial = await storage.read();
+  const invalidProfile = {
+    id: 'profile-invalid',
+    name: 'Perfil inválido',
+    tasks: [{ id: 'task-1', title: 'Tarea sin estado ni prioridad' }]
+  };
+  await assert.rejects(
+    storage.save({ ...initial, profiles: [invalidProfile], activeProfileId: invalidProfile.id }),
+    error => error.code === 'OISYM_PROFILE_INVALID'
+  );
+  assert.deepEqual((await storage.read()).profiles, []);
+});
+
 test('no permite restaurar rutas fuera de la carpeta de copias', async t => {
   const { storage } = await makeTemporaryStorage(t);
   await assert.rejects(storage.recovery.restoreBackup('../oisym-data-secret.json'), /nombre de la copia/);
