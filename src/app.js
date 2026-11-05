@@ -582,7 +582,9 @@ function renderCalendar(main) {
     wrap.append(grid);calendarPrimary.append(wrap);
   }else{
     const weekStart=shiftDate(selected,-((selectedDate.getDay()+6)%7)),weekEnd=shiftDate(weekStart,6);
-    title.append(element('h1','',dateLabel(weekStart,{day:'numeric',month:'long'})+' – '+dateLabel(weekEnd,{day:'numeric',month:'long',year:'numeric'})),element('p','muted','Elige un día para consultar sus tareas. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
+    const calendarWeekTitle = element('div', 'view-title-with-icon');
+    calendarWeekTitle.append(iconImage('navigation/calendar.png', '', 'view-title-icon'), element('h1', '', dateLabel(weekStart,{day:'numeric',month:'long'})+' – '+dateLabel(weekEnd,{day:'numeric',month:'long',year:'numeric'})));
+    title.append(calendarWeekTitle,element('p','muted','Elige un día para consultar sus tareas. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
     controls.append(button('‹ Semana','calendar-week-prev','button secondary'),button('Esta semana','calendar-today','button secondary'),button('Semana ›','calendar-week-next','button secondary'));
     header.append(title,controls);calendarPrimary.append(header);
     const week=card('week-calendar');
