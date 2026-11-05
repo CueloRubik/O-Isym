@@ -535,6 +535,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 /* Centro de perfiles: administración clara y compacta */
 .nav-profile-symbol { width: 18px; flex: 0 0 18px; display: inline-grid; place-items: center; font-size: 19px; line-height: 1; }
 .profiles-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.profiles-header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .profiles-page-heading .section-heading { margin: 0; }
 .profiles-page-heading .section-heading h1 { margin-bottom: 2px; }
 .profiles-count-wrap { display: flex; align-items: center; gap: 14px; max-width: 340px; }
@@ -584,7 +585,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 @media (max-width: 560px) {
   .profiles-page-heading { align-items: flex-start; flex-direction: column; }
-  .profiles-page-heading > .button { width: 100%; }
+  .profiles-header-actions { width: 100%; }
+  .profiles-header-actions .button { flex: 1; }
   .profiles-count-wrap { width: 100%; }
   .profiles-list { grid-template-columns: minmax(0,1fr); }
   .profile-detail-top { align-items: flex-start; flex-direction: column; }
