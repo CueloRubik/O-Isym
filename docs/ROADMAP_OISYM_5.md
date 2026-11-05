@@ -62,7 +62,6 @@
 
 ### P2 — Comportamiento y pruebas
 
-- [ ] Al hacer clic en un recordatorio, abrir la tarea correspondiente y su fecha en O-Isym.
 - [ ] Añadir pruebas de integración para preload, IPC, Tray y ciclo de vida de la ventana.
 - [ ] Mejorar accesibilidad del diálogo inicial de inicio automático (Escape y confinamiento del foco).
 - [ ] Crear una lista de regresión manual para cada nueva build de macOS.
