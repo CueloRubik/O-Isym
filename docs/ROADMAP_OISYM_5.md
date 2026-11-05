@@ -100,7 +100,9 @@ Esta sección sirve como registro de lo que O-Isym ya tiene. No son tareas para 
 ## 3. Plan de producto pendiente
 
 ### P2 — Reorganización de Ajustes
-**Estado: pendiente.**
+**Estado: especificación detallada preparada; implementación pendiente.**
+
+La nueva arquitectura de Ajustes, con navegación secundaria y categorías separadas, está definida en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md).
 
 Objetivo: que cada configuración esté en su lugar y sea fácil de encontrar.
 
@@ -116,7 +118,9 @@ Objetivo: que cada configuración esté en su lugar y sea fácil de encontrar.
 Criterio de aceptación: cada opción tiene una ubicación lógica, se encuentra sin recorrer una pantalla interminable y conserva su comportamiento actual.
 
 ### P3 — Administración avanzada de perfiles
-**Estado: pendiente.**
+**Estado: especificación detallada preparada; implementación pendiente.**
+
+La especificación completa está en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md). Define el centro de perfiles, creación, edición de perfiles inactivos, cambio seguro, duplicación de preferencias, exportación/importación individual, eliminación protegida, estados especiales, pruebas y criterios de aceptación.
 
 Objetivo: dar al usuario control completo sobre sus perfiles y su presentación.
 
@@ -155,7 +159,9 @@ Pendiente:
 Criterio de aceptación: los iconos se sienten parte del mismo producto, son reconocibles y mejoran la orientación sin añadir ruido visual.
 
 ### P5 — Pulido general
-**Estado: parcialmente iniciado; falta revisión visual y de uso.**
+**Estado: primera pasada CSS/iconos realizada; reorganización completa especificada, implementación pendiente.**
+
+La distribución objetivo de todas las vistas, jerarquía de tarjetas, acciones, formularios, modales, textos, accesibilidad y responsive está definida en [`docs/PROFILE_AND_UI_SPEC_OISYM_5.md`](PROFILE_AND_UI_SPEC_OISYM_5.md).
 
 Primera pasada realizada:
 - [x] Unificar el escalado y alineación de los nuevos iconos.
