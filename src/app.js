@@ -49,7 +49,8 @@ const state = {
   editingTaskId: null,
   editingActivityId: null,
   editingGoalId: null,
-  plannerAnalysis: null
+  plannerAnalysis: null,
+  selectedProfileId: null
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -197,6 +198,9 @@ function buildShell() {
 
   const nav = element('nav', 'navigation');
   nav.setAttribute('aria-label', 'Navegación principal');
+  const profileNav = button('Perfiles', 'navigate', 'nav-item', { view: 'profiles' });
+  profileNav.prepend(element('span', 'nav-profile-symbol', '◎'));
+  nav.append(profileNav);
   const items = [
     ['today', 'Hoy', 'navigation/today.png'], ['tasks', 'Tareas', 'navigation/tasks.png'],
     ['activities', 'Actividades', 'navigation/activities.png'], ['calendar', 'Calendario', 'navigation/calendar.png'],
@@ -266,7 +270,7 @@ function updateShell() {
   const renderers = {
     today: renderToday, tasks: renderTasks, activities: renderActivities,
     calendar: renderCalendar, planner: renderPlanner, focus: renderFocus,
-    goals: renderGoals, insights: renderInsights, settings: renderSettings
+    goals: renderGoals, insights: renderInsights, settings: renderSettings, profiles: renderProfiles
   };
   (renderers[state.view] || renderToday)(main);
 }
@@ -866,6 +870,136 @@ function renderInsights(main) {
   overview.append(element('p', 'small-note', 'Las estadísticas son información, no una calificación. Descansar y dejar espacio libre también forma parte de una buena organización.'));
   main.append(overview);
 }
+function renderProfiles(main) {
+  const profiles = state.snapshot.profiles || [];
+  if (!state.selectedProfileId || !profiles.some(profile => profile.id === state.selectedProfileId)) {
+    state.selectedProfileId = state.profile.id;
+  }
+  const selected = profiles.find(profile => profile.id === state.selectedProfileId) || state.profile;
+  const header = element('div', 'profiles-page-heading');
+  const headingCopy = element('div', 'section-heading');
+  headingCopy.append(element('h1', '', 'Perfiles'), element('p', 'muted', 'Administra tus espacios y mantén cada organización independiente.'));
+  const createButton = button('+ Crear perfil', 'new-profile', 'button primary');
+  createButton.disabled = profiles.length >= 50;
+  header.append(headingCopy, createButton);
+  const count = element('p', 'profiles-count', profiles.length + ' de 50 perfiles utilizados');
+  const countTrack = element('div', 'profiles-count-track');
+  const countFill = element('span', 'profiles-count-fill');
+  countFill.style.width = Math.min(100, profiles.length / 50 * 100) + '%';
+  countTrack.append(countFill);
+  const countWrap = element('div', 'profiles-count-wrap');
+  countWrap.append(count, countTrack);
+  main.append(header, countWrap);
+
+  const layout = element('div', 'profiles-layout');
+  const listPanel = card('profiles-list-panel');
+  listPanel.append(element('div', 'profiles-panel-heading', 'Tus espacios'));
+  const list = element('div', 'profiles-list');
+  profiles.forEach(profile => {
+    const isActive = profile.id === state.profile.id;
+    const isSelected = profile.id === selected.id;
+    const item = button('', 'select-profile-admin', 'profile-admin-item' + (isSelected ? ' selected' : ''), { id: profile.id });
+    item.setAttribute('aria-pressed', String(isSelected));
+    const avatar = element('span', 'profile-admin-avatar');
+    avatar.style.backgroundColor = profile.color || '#27856b';
+    if (isImageAvatar(profile.avatarId)) avatar.append(makeAvatarImage(profile.avatarId));
+    else avatar.textContent = avatarMark(profile);
+    const copy = element('span', 'profile-admin-copy');
+    copy.append(element('strong', '', profile.name), element('small', '', isActive ? 'En uso' : 'Perfil independiente'));
+    item.append(avatar, copy);
+    if (isActive) item.append(element('span', 'profile-current-dot'));
+    list.append(item);
+  });
+  listPanel.append(list);
+  if (profiles.length < 50) listPanel.append(button('+ Crear otro perfil', 'new-profile', 'text-button profile-list-create'));
+  else listPanel.append(element('p', 'small-note', 'Has alcanzado el límite de 50 perfiles.'));
+  const detail = card('profile-detail-panel');
+  const avatar = element('div', 'profile-detail-avatar');
+  avatar.style.backgroundColor = selected.color || '#27856b';
+  if (isImageAvatar(selected.avatarId)) avatar.append(makeAvatarImage(selected.avatarId));
+  else avatar.textContent = avatarMark(selected);
+  const identity = element('div', 'profile-detail-identity');
+  identity.append(avatar, element('div', 'profile-detail-name'));
+  const nameBlock = identity.lastChild;
+  nameBlock.append(element('h2', '', selected.name), element('p', 'muted', selected.id === state.profile.id ? 'Este es el espacio que estás utilizando' : 'Este espacio no está activo'));
+  const identityTop = element('div', 'profile-detail-top');
+  identityTop.append(identity);
+  if (selected.id !== state.profile.id) identityTop.append(button('Usar este perfil', 'switch-profile', 'button primary', { id: selected.id }));
+  else identityTop.append(element('span', 'profile-active-label', 'Perfil actual'));
+  detail.append(identityTop);
+  const created = selected.createdAt && Number.isFinite(Date.parse(selected.createdAt)) ? new Date(selected.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : 'No disponible';
+  const updated = selected.updatedAt && Number.isFinite(Date.parse(selected.updatedAt)) ? new Date(selected.updatedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : 'No disponible';
+  const dates = element('div', 'profile-dates');
+  dates.append(element('span', '', 'Creado ' + created), element('span', '', 'Actualizado ' + updated));
+  detail.append(dates);
+  const stats = [
+    ['Pendientes', selected.tasks.filter(task => task.status === 'pending').length],
+    ['Completadas', selected.tasks.filter(task => task.status === 'done').length],
+    ['Actividades', selected.activities.filter(activity => !activity.archived).length],
+    ['Objetivos', selected.goals.filter(goal => !goal.archived).length],
+    ['Sesiones Focus', selected.focusSessions.length]
+  ];
+  const statsGrid = element('div', 'profile-stats-grid');
+  stats.forEach(([label, value]) => {
+    const stat = element('div', 'profile-stat');
+    stat.append(element('strong', '', value), element('span', '', label));
+    statsGrid.append(stat);
+  });
+  detail.append(element('h3', 'profile-section-title', 'Resumen del espacio'), statsGrid);
+  const preferences = selected.preferences || {};
+  const preferenceGrid = element('div', 'profile-preference-grid');
+  [
+    ['Tema', ({classic:'Clásico',warm:'Cálido',sky:'Cielo',playful:'Colorido'}[preferences.theme] || 'Clásico')],
+    ['Enfoque', (preferences.focusMinutes || 25) + ' min'],
+    ['Descanso', (preferences.breakMinutes || 5) + ' min'],
+    ['Planificación', ({manual:'Manual',suggested:'Sugerido',hybrid:'Híbrido',automatic:'Automático'}[preferences.autonomy] || 'Sugerido')]
+  ].forEach(([label,value]) => {
+    const cell=element('div','profile-preference');
+    cell.append(element('span','muted',label),element('strong','',value));
+    preferenceGrid.append(cell);
+  });
+  detail.append(element('h3','profile-section-title','Preferencias principales'),preferenceGrid);
+  const actions = element('div', 'profile-management-actions');
+  actions.append(button('Editar perfil', 'edit-profile', 'button secondary', { id: selected.id }));
+  actions.append(button('Duplicar configuración', 'duplicate-profile', 'button secondary', { id: selected.id }));
+  actions.append(button('Exportar perfil', 'export-profile', 'button secondary', { id: selected.id }));
+  const deleteButton = button('Eliminar perfil', 'delete-profile', 'text-button danger', { id: selected.id });
+  deleteButton.disabled = profiles.length <= 1;
+  actions.append(deleteButton);
+  detail.append(element('h3','profile-section-title','Administrar'),actions);
+  if (selected.activeFocus) detail.append(element('p','profile-focus-note','Este perfil conserva una sesión Focus ' + (selected.activeFocus.pausedAt ? 'en pausa.' : 'en curso.') + ' La sesión no se elimina al cambiar de perfil.'));
+  layout.append(listPanel, detail);
+  main.append(layout);
+}
+
+function openProfileEditor(profile) {
+  if (!profile) return;
+  const overlay=element('div','profile-modal-backdrop');
+  overlay.dataset.profileModal='true';
+  const dialog=element('section','profile-modal');
+  dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','edit-profile-title');
+  const form=element('form','form-card profile-modal-form');
+  form.dataset.form='profile-edit';form.dataset.profileId=profile.id;
+  const title=element('h2','','Editar perfil');title.id='edit-profile-title';
+  form.append(title,element('p','muted','Los cambios se aplicarán únicamente a este espacio. Sus tareas e historial se conservarán.'));
+  form.append(field('Nombre del perfil',input('name','Nombre', 'text',profile.name)));
+  const age=input('age','Edad (opcional)','number',profile.age==null?'':profile.age);age.min='1';age.max='120';age.step='1';
+  form.append(field('Edad (opcional)',age),element('p','small-note','No se guarda fecha de nacimiento.'));
+  form.append(element('span','field-label','Avatar'));
+  buildAvatarPicker(form,profile.avatarId || 'profile-1');
+  form.append(field('Color de acento',input('color','','color',profile.color)));
+  form.append(field('Tema',select('theme',[
+    {value:'classic',label:'Clásico'},{value:'warm',label:'Cálido'},{value:'sky',label:'Cielo'},{value:'playful',label:'Colorido'}
+  ],profile.preferences.theme || 'classic')));
+  const previewRow=element('div','profile-avatar-preview-row');
+  const preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');
+  previewRow.append(preview,element('span','muted','Vista previa del perfil'));form.append(previewRow);
+  const actions=element('div','form-actions profile-wizard-actions');
+  actions.append(button('Cancelar','close-profile-modal','button secondary'),button('Guardar cambios','submit-form','button primary'));
+  form.append(actions);dialog.append(form);overlay.append(dialog);root.append(overlay);
+  updateProfilePreview(form);$('input[name="name"]',form).focus();
+}
+
 function renderSettings(main) {
   main.append(heading('Ajustes', 'Configura O-Isym para que trabaje a tu manera.'));
   const profileForm = element('form', 'form-card');
@@ -936,16 +1070,10 @@ function renderSettings(main) {
   }
   main.append(migration);
 
-  const profiles = card();
-  profiles.append(heading('Perfiles', 'Cada perfil mantiene sus propios datos.'));
-  state.snapshot.profiles.forEach(profile => {
-    const row = element('div', 'profile-row');
-    row.append(element('strong', '', profile.name), element('span', 'muted', profile.id === state.profile.id ? 'Perfil actual' : 'Perfil independiente'));
-    if (profile.id !== state.profile.id) row.append(button('Cambiar', 'switch-profile', 'button secondary small', { id: profile.id }));
-    if (state.snapshot.profiles.length > 1 && profile.id === state.profile.id) row.append(button('Eliminar perfil', 'delete-profile', 'text-button danger'));
-    profiles.append(row);
-  });
-  main.append(profiles);
+  const profilesLink = card();
+  profilesLink.append(heading('Administración de perfiles', 'Cada espacio conserva sus propias tareas, objetivos y preferencias.'));
+  profilesLink.append(button('Abrir administración de perfiles', 'navigate', 'button secondary', { view: 'profiles' }));
+  main.append(profilesLink);
 }
 
 function inspectLegacyData() {
@@ -970,7 +1098,8 @@ async function handleSubmit(form) {
       if (state.snapshot.profiles.length >= 50) throw new Error('Has alcanzado el máximo de perfiles.');
       if (!String(data.name || '').trim()) throw new Error('Escribe un nombre para el perfil.');
       const previousProfileId = state.profile.id;
-      const age=Number(data.age);if(!Number.isInteger(age)||age<1||age>120)throw new Error('Escribe una edad válida entre 1 y 120 años.');
+      const ageText=String(data.age||'').trim();if(ageText&&(!Number.isInteger(Number(ageText))||Number(ageText)<1||Number(ageText)>120))throw new Error('La edad debe estar entre 1 y 120 años.');
+      const age=ageText?Number(ageText):null;
       const profile=createProfile(data.name,'#27856b',age);profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:'profile-1';
       profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(age);
       profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:'#27856b';
@@ -987,6 +1116,39 @@ async function handleSubmit(form) {
       const modal = $('[data-profile-modal]');
       if (modal) modal.remove();
       showToast('Perfil creado.');
+    } else if (form.dataset.form === 'profile-edit') {
+      const profileId = form.dataset.profileId;
+      const current = state.snapshot.profiles.find(item => item.id === profileId);
+      if (!current) throw new Error('El perfil que intentas editar ya no existe.');
+      const name = String(data.name || '').trim();
+      if (!name) throw new Error('Escribe un nombre para el perfil.');
+      if (name.length > 60) throw new Error('El nombre admite hasta 60 caracteres.');
+      const ageText = String(data.age || '').trim();
+      if (ageText && (!Number.isInteger(Number(ageText)) || Number(ageText) < 1 || Number(ageText) > 120)) throw new Error('La edad debe estar entre 1 y 120 años.');
+      const nextProfile = normalizeProfile({
+        ...current,
+        name,
+        age: ageText ? Number(ageText) : null,
+        color: /^#[0-9a-f]{6}$/i.test(data.color || '') ? data.color : current.color,
+        avatarId: isImageAvatar(data.avatarId) ? data.avatarId : current.avatarId,
+        preferences: {
+          ...current.preferences,
+          theme: ['classic','warm','sky','playful'].includes(data.theme) ? data.theme : current.preferences.theme
+        },
+        updatedAt: new Date().toISOString()
+      });
+      const nextSnapshot = {
+        ...state.snapshot,
+        profiles: state.snapshot.profiles.map(item => item.id === profileId ? nextProfile : item),
+        updatedAt: new Date().toISOString()
+      };
+      const savedSnapshot = await window.oisym.storage.save(nextSnapshot);
+      state.snapshot = savedSnapshot;
+      if (state.profile.id === profileId) state.profile = savedSnapshot.profiles.find(item => item.id === profileId);
+      state.selectedProfileId = profileId;
+      const modal = $('[data-profile-modal]');
+      if (modal) modal.remove();
+      showToast('Perfil actualizado.');
     } else if (form.dataset.form === 'task' || form.dataset.form === 'planner-task' || form.dataset.form === 'task-edit') {
       data.locked = data.locked === 'true';
       if (data.startTime || data.endTime) {
@@ -1168,10 +1330,47 @@ root.addEventListener('click', async event => {
     return;
   }
   if (action === 'navigate') { state.view = target.dataset.view; updateShell(); }
+  if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }
+  if (action === 'edit-profile') { openProfileEditor(state.snapshot.profiles.find(item => item.id === id)); return; }
+  if (action === 'duplicate-profile') {
+    const source = state.snapshot.profiles.find(item => item.id === id);
+    if (!source) return showToast('No se encontró el perfil.', 'error');
+    if (state.snapshot.profiles.length >= 50) return showToast('Has alcanzado el máximo de 50 perfiles.', 'error');
+    const name = prompt('Nombre del nuevo perfil:', source.name + ' (copia)');
+    if (name === null) return;
+    if (!name.trim()) return showToast('Escribe un nombre para el perfil.', 'error');
+    const copy = createProfile(name.trim(), source.color, source.age);
+    copy.avatarId = source.avatarId;
+    copy.preferences = { ...copy.preferences, ...source.preferences };
+    copy.preferences.theme = source.preferences.theme;
+    copy.preferences.motionEnabled = source.preferences.motionEnabled;
+    const previous = state.snapshot;
+    const next = { ...previous, profiles: [...previous.profiles, copy], updatedAt: new Date().toISOString() };
+    try {
+      state.snapshot = await window.oisym.storage.save(next);
+      state.selectedProfileId = copy.id;
+      showToast('Configuración duplicada. El nuevo perfil empieza sin tareas ni historial.');
+      updateShell();
+    } catch (error) { state.snapshot = previous; showToast('No se pudo duplicar el perfil: ' + error.message, 'error'); }
+    return;
+  }
+  if (action === 'export-profile') {
+    const profile = state.snapshot.profiles.find(item => item.id === id);
+    if (!profile) return showToast('No se encontró el perfil.', 'error');
+    const payload = { format: 'oisym-profile', version: 1, exportedAt: new Date().toISOString(), profile };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = element('a');
+    anchor.href = url;
+    anchor.download = 'oisym-perfil-' + String(profile.name).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '-' + localDate() + '.json';
+    document.body.append(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+    showToast('Perfil exportado.');
+    return;
+  }
   if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
   if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
-  if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(!age.value||!age.checkValidity()){age.focus();return showToast('Escribe una edad válida entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
+  if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(age.value&&!age.checkValidity()){age.focus();return showToast('La edad debe estar entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme&&age.value)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
   if (action === 'new-profile') {
     if(state.snapshot.profiles.length>=50)return showToast('Has alcanzado el máximo de perfiles.','error');
@@ -1180,7 +1379,7 @@ root.addEventListener('click', async event => {
     const form=element('form','form-card profile-modal-form');form.dataset.form='profile-create';
     const title=element('h2','','Vamos a crear tu espacio');title.id='new-profile-title';form.append(title,element('p','muted','Primero te conoceremos un poquito y después podrás personalizarlo.'));
     const one=element('div','profile-wizard-step');one.dataset.profileStep='1';one.append(element('h3','','1. ¿Cómo te llamas?'),field('Nombre del perfil',input('name','Escribe un nombre','text','')));
-    const age=input('age','Tu edad','number','');age.min='1';age.max='120';age.step='1';age.required=true;one.append(field('¿Cuántos años tienes?',age),element('p','small-note','Usamos tu edad para adaptar las ideas y el estilo inicial. No pedimos tu fecha de nacimiento.'));
+    const age=input('age','Tu edad','number','');age.min='1';age.max='120';age.step='1';one.append(field('Edad (opcional)',age),element('p','small-note','Si la indicas, adaptaremos algunas sugerencias y el estilo inicial. No pedimos tu fecha de nacimiento.'));
     const two=element('div','profile-wizard-step');two.dataset.profileStep='2';two.hidden=true;two.append(element('h3','','2. ¡Elige tu foto!'),element('p','muted','Puedes cambiarla cuando quieras desde los ajustes del perfil.'));buildAvatarPicker(two,'profile-1');
     const three=element('div','profile-wizard-step');three.dataset.profileStep='3';three.hidden=true;three.append(element('h3','','3. Dale tu estilo'));
     three.append(field('Estilo visual',select('theme',[{value:'playful',label:'Colorido — alegre y dinámico'},{value:'sky',label:'Cielo — azul y tranquilo'},{value:'warm',label:'Cálido — tonos suaves'},{value:'classic',label:'Clásico — limpio y equilibrado'}],'playful')),field('Color de acento',input('color','','color','#27856b')));
@@ -1406,6 +1605,7 @@ root.addEventListener('click', async event => {
       state.snapshot = imported;
       state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
       state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
+  state.selectedProfileId = state.profile.id;
       if (!state.profile) throw new Error('El archivo no contiene perfiles.');
       await save(); syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); showToast('Copia importada.');
     } catch (error) { showToast('No se pudo importar: ' + error.message, 'error'); }
@@ -1450,15 +1650,70 @@ root.addEventListener('click', async event => {
   }
   if (action === 'switch-profile') {
     const profile = state.snapshot.profiles.find(item => item.id === id);
-    if (profile) { focusAudioController.stopAll(); state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = id; await save(); syncFocusNotificationSchedule(); updateShell(); }
+    if (profile && profile.id !== state.profile.id) {
+      const previousProfile = state.profile;
+      const previousActiveId = state.snapshot.activeProfileId;
+      if (!await save()) return;
+      focusAudioController.stopAll();
+      window.oisym?.focusAlarms?.cancel().catch(() => {});
+      state.profile = normalizeProfile(profile);
+      state.snapshot.activeProfileId = id;
+      const saved = await save();
+      if (!saved) {
+        state.profile = previousProfile;
+        state.snapshot.activeProfileId = previousActiveId;
+        startFocusMusic();
+        return;
+      }
+      state.selectedProfileId = id;
+      syncFocusNotificationSchedule();
+      startFocusMusic();
+      updateShell();
+      showToast('Cambiaste al perfil «' + profile.name + '».');
+    }
   }
   if (action === 'delete-profile') {
+    const targetProfile = state.snapshot.profiles.find(item => item.id === id);
+    if (!targetProfile) return showToast('No se encontró el perfil.', 'error');
     if (state.snapshot.profiles.length <= 1) return showToast('Debe existir al menos un perfil.', 'error');
-    if (!confirm('Se eliminarán los datos de este perfil. Esta acción no se puede deshacer. ¿Continuar?')) return;
-    state.snapshot.profiles = state.snapshot.profiles.filter(item => item.id !== state.profile.id);
-    state.profile = normalizeProfile(state.snapshot.profiles[0]);
-    state.snapshot.activeProfileId = state.profile.id;
-    await save(); updateShell();
+    const summary = [
+      targetProfile.tasks.filter(item => item.status === 'pending').length + ' tareas pendientes',
+      targetProfile.tasks.filter(item => item.status === 'done').length + ' completadas',
+      targetProfile.activities.length + ' actividades',
+      targetProfile.goals.length + ' objetivos',
+      targetProfile.focusSessions.length + ' sesiones Focus',
+      targetProfile.activeFocus ? 'Tiene una sesión Focus activa' : ''
+    ].filter(Boolean).join(', ');
+    if (!confirm('Eliminar el perfil «' + targetProfile.name + '»?\n\nSe borrarán únicamente sus datos: ' + summary + '.\n\nLos demás perfiles no se modificarán. Esta acción no se puede deshacer desde la aplicación.')) return;
+    const previousSnapshot = state.snapshot;
+    const wasActive = targetProfile.id === state.profile.id;
+    const fallback = wasActive ? state.snapshot.profiles.find(item => item.id !== targetProfile.id) : null;
+    const nextSnapshot = {
+      ...state.snapshot,
+      profiles: state.snapshot.profiles.filter(item => item.id !== targetProfile.id),
+      activeProfileId: wasActive ? fallback.id : state.profile.id,
+      updatedAt: new Date().toISOString()
+    };
+    try {
+      if (wasActive) {
+        focusAudioController.stopAll();
+        stopFocusTicker();
+        window.oisym?.focusAlarms?.cancel().catch(() => {});
+      }
+      state.snapshot = await window.oisym.storage.save(nextSnapshot);
+      state.profile = state.snapshot.profiles.find(item => item.id === state.snapshot.activeProfileId) || state.profile;
+      state.selectedProfileId = state.profile.id;
+      syncFocusNotificationSchedule();
+      if (wasActive) startFocusMusic();
+      showToast('Perfil eliminado.');
+      updateShell();
+    } catch (error) {
+      state.snapshot = previousSnapshot;
+      state.profile = state.snapshot.profiles.find(item => item.id === state.snapshot.activeProfileId) || state.profile;
+      showToast('No se pudo eliminar el perfil: ' + error.message, 'error');
+      updateShell();
+    }
+    return;
   }
 });
 
