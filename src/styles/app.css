@@ -714,3 +714,21 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .button-with-icon { gap: 6px; }
   .profiles-heading-icon { width: 28px; height: 28px; flex-basis: 28px; }
 }
+
+
+/* Iconos en títulos de las vistas */
+.section-heading-title,
+.view-title-with-icon,
+.today-title { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.section-heading-title h2,
+.view-title-with-icon h1,
+.today-title h1 { min-width: 0; }
+.section-heading-icon,
+.view-title-icon { display: block; width: 27px; height: 27px; flex: 0 0 27px; object-fit: contain; }
+.today-title .view-title-icon { width: 31px; height: 31px; flex-basis: 31px; }
+.calendar-heading .view-title-with-icon { gap: 10px; }
+@media (max-width: 560px) {
+  .section-heading-title, .view-title-with-icon, .today-title { gap: 8px; }
+  .section-heading-icon, .view-title-icon { width: 23px; height: 23px; flex-basis: 23px; }
+  .today-title .view-title-icon { width: 27px; height: 27px; flex-basis: 27px; }
+}
