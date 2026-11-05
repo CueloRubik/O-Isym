@@ -55,7 +55,8 @@ const state = {
   showTaskForm: false,
   showActivityForm: false,
   showGoalForm: false,
-  launchPromptShown: false
+  launchPromptShown: false,
+  pendingTaskReminder: null
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -1644,11 +1645,12 @@ async function finishFocus(options = {}) {
     startFocusMusic();
     updateShell();
     if (!options.silent) showToast('No se pudo guardar el final de Focus. La sesión sigue activa.', 'error');
-    return;
+    return false;
   }
   if (options.completed && !options.silent) notifyFocusFinished(task ? task.title : '', Boolean(focus.isBreak));
   if (!options.silent) showToast(saved ? (options.completed ? (focus.isBreak ? 'Descanso terminado. Cuando quieras, puedes volver a concentrarte.' : '¡Tiempo completado! Tu sesión quedó guardada. Es buen momento para descansar.') : (focus.isBreak ? 'Descanso finalizado.' : 'Sesión guardada.')) : 'La sesión terminó, pero no se pudo guardar. Revisa el almacenamiento.', saved ? 'success' : 'error');
   updateShell();
+  return true;
 }
 
 root.addEventListener('click', async event => {
@@ -2372,8 +2374,8 @@ async function initializeApp(snapshot) {
   updateShell();
   if (state.profile.activeFocus) {
     if (getFocusRemainingSeconds(state.profile.activeFocus) <= 0) {
-      await finishFocus({ completed: true, silent: true });
-      showToast('La sesión terminó mientras O-Isym estaba cerrado. Se guardó en tu historial.');
+      const finished = await finishFocus({ completed: true, silent: true });
+      if (finished) showToast('La sesión terminó mientras O-Isym estaba cerrado. Se guardó en tu historial.');
     } else if (!state.profile.activeFocus.pausedAt) {
       startFocusTicker();
       syncFocusNotificationSchedule();
@@ -2384,6 +2386,23 @@ async function initializeApp(snapshot) {
     }
   }
   await save();
+  if (state.pendingTaskReminder) {
+    const reminder = state.pendingTaskReminder;
+    state.pendingTaskReminder = null;
+    openTaskFromReminder(reminder);
+  }
+}
+
+function openTaskFromReminder(reminder) {
+  if (!state.profile) { state.pendingTaskReminder = reminder; return; }
+  const task = reminder && taskById(reminder.taskId);
+  state.selectedDate = reminder?.scheduledDate || localDate();
+  state.view = task ? 'tasks' : 'planner';
+  state.editingTaskId = task ? task.id : null;
+  state.showTaskForm = Boolean(task);
+  state.plannerAnalysis = null;
+  updateShell();
+  showToast(task ? 'Abrimos la tarea de tu recordatorio.' : 'Abrimos el día de tu recordatorio.');
 }
 
 async function showRecoveryScreen(error) {
@@ -2440,6 +2459,7 @@ async function boot() {
   }
 }
 
+window.oisym?.notifications?.onOpenTask?.(openTaskFromReminder);
 boot();
 
 
