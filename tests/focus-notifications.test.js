@@ -63,7 +63,7 @@ test('Focus scheduler sends periodic reminders and one completion notification',
   h.advance(600000);
   assert.equal(h.notifications.length, 1);
   assert.equal(h.notifications[0].title, 'Pausa breve');
-  assert.equal(h.notifications[0].sound, 'Pop');
+  assert.equal(h.notifications[0].sound, 'Submarine');
   assert.match(h.notifications[0].body, /Estudiar matemáticas/);
 
   h.advance(600000);

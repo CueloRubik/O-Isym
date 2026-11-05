@@ -636,7 +636,9 @@ function renderFocus(main) {
   const selectedMusic = musicTrackById(state.profile.preferences.focusMusicTrack);
   musicOptions.append(element('p', 'small-note music-description', selectedMusic ? selectedMusic.description : 'No se reproducirá música durante la sesión.'));
   const musicControls = element('div', 'focus-music-controls');
-  musicControls.append(button('Escuchar vista previa', 'preview-focus-music', 'button secondary small', { track: state.profile.preferences.focusMusicTrack || '' }));
+  const musicPreviewButton = button('Escuchar vista previa', 'preview-focus-music', 'button secondary small', { track: state.profile.preferences.focusMusicTrack || '' });
+  musicPreviewButton.disabled = Boolean(focus);
+  musicControls.append(musicPreviewButton);
   const musicVolume = input('focusMusicVolume', '', 'range', state.profile.preferences.focusMusicVolume ?? 35);
   musicVolume.min = '0'; musicVolume.max = '100'; musicVolume.step = '5'; musicVolume.disabled = Boolean(focus);
   const musicVolumeField = field('Volumen de la música', musicVolume);
@@ -659,7 +661,9 @@ function renderFocus(main) {
     const row = element('div', 'focus-alarm-row');
     const control = select(name, alarmToneOptions, value);
     control.disabled = Boolean(focus);
-    row.append(field(label, control), button('Probar patrón', 'preview-focus-alarm', 'button secondary small', { alarm: kind }));
+    const previewButton = button('Probar patrón', 'preview-focus-alarm', 'button secondary small', { alarm: kind });
+    previewButton.disabled = Boolean(focus);
+    row.append(field(label, control), previewButton);
     alarmOptions.append(row);
   });
   const volume = input('focusAlarmVolume', '', 'range', state.profile.preferences.focusAlarmVolume ?? 70);
@@ -1051,6 +1055,7 @@ async function handleSubmit(form) {
 let focusAlarmPlayback = null;
 let focusMusicPlayback = null;
 let focusMusicPreviewPlayback = null;
+let focusMusicPreviewTimer = null;
 let focusReminderTimer = null;
 
 async function prepareFocusAlarm() {
@@ -1121,6 +1126,8 @@ function stopFocusMusic() {
   }
 }
 function stopFocusMusicPreview() {
+  if (focusMusicPreviewTimer) clearTimeout(focusMusicPreviewTimer);
+  focusMusicPreviewTimer = null;
   if (focusMusicPreviewPlayback) {
     focusMusicPreviewPlayback.pause();
     focusMusicPreviewPlayback.currentTime = 0;
@@ -1152,6 +1159,7 @@ function startFocusMusic() {
   });
 }
 function previewFocusMusic() {
+  stopFocusAlarmPlayback();
   const trackId = $('#focus-music-track')?.value || state.profile.preferences.focusMusicTrack || '';
   const track = musicTrackById(trackId);
   if (!track) return showToast('Selecciona una pista para escucharla.', 'error');
@@ -1163,7 +1171,9 @@ function previewFocusMusic() {
   audio.onended = () => {
     if (focusMusicPreviewPlayback === audio) focusMusicPreviewPlayback = null;
   };
-  audio.play().catch(() => {
+  audio.play().then(() => {
+    focusMusicPreviewTimer = setTimeout(stopFocusMusicPreview, 20000);
+  }).catch(() => {
     if (focusMusicPreviewPlayback === audio) focusMusicPreviewPlayback = null;
     showToast('No se pudo reproducir la vista previa de música.', 'error');
   });
@@ -1553,7 +1563,7 @@ root.addEventListener('click', async event => {
       state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
       state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
       if (!state.profile) throw new Error('El archivo no contiene perfiles.');
-      await save(); syncFocusNotificationSchedule(); updateShell(); showToast('Copia importada.');
+      await save(); syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); showToast('Copia importada.');
     } catch (error) { showToast('No se pudo importar: ' + error.message, 'error'); }
   }
   if (action === 'import-legacy') {
@@ -1695,7 +1705,7 @@ root.addEventListener('change', event => {
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
-    if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(() => { syncFocusNotificationSchedule(); updateShell(); }); }
+    if (profile) { stopFocusMusic(); stopFocusMusicPreview(); state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(() => { syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); }); }
   }
   if (event.target.id === 'planner-date') {
     state.selectedDate = event.target.value || localDate();
