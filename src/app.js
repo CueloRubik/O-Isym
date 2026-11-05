@@ -1135,6 +1135,9 @@ async function handleSubmit(form) {
       profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(age);
       profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:'#27856b';
       state.snapshot.profiles.push(profile);
+      focusAudioController.stopAll();
+      stopFocusTicker();
+      window.oisym?.focusAlarms?.cancel().catch(() => {});
       state.profile = profile;
       const saved = await save();
       if (!saved) {
@@ -1144,6 +1147,7 @@ async function handleSubmit(form) {
         throw new Error('No se pudo guardar el perfil.');
       }
       state.view = 'today';
+      syncFocusNotificationSchedule();
       const modal = $('[data-profile-modal]');
       if (modal) modal.remove();
       showToast('Perfil creado.');
@@ -1237,17 +1241,23 @@ async function handleSubmit(form) {
       state.profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:state.profile.avatarId;
       state.profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(state.profile.age);
       state.profile.preferences.motionEnabled=data.motionEnabled!=='false';
-      await save();showToast('Perfil actualizado.');
+      const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
+      const saved=await save();
+      if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
+      showToast('Perfil actualizado.');
     } else if (form.dataset.form === 'profile-planning-settings') {
       const start=data.workingDayStart,end=data.workingDayEnd;
       if(!start||!end||end<=start)throw new Error('El horario habitual debe terminar después de comenzar.');
       if(!['manual','suggested','hybrid','automatic'].includes(data.autonomy))throw new Error('Selecciona un modo de planificación válido.');
+      const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
       state.profile.preferences.autonomy=data.autonomy;
       state.profile.preferences.focusMinutes=clampNumber(data.focusMinutes,5,180,25);
       state.profile.preferences.breakMinutes=clampNumber(data.breakMinutes,1,60,5);
       state.profile.preferences.workingDayStart=start;
       state.profile.preferences.workingDayEnd=end;
-      await save();showToast('Planificación guardada.');
+      const saved=await save();
+      if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
+      showToast('Planificación guardada.');
     }
     updateShell();
   } catch (error) {
@@ -1334,7 +1344,7 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { event.target.remove(); $('.profile-add')?.focus(); return; }
+  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; event.target.remove(); $('.profile-add')?.focus(); return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
@@ -1403,8 +1413,7 @@ root.addEventListener('click', async event => {
     showToast('Perfil exportado.');
     return;
   }
-  if (action === 'cancel-new-profile') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
-  if (action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal) modal.remove(); return; }
+  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; if (modal) modal.remove(); $('.profile-add')?.focus(); return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
   if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(age.value&&!age.checkValidity()){age.focus();return showToast('La edad debe estar entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme&&age.value)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
@@ -1702,6 +1711,7 @@ root.addEventListener('click', async event => {
         return;
       }
       state.selectedProfileId = id;
+      if(state.profile.activeFocus&&!state.profile.activeFocus.pausedAt)startFocusTicker();else stopFocusTicker();
       syncFocusNotificationSchedule();
       startFocusMusic();
       updateShell();
@@ -1739,6 +1749,7 @@ root.addEventListener('click', async event => {
       state.snapshot = await window.oisym.storage.save(nextSnapshot);
       state.profile = state.snapshot.profiles.find(item => item.id === state.snapshot.activeProfileId) || state.profile;
       state.selectedProfileId = state.profile.id;
+      if(state.profile.activeFocus&&!state.profile.activeFocus.pausedAt)startFocusTicker();else stopFocusTicker();
       syncFocusNotificationSchedule();
       if (wasActive) startFocusMusic();
       showToast('Perfil eliminado.');
@@ -1828,6 +1839,7 @@ root.addEventListener('submit', event => {
   handleSubmit(form);
 });
 root.addEventListener('input', event => {
+  if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'name' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.name === 'focusAlarmVolume') { const value = $('.alarm-volume-value'); if (value) value.textContent = event.target.value + '%'; }
   if (event.target.name === 'focusMusicVolume') {
@@ -1836,6 +1848,7 @@ root.addEventListener('input', event => {
   }
 });
 root.addEventListener('change', event => {
+  if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
