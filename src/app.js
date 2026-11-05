@@ -261,6 +261,7 @@ function updateShell() {
   root.dataset.theme = state.profile.preferences.theme || 'classic';
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
   $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const topbarTaskAction=$('.topbar-actions [data-action="quick-task"]');if(topbarTaskAction)topbarTaskAction.hidden=state.view!=='today';
   $$('.nav-item').forEach(item => {
     const active = item.dataset.view === state.view;
     item.classList.toggle('active', active);
