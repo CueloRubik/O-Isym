@@ -74,7 +74,10 @@ function createTaskNotificationScheduler({
         silent: !reminder.soundEnabled,
         ...(platform === 'darwin' && reminder.soundEnabled ? { sound: 'Ping' } : {})
       });
-      notification.on('failed', (_event, error) => console.error('[O-Isym] Falló una notificación de tarea:', error));
+      notification.on('failed', (_event, error) => {
+        console.error('[O-Isym] Falló una notificación de tarea:', error);
+        if (reminder.key && sent.delete(reminder.key)) persistSent();
+      });
       notification.on('click', () => onOpenTask(reminder));
       notification.show();
       return true;
@@ -188,11 +191,16 @@ function createTaskNotificationScheduler({
     scheduleSnapshot,
     dispose,
     getScheduledCount: () => buildReminders(lastSnapshot).filter(item => !sent.has(item.key)).length,
-    sendTestNotification: () => showReminder({
-      activityName: 'tu próxima actividad',
-      body: 'Así se verán los recordatorios de tus tareas. Puedes cambiar estas opciones en Ajustes.',
-      soundEnabled: true
-    })
+    sendTestNotification: () => {
+      const profile = lastSnapshot && Array.isArray(lastSnapshot.profiles)
+        ? lastSnapshot.profiles.find(item => item && item.id === lastSnapshot.activeProfileId)
+        : null;
+      return showReminder({
+        activityName: 'tu próxima actividad',
+        body: 'Así se verán los recordatorios de tus tareas. Puedes cambiar estas opciones en Ajustes.',
+        soundEnabled: profile?.preferences?.taskNotificationSound !== false
+      });
+    }
   });
 }
 
