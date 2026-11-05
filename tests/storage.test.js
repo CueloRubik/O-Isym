@@ -43,6 +43,64 @@ test('guarda y recupera datos, creando una copia de respaldo', async t => {
   assert.equal(backups.length, 1);
 });
 
+test('no crea respaldos cuando solo cambian las marcas de actualización', async t => {
+  const { storage } = await makeTemporaryStorage(t);
+  const initial = await storage.read();
+  const saved = await storage.save({
+    ...initial,
+    profiles: [{ id: 'profile-main', name: 'Perfil principal' }],
+    activeProfileId: 'profile-main'
+  });
+
+  const updatedOnly = await storage.save({
+    ...saved,
+    updatedAt: new Date(Date.now() + 1000).toISOString(),
+    profiles: saved.profiles.map(profile => ({
+      ...profile,
+      updatedAt: new Date(Date.now() + 1000).toISOString()
+    }))
+  });
+
+  assert.equal(updatedOnly.profiles[0].name, 'Perfil principal');
+  const backups = await fs.readdir(storage.backupsPath);
+  assert.equal(backups.length, 1);
+});
+
+test('serializa guardados simultáneos y conserva una copia de cada estado anterior', async t => {
+  const { storage } = await makeTemporaryStorage(t);
+  const initial = await storage.read();
+  const firstSnapshot = {
+    ...initial,
+    profiles: [{ id: 'profile-one', name: 'Primer perfil' }],
+    activeProfileId: 'profile-one'
+  };
+  const secondSnapshot = {
+    ...firstSnapshot,
+    profiles: [
+      ...firstSnapshot.profiles,
+      { id: 'profile-two', name: 'Segundo perfil' }
+    ]
+  };
+
+  const [first, second] = await Promise.all([
+    storage.save(firstSnapshot),
+    storage.save(secondSnapshot)
+  ]);
+
+  assert.deepEqual(first.profiles.map(profile => profile.id), ['profile-one']);
+  assert.deepEqual(second.profiles.map(profile => profile.id), ['profile-one', 'profile-two']);
+  const persisted = await storage.read();
+  assert.deepEqual(persisted.profiles.map(profile => profile.id), ['profile-one', 'profile-two']);
+
+  const backups = await fs.readdir(storage.backupsPath);
+  assert.equal(backups.length, 2);
+  const backupSnapshots = await Promise.all(backups.map(async name =>
+    JSON.parse(await fs.readFile(path.join(storage.backupsPath, name), 'utf8'))
+  ));
+  assert.ok(backupSnapshots.some(snapshot => snapshot.profiles.length === 0));
+  assert.ok(backupSnapshots.some(snapshot => snapshot.profiles.length === 1 && snapshot.profiles[0].id === 'profile-one'));
+});
+
 test('rechaza datos con una versión de esquema desconocida', async t => {
   const { storage } = await makeTemporaryStorage(t);
   const initial = await storage.read();
