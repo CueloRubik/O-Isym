@@ -2,6 +2,7 @@ const fs = require('node:fs/promises');
 const { constants: fsConstants } = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { isDeepStrictEqual } = require('node:util');
 
 const SCHEMA_VERSION = 1;
 const MAX_STORE_BYTES = 5 * 1024 * 1024;
@@ -38,6 +39,7 @@ function createStorage(userDataPath) {
   if (typeof userDataPath !== 'string' || !userDataPath) throw new TypeError('Se necesita una ruta válida para el almacenamiento.');
   const storePath = path.join(userDataPath, 'oisym-data.json');
   const backupsPath = path.join(userDataPath, 'backups');
+  let saveQueue = Promise.resolve();
   async function writeAtomically(serialized) {
     await fs.mkdir(userDataPath, { recursive: true });
     const temporaryPath = path.join(userDataPath, '.oisym-data-' + process.pid + '-' + crypto.randomUUID() + '.tmp');
@@ -83,20 +85,48 @@ function createStorage(userDataPath) {
     }
     return parsed;
   }
-  async function save(snapshot) {
-    const serialized = validateSnapshot(snapshot);
+  async function saveSerialized(serialized) {
+    let current = null;
     try {
       const currentRaw = await fs.readFile(storePath, 'utf8');
-      try { validateSnapshot(JSON.parse(currentRaw)); }
-      catch {
+      try {
+        current = JSON.parse(currentRaw);
+        validateSnapshot(current);
+      } catch {
         const error = new Error('No se guardó: el archivo actual no se puede validar y debe protegerse.');
         error.code = 'OISYM_STORE_PROTECTED'; throw error;
       }
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+
+    const candidate = JSON.parse(serialized);
+    if (current) {
+      const comparableCurrent = { ...current };
+      const comparableCandidate = { ...candidate };
+      delete comparableCurrent.updatedAt;
+      delete comparableCandidate.updatedAt;
+      comparableCurrent.profiles = current.profiles.map(profile => {
+        const copy = { ...profile }; delete copy.updatedAt; return copy;
+      });
+      comparableCandidate.profiles = candidate.profiles.map(profile => {
+        const copy = { ...profile }; delete copy.updatedAt; return copy;
+      });
+      if (isDeepStrictEqual(comparableCurrent, comparableCandidate)) return current;
       await createBackup();
-    } catch (error) { if (error.code !== 'ENOENT') throw error; }
-    const next = { ...JSON.parse(serialized), updatedAt: new Date().toISOString() };
+    }
+
+    const next = { ...candidate, updatedAt: new Date().toISOString() };
     await writeAtomically(validateSnapshot(next));
     return next;
+  }
+
+  function save(snapshot) {
+    // Capture and validate the submitted state immediately, then serialize disk writes.
+    const serialized = validateSnapshot(snapshot);
+    const operation = saveQueue.then(() => saveSerialized(serialized));
+    saveQueue = operation.catch(() => {});
+    return operation;
   }
   function makeBackupName(prefix) {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-') + '-' + crypto.randomUUID().slice(0, 8);
