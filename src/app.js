@@ -1365,6 +1365,7 @@ root.addEventListener('click', async event => {
       const imported = JSON.parse(await file.text());
       validateSnapshot(imported);
       if (!confirm('La importación reemplazará los datos actuales. O-Isym conservará una copia de seguridad. ¿Continuar?')) return;
+      stopFocusMusic(); stopFocusMusicPreview(); stopFocusAlarmPlayback();
       state.snapshot = imported;
       state.snapshot.profiles = state.snapshot.profiles.map(normalizeProfile);
       state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.snapshot.profiles[0];
@@ -1511,7 +1512,7 @@ root.addEventListener('change', event => {
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profile = state.snapshot.profiles.find(item => item.id === event.target.value);
-    if (profile) { stopFocusMusic(); stopFocusMusicPreview(); state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(() => { syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); }); }
+    if (profile) { stopFocusMusic(); stopFocusMusicPreview(); stopFocusAlarmPlayback(); state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = profile.id; save().then(() => { syncFocusNotificationSchedule(); startFocusMusic(); updateShell(); }); }
   }
   if (event.target.id === 'planner-date') {
     state.selectedDate = event.target.value || localDate();
