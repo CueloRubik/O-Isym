@@ -155,7 +155,15 @@ Pendiente:
 Criterio de aceptación: los iconos se sienten parte del mismo producto, son reconocibles y mejoran la orientación sin añadir ruido visual.
 
 ### P5 — Pulido general
-**Estado: pendiente.**
+**Estado: parcialmente iniciado; falta revisión visual y de uso.**
+
+Primera pasada realizada:
+- [x] Unificar el escalado y alineación de los nuevos iconos.
+- [x] Refinar espaciado, radios, sombras y alineación de controles principales.
+- [x] Mejorar la adaptación de la barra de navegación, panel Focus y herramientas de Tareas a ventanas estrechas.
+- [x] Corregir referencias CSS a `--border` para usar la variable existente `--line`.
+
+Pendiente de revisión manual:
 
 - [ ] Revisar consistencia de márgenes, tamaños, tipografía, botones, formularios y diálogos.
 - [ ] Unificar mensajes de confirmación, errores, estados vacíos y avisos.
