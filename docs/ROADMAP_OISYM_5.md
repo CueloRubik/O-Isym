@@ -23,31 +23,22 @@ Por tanto, esas tareas dejan de figurar como pendientes. El trabajo restante cor
 
 ## Prioridades de desarrollo
 
-### P1 — Sistema de alarmas ampliado
+### P1 — Audio de Focus simplificado
+- [x] Mantener la selección de música y las catorce pistas MP3.
+- [x] Reproducir música en bucle durante Focus y descansos; detenerla al pausar, reiniciar o finalizar.
+- [x] Añadir botones visibles para detener la vista previa musical y la alarma.
+- [x] Mostrar un control flotante para detener la alarma aunque se navegue fuera de Focus.
+- [x] Eliminar sonidos de inicio, fin de descanso y recordatorios periódicos.
+- [x] Dejar una sola alarma personalizada al completar Focus, con activación y selección de sonido.
+- [x] Detener la música antes de reproducir la alarma.
+- [x] Configurar repeticiones (1–10), pausa (1–15 s), duración máxima (5–120 s) y volumen.
+- [x] Usar el mismo patrón en la prueba de alarma y cancelar repeticiones al detenerla.
+- [x] Mantener las notificaciones del sistema silenciosas para evitar sonidos duplicados.
+- [x] Migrar perfiles antiguos y limitar valores inválidos.
 
-Objetivo: convertir las alarmas de Focus en un sistema configurable, claro y consistente.
+**Límites:** el MP3 requiere que la ventana siga abierta o minimizada. Al cerrar la ventana puede quedar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen. Durante la suspensión, la notificación se revisa al reanudarse.
 
-- [x] Integrar diez sonidos MP3 de alarma con nombres propios y selección independiente para inicio de Focus, fin de Focus, fin del descanso y recordatorios.
-- [x] Reproducir cada alarma en tres ciclos separados por una pausa breve; la vista previa utiliza el mismo patrón.
-- [x] Añadir control de volumen de alarmas independiente del volumen de música y de los controles del sistema.
-- [x] Incluir una vista previa de cada sonido, incluso si las alarmas de sesión están silenciadas.
-- [x] Guardar las preferencias por perfil y asignar valores seguros a perfiles antiguos.
-- [x] Añadir recordatorios durante Focus con intervalos de 5, 10, 15, 20, 25, 30, 45 o 60 minutos; desactivados por defecto.
-- [x] Permitir elegir y previsualizar un sonido específico para los recordatorios, independiente del sonido de fin de Focus.
-- [x] Añadir catorce pistas de música organizadas por ambiente, con nombres, descripciones, vista previa, volumen independiente y opción «Sin música».
-- [x] Reproducir la pista elegida en bucle durante Focus y los descansos; detenerla al pausar o finalizar.
-- [x] Programar las notificaciones en el proceso principal de Electron, no solamente en el renderer.
-- [x] Mantener los temporizadores cuando la ventana se minimiza o se cierra en macOS, mientras el proceso de O-Isym continúa ejecutándose.
-- [x] Al volver de suspensión, comprobar el reloj real: enviar el recordatorio pendiente más reciente una sola vez o la notificación de finalización si el tiempo ya venció.
-- [x] Cancelar recordatorios al pausar, reiniciar o terminar manualmente una sesión; no enviar recordatorios durante descansos.
-- [x] Evitar sonidos duplicados: si el renderer sigue activo, reproduce el tono elegido; si la ventana ya no existe, la notificación nativa usa el sonido del sistema correspondiente.
-- [x] Añadir firma local ad-hoc a la compilación macOS para habilitar las notificaciones nativas sin requerir un certificado de Apple Developer.
-- [x] Añadir pruebas automatizadas para intervalos, finalización, suspensión, cancelación y sonido nativo.
-- [x] Mantener compatibilidad con perfiles existentes: los recordatorios empiezan desactivados y el tono nuevo usa un valor seguro.
-
-**Límites de plataforma:** cerrar la ventana en macOS no termina el proceso de O-Isym, así que las alarmas siguen funcionando. Si se sale por completo con Cmd + Q, el proceso y sus temporizadores se detienen; no se promete una alarma en ese estado. Durante el reposo del sistema, la notificación no puede mostrarse en el instante exacto: se revisa al reanudarse y se evita reproducir una cadena de avisos atrasados. macOS debe permitir las notificaciones de O-Isym. La firma ad-hoc es local y no equivale a una distribución firmada con Developer ID y notarizada.
-
-Criterio de aceptación: el usuario puede elegir y probar sus tonos, configurar los recordatorios, guardar preferencias por perfil y recibir avisos mientras O-Isym permanece ejecutándose, incluso sin una ventana abierta.
+Criterio de aceptación: nada suena al iniciar ni al acabar un descanso; al terminar Focus, la música se detiene antes de la alarma elegida, que respeta su patrón y siempre puede detenerse.
 
 ### P2 — Reorganización de Ajustes
 
