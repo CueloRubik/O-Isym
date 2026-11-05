@@ -133,17 +133,24 @@ Objetivo: dar al usuario control completo sobre sus perfiles y su presentación.
 Criterio de aceptación: crear, editar, cambiar y eliminar perfiles funciona sin pérdida accidental de datos de otros perfiles y con confirmaciones comprensibles.
 
 ### P4 — Sistema de iconografía
-**Estado: pendiente.**
+**Estado: parcialmente implementado; falta revisión visual.**
 
-Objetivo: dar a O-Isym un lenguaje visual consistente.
+Primera integración realizada en `oisym-5-development`:
+- [x] Organizar los PNG en `assets/icons/navigation/`, `focus/`, `tasks/`, `interface/` y `unused/`.
+- [x] Incorporar iconos de navegación en Hoy, Tareas, Actividades, Calendario, Planificador, Enfoque, Objetivos e Insights.
+- [x] Incorporar icono de Ajustes y de creación de tarea.
+- [x] Incorporar iconos de búsqueda y filtros en la vista Tareas.
+- [x] Mostrar el icono de prioridad en cada fila de tarea.
+- [x] Mostrar una ilustración de estado en Focus (preparado, sesión, pausa o descanso).
+- [x] Definir tamaños, alineación, escalado con `object-fit: contain` y alternativa si un PNG no carga.
+- [x] Documentar el catálogo y los recursos reservados en `assets/icons/README.md`.
+- [x] Conservar en `unused/` el icono de proyectos, porque aún no existe esa sección.
 
-- [ ] Inventariar botones, secciones, categorías, acciones y estados que necesitan iconos.
-- [ ] Elegir una sola familia o estilo visual coherente.
-- [ ] Diseñar o seleccionar iconos para navegación, tareas, actividades, calendario, Focus, objetivos, Insights, perfiles y Ajustes.
-- [ ] Añadir iconos a acciones frecuentes cuando ayuden a reconocerlas, sin llenar la interfaz de adornos.
-- [ ] Definir tamaños, alineación, grosor y estados (normal, seleccionado, deshabilitado).
-- [ ] Mantener etiquetas de texto o nombres accesibles; no depender únicamente del icono.
+Pendiente:
+- [ ] Revisar visualmente cada PNG a resolución completa para detectar transparencias, márgenes internos, recortes o proporciones que requieran ajustes.
 - [ ] Verificar contraste y legibilidad en los temas disponibles.
+- [ ] Comprobar la apariencia en ventanas estrechas y escalas de pantalla distintas.
+- [ ] Decidir si los iconos de recordatorio y repetición deben activarse cuando existan esas funciones; por ahora se conservan sin mostrarlos como controles falsos.
 
 Criterio de aceptación: los iconos se sienten parte del mismo producto, son reconocibles y mejoran la orientación sin añadir ruido visual.
 
