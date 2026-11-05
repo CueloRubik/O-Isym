@@ -64,6 +64,8 @@ La importación del prototipo es manual y no elimina sus claves antiguas. Export
 - \`assets/icons/\`: iconografía de navegación, Focus, tareas e interfaz; incluye un catálogo en \`assets/icons/README.md\`.
 - \`assets/audio/\`: música y sonidos de Focus.
 - \`tests/\`: pruebas automatizadas.
-- \`docs/ROADMAP_OISYM_5.md\`: plan y estado.
+- `docs/INDEX.md`: índice de documentación.
+- `docs/QUALITY_AUDIT_OISYM_5.md`: auditoría técnica vigente, errores resueltos, riesgos y prioridades.
+- `docs/ROADMAP_OISYM_5.md`: hoja de ruta de producto.
 
 Los archivos antiguos de \`src/scripts/\` se conservan como referencia y ya no se cargan desde la nueva interfaz.
