@@ -42,7 +42,7 @@ La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración 
 - Planificador con propuestas de horarios; no modifica compromisos bloqueados.
 - Temporizador Focus con pausa, reanudación e historial persistente.
 - Alarmas configurables de Focus y recordatorios nativos de tareas, programados en el proceso principal y persistentes mientras O-Isym permanece en segundo plano.
-- Icono de O-Isym en la barra de menús de macOS: cerrar la ventana la oculta sin detener los recordatorios; la opción de inicio de sesión puede volver a abrir la app oculta al entrar al Mac.
+- Icono de la propia aplicación O-Isym en la barra de menús de macOS. Al entrar por primera vez al Planificador, ofrece activarse al iniciar sesión; cerrar la ventana la oculta sin detener recordatorios. La app debe permanecer ejecutándose en segundo plano: salir por completo detiene los avisos.
 - Objetivos con progreso e Insights semanales.
 - Recomendaciones locales, configurables y descartables.
 - Exportación e importación de copias JSON.
@@ -50,7 +50,7 @@ La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración 
 
 ## Datos y seguridad
 
-Los datos nuevos se guardan en el directorio de usuario de Electron, en \`oisym-data.json\`, con copias de seguridad rotativas. El renderer no tiene acceso directo a Node.js. El almacenamiento valida el esquema y protege archivos dañados. La aplicación no envía datos a servicios externos. Los recordatorios se calculan localmente; macOS debe permitir las notificaciones de O-Isym. Salir por completo desde el menú de la barra detiene los recordatorios hasta que la app vuelva a iniciarse.
+Los datos nuevos se guardan en el directorio de usuario de Electron, en \`oisym-data.json\`, con copias de seguridad rotativas. El renderer no tiene acceso directo a Node.js. El almacenamiento valida el esquema y protege archivos dañados. La aplicación no envía datos a servicios externos. Los recordatorios se calculan localmente; en macOS usan el sonido de sistema «Ping» cuando el sonido está activado. macOS debe permitir las notificaciones de O-Isym. La opción de inicio automático depende de que macOS acepte el elemento de inicio de sesión; la compilación local ad-hoc puede tener restricciones frente a una app firmada y notarizada. Salir por completo desde el menú de la barra detiene los recordatorios hasta que la app vuelva a iniciarse.
 
 La importación del prototipo es manual y no elimina sus claves antiguas. Exporta una copia antes de importar archivos externos.
 
