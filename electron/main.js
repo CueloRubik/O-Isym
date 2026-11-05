@@ -68,7 +68,7 @@ let focusNotifications = null;
 app.whenReady().then(() => {
   try {
     const storage = createStorage(app.getPath('userData'));
-    focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor });
+    focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor, hasWindow: () => BrowserWindow.getAllWindows().length > 0 });
     registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications });
     createWindow();
 
