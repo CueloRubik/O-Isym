@@ -317,6 +317,11 @@ function addTaskForm(parent, defaults = {}) {
   row3.append(field('Hora de fin (opcional)', input('endTime', '', 'time', defaults.endTime || '')));
   form.append(row3);
   form.append(field('Vincular actividad', activitySelect('activityId', defaults.activityId || '')));
+  form.append(field('Recordatorio de esta tarea', select('reminderEnabled', [
+    { value: 'true', label: 'Avisarme a la hora programada' },
+    { value: 'false', label: 'No enviar notificación para esta tarea' }
+  ], String(defaults.reminderEnabled !== false))));
+  form.append(element('p', 'small-note', 'Para recibir el aviso, asigna una fecha y una hora de inicio. Puedes cambiarlo después.'));
   form.append(field('Notas (opcional)', textarea('description', 'Detalles o contexto…', defaults.description || '')));
   const locked = select('locked', [{ value: 'false', label: 'Tarea flexible' }, { value: 'true', label: 'Compromiso bloqueado' }], String(Boolean(defaults.locked)));
   form.append(field('Tipo de tarea', locked));
@@ -348,8 +353,12 @@ function renderTaskList(parent, tasks, options = {}) {
     const content = element('div', 'task-content');
     content.append(element('strong', task.status === 'done' ? 'completed' : '', task.title));
     const meta = element('div', 'task-meta');
-    if (task.scheduledDate) meta.append(element('span', 'meta-chip', dateLabel(task.scheduledDate, { day: 'numeric', month: 'short' })));
-    if (task.startTime) meta.append(element('span', 'meta-chip', task.startTime + (task.endTime ? '–' + task.endTime : '')));
+    if (task.scheduledDate) meta.append(element('span', 'meta-chip schedule-date-chip', dateLabel(task.scheduledDate, { weekday: 'short', day: 'numeric', month: 'short' })));
+    if (task.startTime) meta.append(element('span', 'meta-chip schedule-time-chip', 'Hora · ' + task.startTime + (task.endTime ? '–' + task.endTime : '')));
+    if (task.status === 'pending' && task.scheduledDate && task.startTime) {
+      if (task.reminderEnabled !== false) meta.append(iconImage('notifications/task-reminder.png', '', 'task-reminder-icon'), element('span', 'meta-chip task-reminder-chip', 'Aviso activado'));
+      else meta.append(element('span', 'meta-chip task-reminder-muted', 'Aviso desactivado'));
+    }
     meta.append(iconImage('tasks/priority.png', '', 'meta-icon'), element('span', 'meta-chip ' + priorityClass(task.priority), priorityLabel(task.priority)));
     if (task.locked) meta.append(element('span', 'meta-chip locked-chip', 'Bloqueada'));
     const activity = activityById(task.activityId);
@@ -1139,6 +1148,7 @@ function renderSettings(main) {
   const sections = [
     ['profile','Mi perfil','Identidad y apariencia'],
     ['planning','Planificación','Horario y autonomía'],
+    ['notifications','Notificaciones','Recordatorios y segundo plano'],
     ['focus','Focus y sonido','Sesiones, música y alarmas'],
     ['data','Datos y copias','Importar, exportar y recuperar'],
     ['shortcuts','Atajos y ayuda','Navegación rápida'],
@@ -1157,7 +1167,7 @@ function renderSettings(main) {
   });
   const panel=element('section','settings-panel');
   const active=sections.find(item=>item[0]===state.settingsSection);
-  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/planner.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
+  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/planner.png',notifications:'notifications/task-reminder.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
   if(state.settingsSection==='profile'){
     const form=element('form','form-card settings-form');
     form.dataset.form='profile-settings';
@@ -1201,6 +1211,50 @@ function renderSettings(main) {
     hours.append(field('Fin habitual',input('workingDayEnd','','time',state.profile.preferences.workingDayEnd||'17:00')));
     form.append(hours,actionIconButton('Guardar planificación','submit-form','save.png','button primary'));
     panel.append(form);
+  } else if(state.settingsSection==='notifications'){
+    const form=element('form','form-card settings-form notification-settings-form');
+    form.dataset.form='profile-task-notifications';
+    const preferences=state.profile.preferences;
+    form.append(element('h3','','Recordatorios de tareas'));
+    form.append(element('p','muted','O-Isym revisa tu agenda en segundo plano y muestra una notificación nativa de macOS cuando llega el momento de una tarea.'));
+    form.append(field('Notificaciones de tareas',select('taskNotificationsEnabled',[
+      {value:'true',label:'Activadas'}, {value:'false',label:'Desactivadas'}
+    ],String(preferences.taskNotificationsEnabled!==false))));
+    form.append(field('Qué tareas deben avisar',select('taskNotificationScope',[
+      {value:'all',label:'Todas las tareas programadas'},
+      {value:'activity',label:'Solo tareas vinculadas a una actividad'},
+      {value:'high',label:'Solo tareas de prioridad alta'}
+    ],preferences.taskNotificationScope||'all')));
+    form.append(field('Cuándo avisar',select('taskNotificationLeadMinutes',[
+      {value:'0',label:'A la hora exacta'}, {value:'5',label:'5 minutos antes'},
+      {value:'10',label:'10 minutos antes'}, {value:'15',label:'15 minutos antes'},
+      {value:'30',label:'30 minutos antes'}, {value:'60',label:'1 hora antes'}
+    ],String(preferences.taskNotificationLeadMinutes??0))));
+    form.append(field('Sonido de la notificación',select('taskNotificationSound',[
+      {value:'true',label:'Activado'}, {value:'false',label:'Silenciosa'}
+    ],String(preferences.taskNotificationSound!==false))));
+    form.append(field('Si el aviso vence mientras el Mac está suspendido',select('taskNotificationMissed',[
+      {value:'notify',label:'Avisarme al volver (hasta 12 horas después)'},
+      {value:'skip',label:'Omitir los avisos que ya pasaron'}
+    ],preferences.taskNotificationMissed||'notify')));
+    form.append(field('Al iniciar sesión en el Mac',select('launchAtLogin',[
+      {value:'false',label:'No abrir O-Isym automáticamente'},
+      {value:'true',label:'Abrir O-Isym en segundo plano al iniciar sesión'}
+    ],String(preferences.launchAtLogin===true))));
+    form.append(element('p','small-note','Al cerrar la ventana, O-Isym permanece en la barra de menús junto a los iconos del sistema. Usa el menú de O-Isym para volver a abrirlo o salir por completo.'));
+    const actions=element('div','form-actions');
+    actions.append(button('Enviar notificación de prueba','test-task-notification','button secondary'));
+    actions.append(actionIconButton('Guardar preferencias','submit-form','save.png','button primary'));
+    form.append(actions);
+    const status=element('p','notification-system-status small-note','Comprobando disponibilidad de notificaciones…');
+    status.dataset.notificationStatus='true';
+    const info=card('settings-info-card notification-system-card');
+    info.append(element('h3','','Notificaciones del sistema'),status,element('p','muted','macOS puede ocultar o silenciar avisos si O-Isym no tiene permiso en Ajustes del Sistema → Notificaciones. El botón de prueba permite comprobarlo.'));
+    panel.append(form,info);
+    window.oisym?.notifications?.getStatus?.().then(result=>{
+      const target=$('[data-notification-status]',panel);
+      if(target)target.textContent=result.supported?'La aplicación puede enviar notificaciones nativas. Revisa los permisos de O-Isym en macOS si no aparecen.':'Este sistema no informa compatibilidad con notificaciones nativas.';
+    }).catch(()=>{const target=$('[data-notification-status]',panel);if(target)target.textContent='No se pudo consultar el estado de las notificaciones.';});
   } else if(state.settingsSection==='focus'){
     const info=card('settings-info-card');
     info.append(element('p','','Las opciones de sesión, música, vista previa, alarma y notificaciones siguen centralizadas en Enfoque para evitar controles duplicados o preferencias desincronizadas.'));
@@ -1359,6 +1413,7 @@ async function handleSubmit(form) {
       showToast('Perfil actualizado.');
     } else if (form.dataset.form === 'task' || form.dataset.form === 'planner-task' || form.dataset.form === 'task-edit') {
       data.locked = data.locked === 'true';
+      data.reminderEnabled = data.reminderEnabled !== 'false';
       if (data.startTime || data.endTime) {
         if (!data.startTime || !data.endTime || data.endTime <= data.startTime) throw new Error('Si asignas un horario, la hora de fin debe ser posterior al inicio.');
       }
@@ -1424,6 +1479,18 @@ async function handleSubmit(form) {
       const saved=await save();
       if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
       showToast('Perfil actualizado.');
+    } else if (form.dataset.form === 'profile-task-notifications') {
+      const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
+      state.profile.preferences.taskNotificationsEnabled=data.taskNotificationsEnabled==='true';
+      state.profile.preferences.taskNotificationScope=['all','activity','high'].includes(data.taskNotificationScope)?data.taskNotificationScope:'all';
+      state.profile.preferences.taskNotificationLeadMinutes=[0,5,10,15,30,60].includes(Number(data.taskNotificationLeadMinutes))?Number(data.taskNotificationLeadMinutes):0;
+      state.profile.preferences.taskNotificationSound=data.taskNotificationSound==='true';
+      state.profile.preferences.taskNotificationMissed=data.taskNotificationMissed==='skip'?'skip':'notify';
+      state.profile.preferences.launchAtLogin=data.launchAtLogin==='true';
+      const saved=await save();
+      if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
+      const loginUpdated=await window.oisym?.notifications?.setLaunchAtLogin?.(state.profile.preferences.launchAtLogin);
+      showToast(loginUpdated===false?'Preferencias guardadas, pero macOS no confirmó el inicio automático.':'Preferencias de notificaciones guardadas.');
     } else if (form.dataset.form === 'profile-planning-settings') {
       const start=data.workingDayStart,end=data.workingDayEnd;
       if(!start||!end||end<=start)throw new Error('El horario habitual debe terminar después de comenzar.');
@@ -1561,6 +1628,11 @@ root.addEventListener('click', async event => {
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
   if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
+  if (action === 'test-task-notification') {
+    const sent=await window.oisym?.notifications?.sendTest?.();
+    showToast(sent?'Notificación de prueba enviada. Si no aparece, revisa los permisos de macOS.':'No se pudo enviar la notificación de prueba.',''+(sent?'success':'error'));
+    return;
+  }
   if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }
   if (action === 'edit-profile') { openProfileEditor(state.snapshot.profiles.find(item => item.id === id)); return; }
   if (action === 'import-profile') { $('#profile-import-file')?.click(); return; }
