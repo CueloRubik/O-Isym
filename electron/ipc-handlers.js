@@ -51,7 +51,7 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
     assertTrusted(event);
     const canManageLogin = process.platform === 'darwin' || process.platform === 'win32';
     const login = canManageLogin && app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings() : {};
-    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true, canManageLogin };
+    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true, canManageLogin, platform: process.platform, loginStatus: login.status || null };
   });
 
   ipcMain.handle('oisym:notifications:test', event => {
