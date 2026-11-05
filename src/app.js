@@ -1155,7 +1155,7 @@ function renderSettings(main) {
   });
   const panel=element('section','settings-panel');
   const active=sections.find(item=>item[0]===state.settingsSection);
-  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'assets/icons/actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/planner.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
+  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/planner.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
   if(state.settingsSection==='profile'){
     const form=element('form','form-card settings-form');
     form.dataset.form='profile-settings';
