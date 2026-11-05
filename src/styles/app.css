@@ -621,3 +621,25 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .settings-navigation > .eyebrow { grid-column: 1/-1; }
 }
 @media (max-width: 460px) { .settings-navigation { grid-template-columns: minmax(0,1fr); } }
+
+
+/* Tareas: formulario contextual y acciones principales visibles */
+.view-heading-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.view-heading-row > .section-heading { margin: 0; }
+.view-heading-row > .button { flex: 0 0 auto; }
+.task-toolbar { align-items: center; justify-content: flex-start; gap: 10px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.task-toolbar .filter-icon { width: 16px; height: 16px; flex: 0 0 auto; }
+.task-toolbar select { min-width: 145px; }
+.tasks-results-card { min-height: 210px; }
+.profile-modal-backdrop { overflow-y: auto; align-items: flex-start; padding: 24px 16px; }
+.profile-modal { width: min(680px,100%); max-height: calc(100vh - 48px); overflow-y: auto; margin: auto; }
+.profile-modal-form { min-width: 0; }
+@media (max-width: 560px) {
+  .view-heading-row { align-items: flex-start; flex-direction: column; }
+  .view-heading-row > .button { width: 100%; }
+  .task-toolbar { flex-wrap: wrap; }
+  .task-toolbar select { flex: 1 1 150px; }
+  .task-toolbar .search-field { flex: 1 1 100%; }
+  .profile-modal-backdrop { padding: 8px; }
+  .profile-modal { max-height: calc(100vh - 16px); }
+}
