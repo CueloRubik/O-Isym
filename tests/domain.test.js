@@ -292,6 +292,7 @@ test('Focus alarm preferences normalize tone choices and volume safely', () => {
   assert.equal(fresh.preferences.focusEndTone, 'chime');
   assert.equal(fresh.preferences.breakEndTone, 'bell');
   assert.equal(fresh.preferences.focusAlarmVolume, 60);
+  assert.equal(fresh.preferences.focusReminderTone, 'soft');
   const restored = normalizeProfile({ name: 'Antiguo', preferences: { focusSound: true, focusNotifications: true } });
   assert.equal(restored.preferences.focusStartTone, 'off');
   assert.equal(restored.preferences.focusEndTone, 'chime');
@@ -307,6 +308,7 @@ test('Focus alarm preferences normalize tone choices and volume safely', () => {
   assert.equal(invalid.preferences.focusEndTone, 'chime');
   assert.equal(invalid.preferences.breakEndTone, 'bell');
   assert.equal(invalid.preferences.focusAlarmVolume, 0);
+  assert.equal(invalid.preferences.focusReminderTone, 'soft');
 });
 
 
