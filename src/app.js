@@ -35,7 +35,7 @@ const FOCUS_ALARM_CATALOG = [
 ];
 const musicTrackById = id => FOCUS_MUSIC_CATALOG.find(track => track.id === id) || null;
 const alarmSoundById = id => FOCUS_ALARM_CATALOG.find(sound => sound.id === id) || null;
-const alarmToneOptions = [{ value: 'off', label: 'Sin sonido' }, ...FOCUS_ALARM_CATALOG.map(sound => ({ value: sound.id, label: sound.name }))];
+const alarmToneOptions = FOCUS_ALARM_CATALOG.map(sound => ({ value: sound.id, label: sound.name }));
 const state = {
   snapshot: null,
   profile: null,
