@@ -675,3 +675,10 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 700px) {
   .insights-grid { grid-template-columns: minmax(0,1fr); }
 }
+
+
+/* Planificador: agenda y tareas pendientes en columnas relacionadas */
+.planner-layout { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(260px,.9fr); gap: 16px; align-items: start; }
+.planner-main-column, .planner-side-column { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
+.planner-side-column .form-card { box-shadow: none; }
+@media (max-width: 850px) { .planner-layout { grid-template-columns: minmax(0,1fr); } }
