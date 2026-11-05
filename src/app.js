@@ -53,7 +53,8 @@ const state = {
   selectedProfileId: null,
   settingsSection: 'profile',
   showTaskForm: false,
-  showActivityForm: false
+  showActivityForm: false,
+  showGoalForm: false
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -769,38 +770,46 @@ function renderFocus(main) {
   else stopFocusTicker();
 }
 function renderGoals(main) {
-  main.append(heading('Objetivos', 'Avanza poco a poco y revisa lo que importa.'));
-  const editing = state.editingGoalId ? goalById(state.editingGoalId) : null;
-  const form = element('form', 'form-card');
-  form.dataset.form = editing ? 'goal-edit' : 'goal';
-  form.append(element('h3', '', editing ? 'Editar objetivo' : 'Nuevo objetivo'));
-  form.append(field('Nombre', input('title', 'Ej. Practicar guitarra', 'text', editing?.title || '')));
-  form.append(field('Descripción', textarea('description', '¿Qué quieres conseguir?', editing?.description || '')));
-  const row = element('div', 'form-grid');
-  row.append(field('Meta numérica', input('target', '10', 'number', editing?.target || 10)), field('Unidad', input('unit', 'sesiones', 'text', editing?.unit || '')));
-  form.append(row, field('Fecha objetivo (opcional)', input('dueDate', '', 'date', editing?.dueDate || '')), button(editing ? 'Guardar cambios' : 'Crear objetivo', 'submit-form', 'button primary'));
-  if (editing) form.append(button('Cancelar', 'cancel-edit-goal', 'button secondary'));
-  main.append(form);
-  const list = card();
-  list.append(heading('En marcha', 'Actualiza el progreso cuando avances.'));
-  const goals = state.profile.goals.filter(goal => !goal.archived);
-  if (!goals.length) list.append(empty('Todavía no tienes objetivos', 'Define uno pequeño y concreto para comenzar.'));
-  goals.forEach(goal => {
-    const row = element('div', 'goal-row');
-    const top = element('div', 'goal-top');
-    top.append(element('strong', '', goal.title), element('span', 'muted', goal.progress + ' / ' + goal.target + ' ' + goal.unit));
-    const track = element('div', 'progress-track');
-    const fill = element('div', 'progress-fill');
-    fill.style.width = Math.min(100, goal.progress / goal.target * 100) + '%';
-    track.append(fill);
-    const actions = element('div', 'button-group');
-    actions.append(button('+1', 'goal-progress', 'button secondary small', { id: goal.id, amount: 1 }), button('−1', 'goal-progress', 'button secondary small', { id: goal.id, amount: -1 }), button('Editar', 'edit-goal', 'button secondary small', { id: goal.id }), button('Archivar', 'archive-goal', 'text-button', { id: goal.id }));
-    row.append(top, track, actions);
-    list.append(row);
+  const header=element('div','view-heading-row');
+  header.append(heading('Objetivos','Avanza poco a poco y revisa lo que importa.'));
+  const create=button('+ Nuevo objetivo','new-goal','button primary');create.id='goal-create-button';
+  header.append(create);main.append(header);
+  const goals=state.profile.goals.filter(goal=>!goal.archived);
+  const summary=card('goal-summary-card');
+  const total=goals.length,completed=goals.filter(goal=>goal.progress>=goal.target).length;
+  summary.append(element('strong','',''+total),element('span','muted',' objetivos activos'),element('span','goal-summary-completed',completed+' completados'));
+  main.append(summary);
+  const list=card('goal-list-card');
+  list.append(heading('En marcha','Actualiza el progreso cuando avances.'));
+  if(!goals.length)list.append(empty('Todavía no tienes objetivos','Define uno pequeño y concreto para comenzar.'));
+  goals.forEach(goal=>{
+    const row=element('div','goal-row');
+    const top=element('div','goal-top');
+    top.append(element('strong','',goal.title),element('span','muted',goal.progress+' / '+goal.target+' '+goal.unit));
+    const track=element('div','progress-track'),fill=element('div','progress-fill');
+    fill.style.width=Math.min(100,goal.progress/goal.target*100)+'%';track.append(fill);
+    const actions=element('div','button-group');
+    actions.append(button('+1','goal-progress','button secondary small',{id:goal.id,amount:1}),button('−1','goal-progress','button secondary small',{id:goal.id,amount:-1}),button('Editar','edit-goal','button secondary small',{id:goal.id}),button('Archivar','archive-goal','text-button',{id:goal.id}));
+    row.append(top,track,actions);list.append(row);
   });
   main.append(list);
+  const editing=state.editingGoalId?goalById(state.editingGoalId):null;
+  if(state.showGoalForm||editing){
+    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='goal-create-button';
+    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','goal-modal-title');
+    const form=element('form','form-card profile-modal-form');form.dataset.form=editing?'goal-edit':'goal';
+    const title=element('h2','',editing?'Editar objetivo':'Nuevo objetivo');title.id='goal-modal-title';form.append(title);
+    form.append(field('Nombre',input('title','Ej. Practicar guitarra','text',editing?.title||'')));
+    form.append(field('Descripción',textarea('description','¿Qué quieres conseguir?',editing?.description||'')));
+    const row=element('div','form-grid');
+    row.append(field('Meta numérica',input('target','10','number',editing?.target||10)),field('Unidad',input('unit','sesiones','text',editing?.unit||'')));
+    form.append(row,field('Fecha objetivo (opcional)',input('dueDate','','date',editing?.dueDate||'')));
+    const actions=element('div','form-actions');
+    actions.append(button(editing?'Guardar cambios':'Crear objetivo','submit-form','button primary'),button('Cancelar',editing?'cancel-edit-goal':'close-goal-form','button secondary'));
+    form.append(actions);dialog.append(form);overlay.append(dialog);main.append(overlay);
+    $('input[name="title"]',overlay)?.focus();
+  }
 }
-
 function renderInsights(main) {
   main.append(heading('Insights', 'Una mirada amable a tus hábitos y tu tiempo.'));
   const today = localDate();
@@ -1286,10 +1295,12 @@ async function handleSubmit(form) {
       if (!current) throw new Error('El objetivo que intentas editar ya no existe.');
       state.profile.goals = state.profile.goals.map(item => item.id === current.id ? updateGoal(item, data) : item);
       state.editingGoalId = null;
+      state.showGoalForm = false;
       await save();
       showToast('Objetivo actualizado.');
     } else if (form.dataset.form === 'goal') {
       state.profile.goals.unshift(createGoal(data));
+      state.showGoalForm = false;
       await save();
       showToast('Objetivo creado.');
     } else if (form.dataset.form === 'profile-settings') {
@@ -1407,7 +1418,7 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(focusId==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
@@ -1437,9 +1448,11 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
   if (action === 'new-task') { state.view='tasks';state.editingTaskId=null;state.showTaskForm=true;updateShell();return; }
   if (action === 'new-activity') { state.view='activities';state.editingActivityId=null;state.showActivityForm=true;updateShell();return; }
+  if (action === 'new-goal') { state.view='goals';state.editingGoalId=null;state.showGoalForm=true;updateShell();return; }
+  if (action === 'close-goal-form') { state.showGoalForm=false;state.editingGoalId=null;updateShell();$('#goal-create-button')?.focus();return; }
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
   if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
@@ -1466,7 +1479,7 @@ root.addEventListener('click', async event => {
     showToast('Perfil exportado.');
     return;
   }
-  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(focusId==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
   if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(age.value&&!age.checkValidity()){age.focus();return showToast('La edad debe estar entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme&&age.value)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
@@ -1679,12 +1692,13 @@ root.addEventListener('click', async event => {
   if (action === 'edit-goal') {
     if (!goalById(id)) return;
     state.editingGoalId = id;
+    state.showGoalForm = true;
     state.view = 'goals';
     updateShell();
     const titleInput = $('.form-card input[name="title"]');
     if (titleInput) { titleInput.focus(); titleInput.select(); }
   }
-  if (action === 'cancel-edit-goal') { state.editingGoalId = null; updateShell(); }
+  if (action === 'cancel-edit-goal') { state.editingGoalId = null; state.showGoalForm=false; updateShell(); }
   if (action === 'archive-goal') {
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, archived: true } : goal);
     if (state.editingGoalId === id) state.editingGoalId = null;
@@ -1829,6 +1843,7 @@ document.addEventListener('keydown', event => {
     if(profileModal.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
     if(profileModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}
     if(profileModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}
+    if(profileModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}
     profileModal.remove();
     if(profileModal.dataset.returnFocus)document.getElementById(profileModal.dataset.returnFocus)?.focus();else $('.profile-add')?.focus();
     return;
