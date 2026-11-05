@@ -51,6 +51,12 @@ function createProfile(name, color = '#27856b', age = null) {
       focusMinutes: 25,
       breakMinutes: 5,
       focusNotifications: true,
+      taskNotificationsEnabled: true,
+      taskNotificationScope: 'all',
+      taskNotificationLeadMinutes: 0,
+      taskNotificationSound: true,
+      taskNotificationMissed: 'notify',
+      launchAtLogin: false,
       focusEndAlarmEnabled: true,
       focusEndTone: 'clock',
       focusAlarmVolume: 70,
@@ -93,6 +99,12 @@ function normalizeProfile(profile) {
       focusMinutes: clampNumber(preferences.focusMinutes, 5, 180, 25),
       breakMinutes: clampNumber(preferences.breakMinutes, 1, 60, 5),
       focusNotifications: preferences.focusNotifications !== false,
+      taskNotificationsEnabled: preferences.taskNotificationsEnabled !== false,
+      taskNotificationScope: ['all', 'activity', 'high'].includes(preferences.taskNotificationScope) ? preferences.taskNotificationScope : 'all',
+      taskNotificationLeadMinutes: [0, 5, 10, 15, 30, 60].includes(Number(preferences.taskNotificationLeadMinutes)) ? Number(preferences.taskNotificationLeadMinutes) : 0,
+      taskNotificationSound: preferences.taskNotificationSound !== false,
+      taskNotificationMissed: preferences.taskNotificationMissed === 'skip' ? 'skip' : 'notify',
+      launchAtLogin: preferences.launchAtLogin === true,
       focusEndAlarmEnabled: preferences.focusEndAlarmEnabled === undefined ? preferences.focusSound !== false && normalizeAlarmTone(preferences.focusEndTone, 'clock') !== 'off' : preferences.focusEndAlarmEnabled !== false,
       focusEndTone: normalizeAlarmTone(preferences.focusEndTone, 'clock') === 'off' ? 'clock' : normalizeAlarmTone(preferences.focusEndTone, 'clock'),
       focusAlarmVolume: clampNumber(preferences.focusAlarmVolume, 0, 100, 70),
@@ -259,6 +271,9 @@ function validateTaskSchedule(task) {
   if (task.startTime && task.endTime <= task.startTime) {
     throw new Error('La hora de fin debe ser posterior al inicio.');
   }
+  if (task.reminderEnabled !== undefined && typeof task.reminderEnabled !== 'boolean') {
+    throw new Error('La preferencia de notificación de la tarea no es válida.');
+  }
 }
 
 function createTask(input) {
@@ -275,6 +290,7 @@ function createTask(input) {
     scheduledDate: input.scheduledDate || '',
     startTime: input.startTime || '',
     endTime: input.endTime || '',
+    reminderEnabled: input.reminderEnabled !== false,
     locked: Boolean(input.locked),
     activityId: input.activityId || null,
     createdAt: new Date().toISOString(),
@@ -299,6 +315,7 @@ function updateTask(task, patch) {
   }
   if (patch.estimatedMinutes !== undefined) next.estimatedMinutes = clampNumber(patch.estimatedMinutes, 5, 1440, 30);
   if (patch.locked !== undefined) next.locked = Boolean(patch.locked);
+  if (patch.reminderEnabled !== undefined) next.reminderEnabled = patch.reminderEnabled === true;
   if (patch.activityId !== undefined) next.activityId = patch.activityId || null;
   validateTaskSchedule(next);
   if (patch.status === 'done') next.completedAt = new Date().toISOString();
