@@ -344,24 +344,20 @@ p { line-height: 1.55; }
 .recovery-screen .recovery-note { font-size: 12px; color: var(--muted); }
 
 
-/* Alarmas configurables de Focus */
-.focus-alarm-settings { width: min(480px, 100%); display: flex; flex-direction: column; gap: 12px; margin: 2px 0 18px; padding: 17px; border: 1px solid var(--line); border-radius: 13px; background: #fff; text-align: left; }
-.focus-alarm-settings h3 { margin: 0; }
-.focus-alarm-settings > .small-note { margin-top: -7px; }
-.focus-alarm-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 9px; }
-.focus-alarm-row .field { min-width: 0; }
-.focus-alarm-row .button { min-width: 74px; }
-.focus-volume-value { align-self: flex-end; color: var(--accent-dark); font-size: 12px; font-weight: 700; }
-.focus-alarm-settings input[type="range"] { min-height: 22px; padding: 0; accent-color: var(--accent); }
-.focus-alarm-settings .focus-options { justify-content: flex-start; margin: 2px 0 0; }
-@media (max-width: 480px) { .focus-alarm-settings { padding: 13px; } .focus-alarm-row { grid-template-columns: minmax(0, 1fr) auto; } }
-
+/* Controles de audio de Focus */
+.focus-alarm-settings{width:min(520px,100%);display:flex;flex-direction:column;gap:12px;margin:2px 0 18px;padding:17px;border:1px solid var(--line);border-radius:13px;background:#fff;text-align:left}
+.focus-alarm-settings h3{margin:0}.focus-alarm-settings>.small-note{margin-top:-7px}
+.focus-alarm-pattern{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.focus-alarm-pattern .field{min-width:0}
+.focus-audio-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.focus-audio-stop-control{position:fixed;z-index:1000;right:18px;bottom:18px;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 8px 30px rgba(30,50,40,.16)}
+.focus-audio-stop-control span{font-size:13px;font-weight:700}
+@media(max-width:520px){.focus-alarm-settings{padding:13px}.focus-alarm-pattern{grid-template-columns:1fr}.focus-audio-stop-control{right:10px;bottom:10px;left:10px;justify-content:space-between}}
 
 /* Focus: música en bucle y controles de audio */
 .focus-music-settings { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; margin: 2px 0 18px; padding: 18px; border: 1px solid #dce9e1; border-radius: 14px; background: #f8fbf8; text-align: left; }
 .focus-music-settings h3 { margin: 0; }
 .focus-music-settings > .small-note { margin-top: -7px; }
-.focus-music-controls { display: grid; grid-template-columns: auto minmax(150px, 1fr); align-items: end; gap: 14px; }
+.focus-music-controls { display: grid; grid-template-columns: repeat(2, max-content) minmax(150px, 1fr); align-items: end; gap: 10px; }
 .focus-music-controls .field { min-width: 0; }
 .focus-music-controls input[type="range"] { min-height: 22px; padding: 0; accent-color: var(--accent); }
 .music-description { min-height: 18px; }
