@@ -357,15 +357,21 @@ function renderTaskList(parent, tasks, options = {}) {
     const content = element('div', 'task-content');
     content.append(element('strong', task.status === 'done' ? 'completed' : '', task.title));
     const meta = element('div', 'task-meta');
-    if (task.scheduledDate) meta.append(element('span', 'meta-chip schedule-date-chip', dateLabel(task.scheduledDate, { weekday: 'short', day: 'numeric', month: 'short' })));
+    const activity = activityById(task.activityId);
+    if (task.scheduledDate) meta.append(element('span', 'meta-chip schedule-date-chip', 'Programada · ' + dateLabel(task.scheduledDate, { weekday: 'short', day: 'numeric', month: 'short' })));
+    if (task.dueDate) meta.append(element('span', 'meta-chip due-date-chip', 'Vence · ' + dateLabel(task.dueDate, { day: 'numeric', month: 'short' })));
     if (task.startTime) meta.append(element('span', 'meta-chip schedule-time-chip', 'Hora · ' + task.startTime + (task.endTime ? '–' + task.endTime : '')));
     if (task.status === 'pending' && task.scheduledDate && task.startTime) {
-      if (task.reminderEnabled !== false) meta.append(iconImage('notifications/task-reminder.png', '', 'task-reminder-icon'), element('span', 'meta-chip task-reminder-chip', 'Aviso activado'));
-      else meta.append(element('span', 'meta-chip task-reminder-muted', 'Aviso desactivado'));
+      const reminderPreferences = state.profile.preferences || {};
+      const scope = reminderPreferences.taskNotificationScope || 'all';
+      const inScope = scope === 'all' || (scope === 'activity' && activity && !activity.archived) || (scope === 'high' && task.priority === 'high');
+      if (task.reminderEnabled === false) meta.append(element('span', 'meta-chip task-reminder-muted', 'Aviso desactivado'));
+      else if (reminderPreferences.taskNotificationsEnabled === false) meta.append(element('span', 'meta-chip task-reminder-muted', 'Avisos globales desactivados'));
+      else if (!inScope) meta.append(element('span', 'meta-chip task-reminder-muted', 'Fuera del filtro'));
+      else meta.append(iconImage('notifications/task-reminder.png', '', 'task-reminder-icon'), element('span', 'meta-chip task-reminder-chip', 'Aviso activado'));
     }
     meta.append(iconImage('tasks/priority.png', '', 'meta-icon'), element('span', 'meta-chip ' + priorityClass(task.priority), priorityLabel(task.priority)));
     if (task.locked) meta.append(element('span', 'meta-chip locked-chip', 'Bloqueada'));
-    const activity = activityById(task.activityId);
     if (activity) meta.append(element('span', 'meta-chip', activity.name));
     if (task.description) meta.append(element('span', 'task-description', task.description));
     content.append(meta);
