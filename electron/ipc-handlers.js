@@ -13,7 +13,7 @@ function isTrustedMainFrame(event, BrowserWindow, indexPath) {
   }
 }
 
-function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications }) {
+function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications, taskNotifications, app }) {
   const assertTrusted = event => {
     if (!isTrustedMainFrame(event, BrowserWindow, indexPath)) {
       throw new Error('Solicitud IPC no autorizada.');
@@ -27,7 +27,9 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
 
   ipcMain.handle('oisym:storage:save', async (event, snapshot) => {
     assertTrusted(event);
-    return storage.save(snapshot);
+    const saved = await storage.save(snapshot);
+    if (taskNotifications) taskNotifications.scheduleSnapshot(saved);
+    return saved;
   });
 
   ipcMain.handle('oisym:storage:recovery:list', async event => {
@@ -43,6 +45,24 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
   ipcMain.handle('oisym:storage:recovery:restore', async (event, name) => {
     assertTrusted(event);
     return storage.recovery.restoreBackup(name);
+  });
+
+  ipcMain.handle('oisym:notifications:status', event => {
+    assertTrusted(event);
+    const login = app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings() : {};
+    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true };
+  });
+
+  ipcMain.handle('oisym:notifications:test', event => {
+    assertTrusted(event);
+    return taskNotifications ? taskNotifications.sendTestNotification() : false;
+  });
+
+  ipcMain.handle('oisym:notifications:launch-at-login', (event, enabled) => {
+    assertTrusted(event);
+    if (typeof enabled !== 'boolean' || !app || typeof app.setLoginItemSettings !== 'function') return false;
+    app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: enabled });
+    return app.getLoginItemSettings().openAtLogin === enabled;
   });
 
   ipcMain.handle('oisym:focus:notifications:schedule', (event, payload) => {
