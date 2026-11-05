@@ -486,7 +486,7 @@ Primera entrega de código realizada en `oisym-5-development`:
 - [x] Confirmación al descartar cambios del modal y corrección del foco del teclado.
 - [x] Importación individual de perfiles con validación del formato, versión, nombre, arrays y preferencias; los IDs repetidos se regeneran y el perfil se añade sin activarlo.
 - [x] Diálogo visual de duplicación, con explicación de los datos que se copian y los que se dejan fuera.
-- [ ] Reorganización visual final de Hoy y Focus; Tareas, Actividades, Calendario, Planificador, Objetivos e Insights ya tienen una primera pasada de distribución.
+- [ ] Reorganización visual final de Hoy; Tareas, Actividades, Calendario, Planificador, Objetivos e Insights ya tienen una primera pasada de distribución. En Focus, los controles principales de iniciar/pausar/descansar se movieron encima de las preferencias de sonido para evitar tener que desplazarse para iniciar una sesión.
 - [x] Formularios de Tareas, Actividades y Objetivos movidos a diálogos contextuales; acciones primarias colocadas en sus encabezados.
 - [x] Calendario e Insights agrupados en cuadrículas adaptables; Planificador dividido en agenda y panel de tareas por organizar.
 - [x] Guardado fallido de tareas, actividades y objetivos conserva el formulario abierto y revierte el cambio en memoria.
