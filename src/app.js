@@ -1068,7 +1068,7 @@ function previewFocusMusic(){
  stopFocusAlarmPlayback();
  focusAudioController.previewMusic('assets/audio/music/'+track.id+'.mp3',Math.max(0,Math.min(100,Number(state.profile.preferences.focusMusicVolume??35)))/100,20000);
 }
-function notifyFocusFinishedfunction notifyFocusFinished(taskTitle,isBreak=false){if(!isBreak){stopFocusMusic();playFocusAlarm(false);}if(!window.oisym.focusAlarms&&state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='granted'){try{new Notification(isBreak?'Descanso terminado':'Focus terminado',{body:isBreak?'Tu descanso terminó. Puedes volver a concentrarte.':(taskTitle?'Terminaste tu sesión de '+taskTitle+'.':'Terminaste tu sesión de concentración.'),silent:true});}catch(error){}}}
+function notifyFocusFinished(taskTitle,isBreak=false){if(!isBreak){stopFocusMusic();playFocusAlarm(false);}if(!window.oisym.focusAlarms&&state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='granted'){try{new Notification(isBreak?'Descanso terminado':'Focus terminado',{body:isBreak?'Tu descanso terminó. Puedes volver a concentrarte.':(taskTitle?'Terminaste tu sesión de '+taskTitle+'.':'Terminaste tu sesión de concentración.'),silent:true});}catch(error){}}}
 function updateFocusDurationSuggestion() {
   const taskId = $('#focus-task')?.value || null;
   const activityId = $('#focus-activity')?.value || null;
