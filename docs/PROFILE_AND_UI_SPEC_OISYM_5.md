@@ -484,8 +484,8 @@ Primera entrega de código realizada en `oisym-5-development`:
 - [x] Adaptación responsive inicial para Perfiles y Ajustes.
 - [x] Ajustes de recuperación de estado Focus al cambiar/crear/eliminar perfil.
 - [x] Confirmación al descartar cambios del modal y corrección del foco del teclado.
-- [ ] Importación individual de perfiles con validación completa.
-- [ ] Diálogo visual de duplicación (actualmente utiliza el prompt nativo).
+- [x] Importación individual de perfiles con validación del formato, versión, nombre, arrays y preferencias; los IDs repetidos se regeneran y el perfil se añade sin activarlo.
+- [x] Diálogo visual de duplicación, con explicación de los datos que se copian y los que se dejan fuera.
 - [ ] Reorganización de Hoy, Tareas, Actividades, Calendario, Planificador, Focus, Objetivos e Insights.
 - [ ] Pruebas manuales visuales en macOS Catalina y ventanas estrechas.
 - [ ] Ampliar pruebas automatizadas de los recorridos de perfil.
