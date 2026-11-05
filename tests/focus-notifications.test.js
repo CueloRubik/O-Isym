@@ -54,22 +54,22 @@ test('Focus scheduler sends periodic reminders and one completion notification',
   const h = makeHarness();
   const start = Date.parse('2026-11-04T12:00:00.000Z');
   h.scheduler.schedule({
-    endsAt: new Date(start + 30000).toISOString(),
-    nextReminderAt: new Date(start + 10000).toISOString(),
+    endsAt: new Date(start + 1800000).toISOString(),
+    nextReminderAt: new Date(start + 600000).toISOString(),
     reminderMinutes: 10,
     taskTitle: 'Estudiar matemáticas'
   });
 
-  h.advance(10000);
+  h.advance(600000);
   assert.equal(h.notifications.length, 1);
   assert.equal(h.notifications[0].title, 'Pausa breve');
   assert.match(h.notifications[0].body, /Estudiar matemáticas/);
 
-  h.advance(10000);
+  h.advance(600000);
   assert.equal(h.notifications.length, 2);
   assert.equal(h.notifications[1].title, 'Pausa breve');
 
-  h.advance(10000);
+  h.advance(600000);
   assert.equal(h.notifications.length, 3);
   assert.equal(h.notifications[2].title, 'Focus terminado');
   h.advance(60000);
@@ -81,18 +81,18 @@ test('Focus scheduler sends at most one reminder after sleep and catches up at t
   const h = makeHarness();
   const start = Date.parse('2026-11-04T12:00:00.000Z');
   h.scheduler.schedule({
-    endsAt: new Date(start + 30000).toISOString(),
-    nextReminderAt: new Date(start + 10000).toISOString(),
+    endsAt: new Date(start + 1800000).toISOString(),
+    nextReminderAt: new Date(start + 600000).toISOString(),
     reminderMinutes: 10,
     taskTitle: 'Lectura'
   });
 
-  h.sleep(15000);
+  h.sleep(900000);
   h.resume();
   assert.equal(h.notifications.length, 1);
   assert.equal(h.notifications[0].title, 'Pausa breve');
 
-  h.sleep(20000);
+  h.sleep(1200000);
   h.resume();
   assert.equal(h.notifications.length, 2);
   assert.equal(h.notifications[1].title, 'Focus terminado');
