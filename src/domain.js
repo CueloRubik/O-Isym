@@ -277,6 +277,7 @@ function validateTaskSchedule(task) {
 }
 
 function createTask(input) {
+  if (input.reminderEnabled !== undefined && typeof input.reminderEnabled !== 'boolean') throw new Error('La preferencia de notificación debe ser booleana.');
   const title = String(input.title || '').trim();
   if (!title) throw new Error('Escribe un título para la tarea.');
   const task = {
@@ -315,7 +316,10 @@ function updateTask(task, patch) {
   }
   if (patch.estimatedMinutes !== undefined) next.estimatedMinutes = clampNumber(patch.estimatedMinutes, 5, 1440, 30);
   if (patch.locked !== undefined) next.locked = Boolean(patch.locked);
-  if (patch.reminderEnabled !== undefined) next.reminderEnabled = patch.reminderEnabled === true;
+  if (patch.reminderEnabled !== undefined) {
+    if (typeof patch.reminderEnabled !== 'boolean') throw new Error('La preferencia de notificación debe ser booleana.');
+    next.reminderEnabled = patch.reminderEnabled;
+  }
   if (patch.activityId !== undefined) next.activityId = patch.activityId || null;
   validateTaskSchedule(next);
   if (patch.status === 'done') next.completedAt = new Date().toISOString();
