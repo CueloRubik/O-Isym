@@ -13,7 +13,7 @@ function isTrustedMainFrame(event, BrowserWindow, indexPath) {
   }
 }
 
-function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath }) {
+function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications }) {
   const assertTrusted = event => {
     if (!isTrustedMainFrame(event, BrowserWindow, indexPath)) {
       throw new Error('Solicitud IPC no autorizada.');
@@ -43,6 +43,17 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath }) {
   ipcMain.handle('oisym:storage:recovery:restore', async (event, name) => {
     assertTrusted(event);
     return storage.recovery.restoreBackup(name);
+  });
+
+  ipcMain.handle('oisym:focus:notifications:schedule', (event, payload) => {
+    assertTrusted(event);
+    return focusNotifications ? focusNotifications.schedule(payload) : false;
+  });
+
+  ipcMain.handle('oisym:focus:notifications:cancel', event => {
+    assertTrusted(event);
+    if (focusNotifications) focusNotifications.cancel();
+    return true;
   });
 }
 
