@@ -47,7 +47,7 @@ function createTray() {
   tray.setToolTip('O-Isym · Recordatorios');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir O-Isym', click: showMainWindow },
-    { label: 'Recordatorios de tareas activos en segundo plano', enabled: false },
+    { label: 'La app sigue activa al cerrar la ventana', enabled: false },
     { type: 'separator' },
     { label: 'Salir de O-Isym', click: () => app.quit() }
   ]));
@@ -108,7 +108,7 @@ function createWindow(options = {}) {
 let focusNotifications = null;
 let taskNotifications = null;
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   try {
     const storage = createStorage(app.getPath('userData'));
     focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor, hasWindow: () => BrowserWindow.getAllWindows().length > 0 });
@@ -121,8 +121,12 @@ app.whenReady().then(() => {
     });
     registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications, taskNotifications, app });
     createTray();
-    storage.read().then(snapshot => taskNotifications.scheduleSnapshot(snapshot)).catch(error => reportStartupError('No se pudieron cargar los recordatorios', error));
-    const launchedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
+    const loginSettings = app.getLoginItemSettings();
+    const initialSnapshot = await storage.read();
+    taskNotifications.scheduleSnapshot(initialSnapshot);
+    const activeProfile = initialSnapshot.profiles.find(profile => profile.id === initialSnapshot.activeProfileId);
+    app.setLoginItemSettings({ openAtLogin: activeProfile?.preferences?.launchAtLogin === true, openAsHidden: true });
+    const launchedAtLogin = process.platform === 'darwin' && loginSettings.wasOpenedAtLogin;
     createWindow({ show: !launchedAtLogin });
 
     app.on('activate', () => showMainWindow());
