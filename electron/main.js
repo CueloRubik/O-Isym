@@ -9,6 +9,7 @@ const { Menu, Tray, nativeImage } = require('electron');
 
 const indexPath = path.join(__dirname, '..', 'index.html');
 const reminderIconPath = path.join(__dirname, '..', 'assets', 'icons', 'notifications', 'task-reminder.png');
+const appIconPath = path.join(__dirname, '..', 'assets', 'icons', 'app.png');
 
 // Evita fallos de inicialización gráfica en Macs antiguos con GPU Intel integrada.
 app.disableHardwareAcceleration();
@@ -40,11 +41,12 @@ function showMainWindow() {
 
 function createTray() {
   if (process.platform !== 'darwin' || tray) return;
-  let image = nativeImage.createFromPath(reminderIconPath);
+  let image = nativeImage.createFromPath(appIconPath);
   if (image.isEmpty()) image = nativeImage.createFromPath(path.join(__dirname, '..', 'app.icns'));
+  if (image.isEmpty()) image = nativeImage.createFromPath(reminderIconPath);
   if (!image.isEmpty()) image = image.resize({ width: 18, height: 18 });
   tray = new Tray(image);
-  tray.setToolTip('O-Isym · Recordatorios');
+  tray.setToolTip('O-Isym');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir O-Isym', click: showMainWindow },
     { label: 'La app sigue activa al cerrar la ventana', enabled: false },
