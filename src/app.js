@@ -667,6 +667,25 @@ function renderFocus(main) {
   focusCard.append(field(focus?.isBreak ? 'Duración del descanso' : 'Duración de esta sesión (5–180 min)', durationInput));
   const durationHint = activity ? 'Sugerencia de la actividad «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
   focusCard.append(element('p', 'muted focus-hint', durationHint));
+  const actions = element('div', 'button-group center');
+  if (!focus) {
+    actions.append(button('Comenzar a concentrarme', 'focus-start', 'button primary large'));
+    actions.append(button('Tomar descanso · ' + state.profile.preferences.breakMinutes + ' min', 'focus-break', 'button secondary'));
+  }
+  else {
+    actions.append(button(focus.pausedAt ? 'Reanudar' : 'Pausar', 'focus-toggle', 'button primary large'));
+    actions.append(button('Terminar sesión', 'focus-stop', 'button secondary'));
+  }
+  if (focus) actions.append(button('Reiniciar', 'focus-reset', 'button ghost'));
+  focusCard.append(actions);
+  if (focus) {
+    const elapsed = getFocusElapsedSeconds(focus);
+    focusCard.append(element('p', 'muted center-text', (focus.isBreak ? 'Tiempo de descanso: ' : 'Tiempo concentrado: ') + Math.floor(elapsed / 60) + ' min · Al terminar recibirás un aviso.'));
+  } else {
+    focusCard.append(element('p', 'muted center-text', 'Al comenzar, puedes dejar esta pantalla y dedicarte a tu actividad. O-Isym te avisará al terminar.'));
+  }
+
+  focusCard.append(element('h3','focus-settings-heading','Sonido y avisos'));
   const musicOptions = element('div', 'focus-music-settings');
   musicOptions.append(element('h3', '', 'Música para concentrarte'));
   musicOptions.append(element('p', 'muted small-note', 'Elige un ambiente para acompañar Focus. La pista se repite en bucle durante la sesión y el descanso, hasta que pauses o termines. Puedes escuchar una vista previa antes de elegir.'));
@@ -714,23 +733,6 @@ function renderFocus(main) {
   notificationLabel.append(notifications,element('span','','Mostrar notificación del sistema al terminar'));alarmOptions.append(notificationLabel);
   alarmOptions.append(element('p','small-note','El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
   focusCard.append(alarmOptions);
-  const actions = element('div', 'button-group center');
-  if (!focus) {
-    actions.append(button('Comenzar a concentrarme', 'focus-start', 'button primary large'));
-    actions.append(button('Tomar descanso · ' + state.profile.preferences.breakMinutes + ' min', 'focus-break', 'button secondary'));
-  }
-  else {
-    actions.append(button(focus.pausedAt ? 'Reanudar' : 'Pausar', 'focus-toggle', 'button primary large'));
-    actions.append(button('Terminar sesión', 'focus-stop', 'button secondary'));
-  }
-  if (focus) actions.append(button('Reiniciar', 'focus-reset', 'button ghost'));
-  focusCard.append(actions);
-  if (focus) {
-    const elapsed = getFocusElapsedSeconds(focus);
-    focusCard.append(element('p', 'muted center-text', (focus.isBreak ? 'Tiempo de descanso: ' : 'Tiempo concentrado: ') + Math.floor(elapsed / 60) + ' min · Al terminar recibirás un aviso.'));
-  } else {
-    focusCard.append(element('p', 'muted center-text', 'Al comenzar, puedes dejar esta pantalla y dedicarte a tu actividad. O-Isym te avisará al terminar.'));
-  }
   main.append(focusCard);
   const sessions = state.profile.focusSessions.slice().reverse();
   const today = localDate();
