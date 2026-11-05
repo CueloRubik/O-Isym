@@ -121,11 +121,12 @@ app.whenReady().then(async () => {
     });
     registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications, taskNotifications, app });
     createTray();
-    const loginSettings = app.getLoginItemSettings();
+    const supportsLoginItems = process.platform === 'darwin' || process.platform === 'win32';
+    const loginSettings = supportsLoginItems ? app.getLoginItemSettings() : {};
     const initialSnapshot = await storage.read();
     taskNotifications.scheduleSnapshot(initialSnapshot);
     const activeProfile = initialSnapshot.profiles.find(profile => profile.id === initialSnapshot.activeProfileId);
-    app.setLoginItemSettings({ openAtLogin: activeProfile?.preferences?.launchAtLogin === true, openAsHidden: true });
+    if (supportsLoginItems) app.setLoginItemSettings({ openAtLogin: activeProfile?.preferences?.launchAtLogin === true, openAsHidden: true });
     const launchedAtLogin = process.platform === 'darwin' && loginSettings.wasOpenedAtLogin;
     createWindow({ show: !launchedAtLogin });
 
