@@ -113,6 +113,42 @@ function normalizeProfile(profile) {
   };
 }
 
+function validateImportedProfile(profile) {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) throw new TypeError('El perfil importado no es un objeto válido.');
+  if (typeof profile.name !== 'string' || !profile.name.trim() || profile.name.length > 60) throw new TypeError('El nombre del perfil importado no es válido.');
+  if (profile.preferences !== undefined && (!profile.preferences || typeof profile.preferences !== 'object' || Array.isArray(profile.preferences))) throw new TypeError('Las preferencias del perfil no son válidas.');
+
+  const limits = { tasks: 10000, activities: 1000, goals: 1000, focusSessions: 10000 };
+  const collections = ['tasks', 'activities', 'goals', 'focusSessions'];
+  for (const key of collections) {
+    const items = profile[key] === undefined ? [] : profile[key];
+    if (!Array.isArray(items) || items.length > limits[key]) throw new TypeError('La colección ' + key + ' del perfil no es válida.');
+    const ids = new Set();
+    for (const item of items) {
+      if (!item || typeof item !== 'object' || Array.isArray(item) || typeof item.id !== 'string' || !item.id || ids.has(item.id)) {
+        throw new TypeError('Hay registros inválidos o identificadores repetidos en ' + key + '.');
+      }
+      ids.add(item.id);
+      if (key === 'tasks') {
+        if (typeof item.title !== 'string' || !item.title.trim() || item.title.length > 140) throw new TypeError('Una tarea importada tiene un título inválido.');
+        if (!['pending', 'done'].includes(item.status) || !['low', 'medium', 'high'].includes(item.priority)) throw new TypeError('Una tarea importada tiene un estado o prioridad inválidos.');
+        validateTaskSchedule(item);
+      } else if (key === 'activities') {
+        if (typeof item.name !== 'string' || !item.name.trim() || item.name.length > 90) throw new TypeError('Una actividad importada tiene un nombre inválido.');
+      } else if (key === 'goals') {
+        if (typeof item.title !== 'string' || !item.title.trim() || item.title.length > 100 || !Number.isFinite(Number(item.target)) || Number(item.target) < 1) throw new TypeError('Un objetivo importado no es válido.');
+        if (item.dueDate && !isValidDateKey(item.dueDate)) throw new TypeError('Un objetivo importado tiene una fecha inválida.');
+      } else {
+        if (!isValidTimestamp(item.startedAt) || !isValidTimestamp(item.endedAt) || !Number.isFinite(Number(item.durationSeconds)) || Number(item.durationSeconds) < 0) throw new TypeError('Una sesión Focus importada no es válida.');
+      }
+    }
+  }
+  if (profile.activeFocus !== undefined && profile.activeFocus !== null && (!profile.activeFocus || typeof profile.activeFocus !== 'object' || Array.isArray(profile.activeFocus))) {
+    throw new TypeError('La sesión Focus activa del perfil no es válida.');
+  }
+  return true;
+}
+
 function clampNumber(value, min, max, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
