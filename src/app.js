@@ -606,7 +606,8 @@ function renderFocus(main) {
   const toneRows = [
     ['Inicio de Focus', 'focusStartTone', state.profile.preferences.focusStartTone || 'off', 'start'],
     ['Fin de Focus', 'focusEndTone', state.profile.preferences.focusEndTone || 'chime', 'focus-end'],
-    ['Fin del descanso', 'breakEndTone', state.profile.preferences.breakEndTone || 'bell', 'break-end']
+    ['Fin del descanso', 'breakEndTone', state.profile.preferences.breakEndTone || 'bell', 'break-end'],
+    ['Recordatorio', 'focusReminderTone', state.profile.preferences.focusReminderTone || 'soft', 'reminder']
   ];
   toneRows.forEach(([label, name, value, kind]) => {
     const row = element('div', 'focus-alarm-row');
@@ -1019,7 +1020,7 @@ async function prepareFocusAlarm() {
 function playFocusAlarm(kind = 'focus-end', preview = false) {
   if ((!preview && state.profile.preferences.focusSound === false) || !focusAudioContext || focusAudioContext.state !== 'running') return;
   const preferences = state.profile.preferences;
-  const tone = kind === 'start' ? preferences.focusStartTone : kind === 'break-end' ? preferences.breakEndTone : preferences.focusEndTone;
+  const tone = kind === 'start' ? preferences.focusStartTone : kind === 'break-end' ? preferences.breakEndTone : kind === 'reminder' ? preferences.focusReminderTone : preferences.focusEndTone;
   if (!tone || tone === 'off') return;
   const presets = {
     chime: { frequencies: [660, 784, 988], wave: 'sine', gap: 0.34, duration: 0.28 },
@@ -1089,7 +1090,9 @@ function syncFocusNotificationSchedule() {
     endsAt: new Date(endAt).toISOString(),
     isBreak: focus.isBreak === true,
     taskTitle: taskById(focus.taskId)?.title || focus.activityTitle || '',
-    soundEnabled: state.profile.preferences.focusSound !== false,
+    soundEnabled: state.profile.preferences.focusSound !== false && (focus.isBreak ? state.profile.preferences.breakEndTone : state.profile.preferences.focusEndTone) !== 'off',
+    reminderTone: state.profile.preferences.focusReminderTone || 'soft',
+    endTone: focus.isBreak ? state.profile.preferences.breakEndTone : state.profile.preferences.focusEndTone,
     reminderMinutes: intervalMinutes,
     nextReminderAt
   }).catch(() => {});
@@ -1546,7 +1549,7 @@ root.addEventListener('change', event => {
     state.profile.preferences[event.target.name] = event.target.checked;
     save();
   }
-  if (['focusStartTone', 'focusEndTone', 'breakEndTone', 'focusAlarmVolume', 'focusReminderMinutes'].includes(event.target.name)) {
+  if (['focusStartTone', 'focusEndTone', 'breakEndTone', 'focusReminderTone', 'focusAlarmVolume', 'focusReminderMinutes'].includes(event.target.name)) {
     state.profile.preferences[event.target.name] = event.target.name === 'focusAlarmVolume'
       ? clampNumber(event.target.value, 0, 100, 60)
       : event.target.name === 'focusReminderMinutes'
