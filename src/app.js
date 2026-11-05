@@ -1,7 +1,7 @@
 const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
-  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge
+  validateSnapshot, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_REMINDER_INTERVALS
 } = window.OIsymDomain;
 
 const root = document.getElementById('app');
@@ -621,6 +621,10 @@ function renderFocus(main) {
   const volumeValue = element('span', 'focus-volume-value', String(volume.value) + '%');
   volumeField.append(volumeValue);
   alarmOptions.append(volumeField);
+  const reminder = select('focusReminderMinutes', FOCUS_REMINDER_INTERVALS.map(minutes => ({ value: String(minutes), label: minutes === 0 ? 'Desactivados' : 'Cada ' + minutes + ' minutos' })), String(state.profile.preferences.focusReminderMinutes || 0));
+  reminder.disabled = Boolean(focus);
+  alarmOptions.append(field('Recordatorios durante Focus', reminder));
+  alarmOptions.append(element('p', 'small-note', 'Los recordatorios se envían mientras la aplicación sigue abierta, aunque la ventana esté cerrada o minimizada. Si sales de O-Isym por completo, no se ejecutarán. macOS también debe permitir sus notificaciones.'));
   const toggles = element('div', 'focus-options');
   const soundLabel = element('label', 'focus-option');
   const sound = input('focusSound', '', 'checkbox'); sound.checked = state.profile.preferences.focusSound !== false; sound.disabled = Boolean(focus);
@@ -1045,7 +1049,7 @@ function playFocusAlarm(kind = 'focus-end', preview = false) {
 }
 function notifyFocusFinished(taskTitle, isBreak = false) {
   playFocusAlarm(isBreak ? 'break-end' : 'focus-end');
-  if (state.profile.preferences.focusNotifications !== false && 'Notification' in window && Notification.permission === 'granted') {
+  if (!window.oisym.focusAlarms && state.profile.preferences.focusNotifications !== false && 'Notification' in window && Notification.permission === 'granted') {
     const title = isBreak ? 'Descanso terminado' : 'Focus terminado';
     const body = isBreak ? 'Tu descanso terminó. Cuando quieras, puedes comenzar otra sesión.' : (taskTitle ? 'Terminaste tu sesión de ' + taskTitle + '. Tómate un descanso.' : 'Terminaste tu sesión de concentración. Tómate un descanso.');
     try { new Notification(title, { body }); } catch (error) {}
@@ -1059,6 +1063,35 @@ function updateFocusDurationSuggestion() {
   const activity = activityById(activityId);
   const hint = $('.focus-hint');
   if (hint) hint.textContent = activity ? 'Duración sugerida de «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla solo para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
+}
+function syncFocusNotificationSchedule() {
+  const focus = state.profile?.activeFocus;
+  const alarms = window.oisym?.focusAlarms;
+  if (!alarms) return;
+  if (!focus || focus.pausedAt || state.profile.preferences.focusNotifications === false) {
+    alarms.cancel().catch(() => {});
+    return;
+  }
+  const remainingSeconds = getFocusRemainingSeconds(focus);
+  const endAt = Date.parse(focus.startedAt) + (focus.durationSeconds - (Number(focus.elapsedBeforePause) || 0)) * 1000;
+  const intervalMinutes = focus.isBreak ? 0 : Number(state.profile.preferences.focusReminderMinutes) || 0;
+  const elapsedSeconds = getFocusElapsedSeconds(focus);
+  const intervalSeconds = intervalMinutes * 60;
+  const nextThreshold = intervalSeconds > 0 ? (Math.floor(elapsedSeconds / intervalSeconds) + 1) * intervalSeconds : 0;
+  const nextReminderAt = intervalSeconds > 0 && nextThreshold < focus.durationSeconds
+    ? new Date(Date.now() + Math.max(0, nextThreshold - elapsedSeconds) * 1000).toISOString()
+    : null;
+  if (remainingSeconds <= 0) {
+    alarms.schedule({ endsAt: new Date(Date.now()).toISOString(), isBreak: focus.isBreak, taskTitle: focus.activityTitle, reminderMinutes: 0, nextReminderAt: null }).catch(() => {});
+    return;
+  }
+  alarms.schedule({
+    endsAt: new Date(endAt).toISOString(),
+    isBreak: focus.isBreak === true,
+    taskTitle: focus.activityTitle || (taskById(focus.taskId)?.title || ''),
+    reminderMinutes: intervalMinutes,
+    nextReminderAt
+  }).catch(() => {});
 }
 function refreshFocusClock() {
   const focus = state.profile?.activeFocus;
@@ -1087,6 +1120,7 @@ async function finishFocus(options = {}) {
   if (!focus.isBreak) state.profile.focusSessions.push(createFocusSession(focus, task ? task.title : '', now));
   state.profile.activeFocus = null;
   stopFocusTicker();
+  if (!options.completed) window.oisym?.focusAlarms?.cancel().catch(() => {});
   const saved = await save();
   state.focusFinishing = false;
   if (options.completed && !options.silent) notifyFocusFinished(task ? task.title : '', Boolean(focus.isBreak));
@@ -1286,6 +1320,7 @@ root.addEventListener('click', async event => {
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId, activityId, activityTitle: activity ? activity.name : '', startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: requestedMinutes * 60 };
     await save();
+    syncFocusNotificationSchedule();
     playFocusAlarm('start');
     updateShell();
   }
@@ -1293,7 +1328,7 @@ root.addEventListener('click', async event => {
     await prepareFocusAlarm();
     const now = new Date().toISOString();
     state.profile.activeFocus = { taskId: null, activityTitle: '', isBreak: true, startedAt: now, sessionStartedAt: now, pausedAt: null, elapsedBeforePause: 0, durationSeconds: state.profile.preferences.breakMinutes * 60 };
-    await save(); updateShell();
+    await save(); syncFocusNotificationSchedule(); updateShell();
   }
   if (action === 'focus-toggle') {
     const focus = state.profile.activeFocus;
@@ -1305,7 +1340,10 @@ root.addEventListener('click', async event => {
         focus.elapsedBeforePause += Math.floor((Date.now() - new Date(focus.startedAt).getTime()) / 1000);
         focus.pausedAt = new Date().toISOString();
       }
-      await save(); updateShell();
+      await save();
+      if (focus.pausedAt) window.oisym?.focusAlarms?.cancel().catch(() => {});
+      else syncFocusNotificationSchedule();
+      updateShell();
     }
   }
   if (action === 'preview-focus-alarm') {
@@ -1315,7 +1353,7 @@ root.addEventListener('click', async event => {
   if (action === 'focus-stop') await finishFocus();
   if (action === 'focus-reset') {
     if (state.profile.activeFocus && !confirm('¿Terminar y descartar la sesión actual?')) return;
-    state.profile.activeFocus = null; stopFocusTicker(); await save(); updateShell();
+    state.profile.activeFocus = null; stopFocusTicker(); window.oisym?.focusAlarms?.cancel().catch(() => {}); await save(); updateShell();
   }
   if (action === 'goal-progress') {
     state.profile.goals = state.profile.goals.map(goal => goal.id === id ? { ...goal, progress: Math.max(0, Math.min(goal.target, goal.progress + Number(target.dataset.amount))) } : goal);
@@ -1396,7 +1434,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'switch-profile') {
     const profile = state.snapshot.profiles.find(item => item.id === id);
-    if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = id; await save(); updateShell(); }
+    if (profile) { state.profile = normalizeProfile(profile); state.snapshot.activeProfileId = id; await save(); syncFocusNotificationSchedule(); updateShell(); }
   }
   if (action === 'delete-profile') {
     if (state.snapshot.profiles.length <= 1) return showToast('Debe existir al menos un perfil.', 'error');
@@ -1507,10 +1545,12 @@ root.addEventListener('change', event => {
     state.profile.preferences[event.target.name] = event.target.checked;
     save();
   }
-  if (['focusStartTone', 'focusEndTone', 'breakEndTone', 'focusAlarmVolume'].includes(event.target.name)) {
+  if (['focusStartTone', 'focusEndTone', 'breakEndTone', 'focusAlarmVolume', 'focusReminderMinutes'].includes(event.target.name)) {
     state.profile.preferences[event.target.name] = event.target.name === 'focusAlarmVolume'
       ? clampNumber(event.target.value, 0, 100, 60)
-      : event.target.value;
+      : event.target.name === 'focusReminderMinutes'
+        ? (FOCUS_REMINDER_INTERVALS.includes(Number(event.target.value)) ? Number(event.target.value) : 0)
+        : event.target.value;
     const value = $('.focus-volume-value');
     if (value && event.target.name === 'focusAlarmVolume') value.textContent = state.profile.preferences.focusAlarmVolume + '%';
     save();
@@ -1536,6 +1576,9 @@ async function initializeApp(snapshot) {
       showToast('La sesión terminó mientras O-Isym estaba cerrado. Se guardó en tu historial.');
     } else if (!state.profile.activeFocus.pausedAt) {
       startFocusTicker();
+      syncFocusNotificationSchedule();
+    } else {
+      window.oisym?.focusAlarms?.cancel().catch(() => {});
     }
   }
   await save();
