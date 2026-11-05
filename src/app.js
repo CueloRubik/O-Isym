@@ -54,7 +54,8 @@ const state = {
   settingsSection: 'profile',
   showTaskForm: false,
   showActivityForm: false,
-  showGoalForm: false
+  showGoalForm: false,
+  launchPromptShown: false
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -706,7 +707,38 @@ function renderPlanner(main) {
     }
   }
   main.append(planner);
+  maybeShowMacLaunchPrompt();
 }
+
+function maybeShowMacLaunchPrompt() {
+  if (state.launchPromptShown || state.profile?.preferences?.launchAtLogin === true) return;
+  try { if (localStorage.getItem('oisym-mac-launch-prompt-dismissed') === 'true') return; } catch {}
+  state.launchPromptShown = true;
+  window.oisym?.notifications?.getStatus?.().then(status => {
+    if (state.view !== 'planner') { state.launchPromptShown = false; return; }
+    if (status.platform !== 'darwin' || status.launchAtLogin || state.profile?.preferences?.launchAtLogin === true) return;
+    const overlay = element('div', 'profile-modal-backdrop launch-prompt-backdrop');
+    overlay.dataset.launchPrompt = 'true';
+    const dialog = element('section', 'profile-modal profile-modal-form launch-prompt-card');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'launch-prompt-title');
+    dialog.append(
+      element('h2', '', '¿Añadimos O-Isym a tu Mac?'),
+      element('p', 'muted', 'O-Isym puede quedarse en la barra de menús y abrirse automáticamente cuando inicies sesión. Así seguirá pendiente de tus horarios aunque cierres la ventana.'),
+      element('p', 'small-note', 'La app debe seguir ejecutándose en segundo plano. Si eliges salir de O-Isym, los recordatorios se pausan hasta que vuelvas a abrirla.' )
+    );
+    dialog.querySelector('h2').id = 'launch-prompt-title';
+    const actions = element('div', 'form-actions launch-prompt-actions');
+    actions.append(button('Ahora no', 'dismiss-launch-at-login', 'button secondary'));
+    actions.append(button('Añadir O-Isym al Mac', 'enable-launch-at-login', 'button primary'));
+    dialog.append(actions);
+    overlay.append(dialog);
+    root.append(overlay);
+    $('[data-action="enable-launch-at-login"]', dialog)?.focus();
+  }).catch(() => { state.launchPromptShown = false; });
+}
+
 function renderFocus(main) {
   main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.', 'focus/timer.png'));
   const focus = state.profile.activeFocus;
@@ -1642,6 +1674,32 @@ root.addEventListener('click', async event => {
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
   if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
+  if (action === 'dismiss-launch-at-login') {
+    try { localStorage.setItem('oisym-mac-launch-prompt-dismissed', 'true'); } catch {}
+    $('[data-launch-prompt]')?.remove();
+    return;
+  }
+  if (action === 'enable-launch-at-login') {
+    const previous = state.profile.preferences.launchAtLogin === true;
+    try {
+      const enabled = await window.oisym?.notifications?.setLaunchAtLogin?.(true);
+      if (!enabled) throw new Error('macOS no confirmó el inicio automático.');
+      state.profile.preferences.launchAtLogin = true;
+      const saved = await save();
+      if (!saved) {
+        state.profile.preferences.launchAtLogin = previous;
+        await window.oisym?.notifications?.setLaunchAtLogin?.(previous);
+        return;
+      }
+      syncLaunchAtLogin();
+      $('[data-launch-prompt]')?.remove();
+      showToast('O-Isym se abrirá en segundo plano al iniciar sesión.');
+    } catch (error) {
+      state.profile.preferences.launchAtLogin = previous;
+      showToast('No se pudo añadir O-Isym al inicio: ' + error.message, 'error');
+    }
+    return;
+  }
   if (action === 'test-task-notification') {
     const sent=await window.oisym?.notifications?.sendTest?.();
     showToast(sent?'Notificación de prueba enviada. Si no aparece, revisa los permisos de macOS.':'No se pudo enviar la notificación de prueba.',''+(sent?'success':'error'));
