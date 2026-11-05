@@ -653,7 +653,9 @@ function renderPlanner(main) {
   const row2 = element('div', 'form-grid');
   row2.append(field('Prioridad', select('priority', [{ value: 'low', label: 'Baja' }, { value: 'medium', label: 'Media' }, { value: 'high', label: 'Alta' }], 'medium')));
   row2.append(field('Tipo', select('locked', [{ value: 'false', label: 'Flexible' }, { value: 'true', label: 'Compromiso bloqueado' }], 'false')));
-  add.append(row2, button('Añadir a la agenda', 'submit-form', 'button primary'));
+  const row3 = element('div', 'form-grid');
+  row3.append(field('Notificación', select('reminderEnabled', [{ value: 'true', label: 'Avisarme a esta hora' }, { value: 'false', label: 'Sin aviso' }], 'true')));
+  add.append(row2, row3, button('Añadir a la agenda', 'submit-form', 'button primary'));
   plannerSide.append(add);
   plannerLayout.append(plannerMain,plannerSide);
   main.append(plannerLayout);
