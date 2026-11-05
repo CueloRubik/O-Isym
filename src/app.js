@@ -2054,6 +2054,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'import-legacy') {
     if (state.profile.legacyImportedAt) return;
+    const previousProfile = cloneActiveProfile();
     const activitiesByName = new Map(state.profile.activities.map(activity => [activity.name.toLowerCase(), activity]));
     let importedCount = 0;
     for (let index = 0; index < localStorage.length; index++) {
@@ -2087,7 +2088,6 @@ root.addEventListener('click', async event => {
         if (/^#[0-9a-f]{6}$/i.test(colors.accent || '')) state.profile.color = colors.accent;
       } catch {}
     }
-    const previousProfile = cloneActiveProfile();
     state.profile.legacyImportedAt = new Date().toISOString();
     if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
     updateShell(); showToast(importedCount + ' registros importados. El prototipo original sigue intacto.');
