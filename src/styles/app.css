@@ -702,3 +702,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .profile-editor-preference-grid { grid-template-columns: minmax(0, 1fr); }
   .profile-modal-backdrop { padding: 10px; }
 }
+
+
+/* Iconos PNG de acciones */
+.button-with-icon { display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.action-button-icon { display: block; width: 16px; height: 16px; flex: 0 0 16px; object-fit: contain; }
+.button-with-icon.small .action-button-icon { width: 14px; height: 14px; flex-basis: 14px; }
+.profiles-heading-title { display: flex; align-items: center; gap: 11px; }
+.profiles-heading-icon { display: block; width: 32px; height: 32px; object-fit: contain; flex: 0 0 32px; }
+@media (max-width: 560px) {
+  .button-with-icon { gap: 6px; }
+  .profiles-heading-icon { width: 28px; height: 28px; flex-basis: 28px; }
+}
