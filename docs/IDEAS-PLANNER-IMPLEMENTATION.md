@@ -2,7 +2,7 @@
 
 **Rama de trabajo:** `development`  
 **Plataforma inicial:** macOS Intel  
-**Estado:** diseño técnico previo a la implementación  
+**Estado:** implementación iniciada; modelo de dominio y validación en desarrollo  
 **Objetivo:** añadir un administrador de pizarrones y un editor visual de ideas sin alterar el funcionamiento de las tareas, actividades, perfiles ni Focus existentes.
 
 ## 1. Decisiones de producto
@@ -172,3 +172,15 @@ Respetar `docs/OISYM-FILE-FORMAT.md` y su versión inicial `1.0.0`. Validar form
 ## 10. Fuera del primer lanzamiento
 
 Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pesados, automatizaciones inteligentes, plantillas precargadas y pizarrones públicos quedan fuera del primer corte. Se podrán diseñar después de que el flujo local sea estable.
+
+## 11. Progreso registrado
+
+- [x] Definición de la experiencia de biblioteca y editor.
+- [x] Decisión de lienzo virtual amplio con cámara, zoom y desplazamiento.
+- [x] Modelo inicial de pizarrones, notas, actividades, grupos y conexiones en `src/domain.js`.
+- [x] Compatibilidad retroactiva: perfiles anteriores sin `ideaBoards` se normalizan como una colección vacía.
+- [x] Validación de límites, fechas, IDs y referencias entre elementos.
+- [x] Primeros casos automatizados añadidos a `tests/domain.test.js`.
+- [ ] Ejecutar la suite en un entorno Node 18 y corregir cualquier fallo.
+- [ ] Implementar la biblioteca visual y su flujo de administración.
+- [ ] Implementar el editor y sus herramientas por etapas.
