@@ -389,8 +389,11 @@ test('idea board domain creates and validates notes, activities, and groups', ()
 test('idea boards reject invalid dates, dangling links, duplicate IDs, and unsafe viewports', () => {
   const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
   const board = createIdeaBoard({ title: 'Validación' });
-  const activity = createIdeaNode('activity', { title: 'Actividad', dueDate: '2026-02-30' });
-  assert.throws(() => board.nodes.push(activity) || validateIdeaBoard(board));
+  const activity = createIdeaNode('activity', { title: 'Actividad' });
+  activity.dueDate = '2026-02-30';
+  board.nodes.push(activity);
+  assert.throws(() => validateIdeaBoard(board), /fecha no válida/);
+  board.nodes = [];
   const note = createIdeaNode('note');
   board.nodes.push(note);
   board.connections.push({ id: 'edge-1', from: note.id, to: 'missing', label: '', style: 'curved', directed: false });
