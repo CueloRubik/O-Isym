@@ -835,11 +835,14 @@ function renderIdeaBoardCanvas(main, board) {
   const drawConnections = () => {
     connectionLayer.replaceChildren();
     const activeNodes = currentBoard()?.nodes || [];
+    const cardElements = new Map([...world.querySelectorAll('.ideas-note-card, .ideas-activity-card')].map(card => [card.dataset.nodeId, card]));
+    const nodeWidth = node => cardElements.get(node.id)?.offsetWidth || Math.max(node.width, node.type === 'activity' ? 260 : 120);
+    const nodeHeight = node => cardElements.get(node.id)?.offsetHeight || Math.max(node.height, node.type === 'activity' ? 230 : 80);
     if (activeNodes.length) {
       const minX = Math.min(...activeNodes.map(node => node.x)) - 100;
       const minY = Math.min(...activeNodes.map(node => node.y)) - 100;
-      const maxX = Math.max(...activeNodes.map(node => node.x + Math.max(node.width, node.type === 'activity' ? 260 : 120))) + 100;
-      const maxY = Math.max(...activeNodes.map(node => node.y + Math.max(node.height, node.type === 'activity' ? 230 : 80))) + 100;
+      const maxX = Math.max(...activeNodes.map(node => node.x + nodeWidth(node))) + 100;
+      const maxY = Math.max(...activeNodes.map(node => node.y + nodeHeight(node))) + 100;
       const width = Math.max(1, maxX - minX), height = Math.max(1, maxY - minY);
       connectionLayer.style.left = minX + 'px';
       connectionLayer.style.top = minY + 'px';
@@ -876,13 +879,14 @@ function renderIdeaBoardCanvas(main, board) {
     (activeBoard?.connections || []).forEach(connection => {
       const from = byId.get(connection.from), to = byId.get(connection.to);
       if (!from || !to) return;
-      const fromWidth = Math.max(from.width, from.type === 'activity' ? 260 : 120);
-      const fromHeight = Math.max(from.height, from.type === 'activity' ? 230 : 80);
-      const toWidth = Math.max(to.width, to.type === 'activity' ? 260 : 120);
-      const toHeight = Math.max(to.height, to.type === 'activity' ? 230 : 80);
+      const fromWidth = nodeWidth(from);
+      const fromHeight = nodeHeight(from);
+      const toWidth = nodeWidth(to);
+      const toHeight = nodeHeight(to);
       const fromCenter = { x: from.x + fromWidth / 2, y: from.y + fromHeight / 2 };
       const toCenter = { x: to.x + toWidth / 2, y: to.y + toHeight / 2 };
-      const vectorX = toCenter.x - fromCenter.x, vectorY = toCenter.y - fromCenter.y;
+      let vectorX = toCenter.x - fromCenter.x, vectorY = toCenter.y - fromCenter.y;
+      if (!vectorX && !vectorY) vectorX = 1;
       const edgeFactor = (width, height) => Math.min(vectorX ? width / 2 / Math.abs(vectorX) : Infinity, vectorY ? height / 2 / Math.abs(vectorY) : Infinity);
       const startFactor = edgeFactor(fromWidth, fromHeight), endFactor = edgeFactor(toWidth, toHeight);
       const x1 = fromCenter.x + vectorX * startFactor - boundsLeft, y1 = fromCenter.y + vectorY * startFactor - boundsTop;
