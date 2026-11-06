@@ -1070,10 +1070,6 @@ function renderIdeaBoardCanvas(main, board) {
     status.addEventListener('change', () => update({ status: status.value }));
     priority.addEventListener('change', () => update({ priority: priority.value }));
     duration.addEventListener('change', () => update({ estimatedMinutes: duration.value }, duration));
-    palette.addEventListener('click', event => {
-      const swatch = event.target.closest('[data-action="ideas-activity-color"]');
-      if (swatch) update({ color: swatch.dataset.color });
-    });
     activity.addEventListener('click', event => {
       if (event.target.closest('button')) return;
       world.querySelectorAll('.ideas-activity-card.is-selected, .ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
