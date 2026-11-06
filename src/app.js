@@ -675,9 +675,11 @@ function renderIdeaBoardCanvas(main, board) {
   const addActivity = button('+ Actividad', 'ideas-activity-create', 'button secondary');
   const connectArrow = button('↗ Conectar con flecha', 'ideas-connect-arrow', 'button secondary');
   const connectLine = button('— Conectar sin flecha', 'ideas-connect-line', 'button secondary');
+  const editConnection = button('Editar etiqueta', 'ideas-connection-edit', 'button secondary');
+  editConnection.disabled = true;
   const deleteConnection = button('Eliminar conexión', 'ideas-connection-delete', 'button secondary');
   deleteConnection.disabled = true;
-  toolbar.append(addNote, addActivity, connectArrow, connectLine, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
+  toolbar.append(addNote, addActivity, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
   main.append(toolbar);
 
   const viewport = element('div', 'ideas-canvas-viewport');
@@ -824,6 +826,7 @@ function renderIdeaBoardCanvas(main, board) {
     connectLine.classList.toggle('active', connectMode === 'undirected');
     connectArrow.setAttribute('aria-pressed', String(connectMode === 'directed'));
     connectLine.setAttribute('aria-pressed', String(connectMode === 'undirected'));
+    editConnection.disabled = !selectedConnectionId;
     deleteConnection.disabled = !selectedConnectionId;
     connectionHint.textContent = connectMode
       ? (connectionStartId ? 'Ahora selecciona el segundo elemento · Esc para cancelar' : 'Selecciona el primer elemento · Esc para cancelar')
@@ -876,8 +879,10 @@ function renderIdeaBoardCanvas(main, board) {
       const x1 = from.x + from.width / 2 - boundsLeft, y1 = from.y + from.height / 2 - boundsTop;
       const x2 = to.x + to.width / 2 - boundsLeft, y2 = to.y + to.height / 2 - boundsTop;
       const dx = x2 - x1, dy = y2 - y1;
+      const controlX = (x1 + x2) / 2;
+      const controlY = (y1 + y2) / 2 - Math.min(70, Math.abs(dx + dy) * 0.12);
       const pathData = connection.style === 'curved'
-        ? 'M ' + x1 + ' ' + y1 + ' Q ' + (x1 + x2) / 2 + ' ' + (y1 + y2) / 2 - Math.min(70, Math.abs(dx + dy) * 0.12) + ' ' + x2 + ' ' + y2
+        ? 'M ' + x1 + ' ' + y1 + ' Q ' + controlX + ' ' + controlY + ' ' + x2 + ' ' + y2
         : 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2;
       const path = document.createElementNS(svgNS, 'path');
       path.setAttribute('d', pathData);
@@ -902,8 +907,8 @@ function renderIdeaBoardCanvas(main, board) {
       connectionLayer.append(hit);
       if (connection.label) {
         const label = document.createElementNS(svgNS, 'text');
-        label.setAttribute('x', String((x1 + x2) / 2));
-        label.setAttribute('y', String((y1 + y2) / 2 - 8));
+        label.setAttribute('x', String(controlX));
+        label.setAttribute('y', String(controlY - 8));
         label.setAttribute('class', 'ideas-connection-label');
         label.textContent = connection.label;
         connectionLayer.append(label);
@@ -936,6 +941,7 @@ function renderIdeaBoardCanvas(main, board) {
   connectArrow.addEventListener('click', () => {
     connectMode = connectMode === 'directed' ? null : 'directed';
     connectionStartId = null;
+    world.querySelectorAll('.is-connection-source').forEach(item => item.classList.remove('is-connection-source'));
     selectedConnectionId = null;
     drawConnections();
     updateConnectionControls();
@@ -943,9 +949,29 @@ function renderIdeaBoardCanvas(main, board) {
   connectLine.addEventListener('click', () => {
     connectMode = connectMode === 'undirected' ? null : 'undirected';
     connectionStartId = null;
+    world.querySelectorAll('.is-connection-source').forEach(item => item.classList.remove('is-connection-source'));
     selectedConnectionId = null;
     drawConnections();
     updateConnectionControls();
+  });
+  editConnection.addEventListener('click', async () => {
+    const activeBoard = currentBoard();
+    const connection = activeBoard?.connections.find(item => item.id === selectedConnectionId);
+    if (!connection) return;
+    const label = prompt('Editar etiqueta de la conexión:', connection.label);
+    if (label === null) return;
+    const previous = connection.label;
+    connection.label = label.trim().slice(0, 100);
+    activeBoard.modifiedAt = new Date().toISOString();
+    try {
+      validateIdeaBoard(activeBoard);
+      if (!await save()) { connection.label = previous; return; }
+      drawConnections();
+      showToast('Etiqueta actualizada.');
+    } catch (error) {
+      connection.label = previous;
+      showToast(error.message, 'error');
+    }
   });
   deleteConnection.addEventListener('click', async () => {
     const activeBoard = currentBoard();
@@ -1136,6 +1162,7 @@ function renderIdeaBoardCanvas(main, board) {
             const updated = updateIdeaNode(current, { width, height });
             activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? updated : item);
             node = updated;
+            drawConnections();
           } catch {}
         }
       };
