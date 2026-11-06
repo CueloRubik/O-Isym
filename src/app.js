@@ -1,5 +1,5 @@
 const {
-  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask, createIdeaBoard, normalizeIdeaBoards, validateIdeaBoard,
+  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask, createIdeaBoard, createIdeaNode, updateIdeaNode, normalizeIdeaBoards, validateIdeaBoard,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
 } = window.OIsymDomain;
@@ -671,7 +671,8 @@ function renderIdeaBoardCanvas(main, board) {
   zoomIn.setAttribute('aria-label', 'Acercar');
   const center = button('Centrar', 'ideas-canvas-center', 'button secondary');
   const fit = button('Ajustar todo', 'ideas-canvas-fit', 'button secondary');
-  toolbar.append(zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
+  const addNote = button('+ Nueva nota', 'ideas-note-create', 'button primary');
+  toolbar.append(addNote, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
   main.append(toolbar);
 
   const viewport = element('div', 'ideas-canvas-viewport');
@@ -680,7 +681,7 @@ function renderIdeaBoardCanvas(main, board) {
   viewport.tabIndex = 0;
   const world = element('div', 'ideas-canvas-world');
   const emptyState = element('div', 'ideas-canvas-empty');
-  emptyState.append(element('span', 'ideas-canvas-empty-mark', 'O'), element('strong', '', 'Tu lienzo está vacío'), element('p', 'muted', 'En la siguiente etapa podrás añadir notas y actividades aquí.'));
+  emptyState.append(element('span', 'ideas-canvas-empty-mark', 'O'), element('strong', '', 'Tu lienzo está vacío'), element('p', 'muted', 'Crea una nota para comenzar a organizar tus ideas.'));
   viewport.append(world, emptyState);
   main.append(viewport, element('p', 'ideas-canvas-hint', 'Arrastra el fondo para moverte · Rueda o trackpad para zoom · Centrar y Ajustar todo para recuperar la vista'));
 
@@ -695,6 +696,7 @@ function renderIdeaBoardCanvas(main, board) {
   const currentBoard = () => state.profile?.ideaBoards?.find(item => item.id === board.id);
   const paint = () => {
     world.style.transform = 'translate(calc(-50% + ' + camera.x + 'px), calc(-50% + ' + camera.y + 'px)) scale(' + camera.zoom + ')';
+    emptyState.hidden = Boolean(currentBoard()?.nodes?.length);
     viewport.style.setProperty('--ideas-grid-size', (28 * camera.zoom) + 'px');
     viewport.style.setProperty('--ideas-camera-x', camera.x + 'px');
     viewport.style.setProperty('--ideas-camera-y', camera.y + 'px');
@@ -758,11 +760,12 @@ function renderIdeaBoardCanvas(main, board) {
   center.addEventListener('click', () => centerContent(false));
   fit.addEventListener('click', () => centerContent(true));
   viewport.addEventListener('wheel', event => {
+    if (event.target.closest('.ideas-note-editor')) return;
     event.preventDefault();
     zoomAt(camera.zoom * Math.exp(-event.deltaY * 0.0015), event.clientX, event.clientY);
   }, { passive: false });
   viewport.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || event.target.closest('button, input, textarea, select, a')) return;
+    if (event.button !== 0 || event.target.closest('.ideas-note-card, button, input, textarea, select, a')) return;
     pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, cameraX: camera.x, cameraY: camera.y };
     moved = false;
     viewport.setPointerCapture(event.pointerId);
@@ -801,6 +804,192 @@ function renderIdeaBoardCanvas(main, board) {
     paint();
     updateViewport();
   });
+  const scheduleBoardSave = () => {
+    const activeBoard = currentBoard();
+    if (!activeBoard) return;
+    activeBoard.modifiedAt = new Date().toISOString();
+    clearTimeout(state.ideaViewportSaveTimer);
+    state.ideaViewportSaveTimer = setTimeout(async () => {
+      state.ideaViewportSaveTimer = null;
+      await save();
+    }, 550);
+  };
+  const renderNote = node => {
+    const note = element('article', 'ideas-note-card');
+    note.dataset.nodeId = node.id;
+    note.style.left = node.x + 'px';
+    note.style.top = node.y + 'px';
+    note.style.width = node.width + 'px';
+    note.style.height = node.height + 'px';
+    note.style.setProperty('--note-color', node.color);
+    const noteHeader = element('div', 'ideas-note-header');
+    const titleInput = input('note-title', 'Título de la nota', 'text', node.title);
+    titleInput.maxLength = 160;
+    titleInput.classList.add('ideas-note-title');
+    titleInput.setAttribute('aria-label', 'Título de la nota');
+    const actions = element('div', 'ideas-note-actions');
+    const duplicate = button('＋', 'ideas-note-duplicate', 'ideas-note-icon-button', { id: node.id });
+    duplicate.title = 'Duplicar nota';
+    duplicate.setAttribute('aria-label', 'Duplicar nota');
+    const remove = button('×', 'ideas-note-delete', 'ideas-note-icon-button', { id: node.id });
+    remove.title = 'Eliminar nota';
+    remove.setAttribute('aria-label', 'Eliminar nota');
+    actions.append(duplicate, remove);
+    noteHeader.append(titleInput, actions);
+    const body = textarea('note-body', 'Escribe tus ideas aquí…', node.body);
+    body.maxLength = 10000;
+    body.classList.add('ideas-note-editor');
+    body.setAttribute('aria-label', 'Contenido de la nota');
+    const footer = element('div', 'ideas-note-footer');
+    const colors = [
+      { value: '#fff2bf', label: 'Amarillo' },
+      { value: '#dff1e4', label: 'Verde' },
+      { value: '#dcecff', label: 'Azul' },
+      { value: '#f9dfdf', label: 'Rosa' },
+      { value: '#eee3ff', label: 'Lila' },
+      { value: '#f2e6d8', label: 'Arena' }
+    ];
+    const palette = element('div', 'ideas-note-palette');
+    colors.forEach(color => {
+      const swatch = button('', 'ideas-note-color', 'ideas-note-swatch' + (node.color === color.value ? ' active' : ''), { id: node.id, color: color.value });
+      swatch.style.backgroundColor = color.value;
+      swatch.title = color.label;
+      swatch.setAttribute('aria-label', 'Color ' + color.label);
+      swatch.setAttribute('aria-pressed', String(node.color === color.value));
+      palette.append(swatch);
+    });
+    footer.append(palette, element('span', 'ideas-note-label', 'Nota'));
+    const resize = element('div', 'ideas-note-resize');
+    resize.setAttribute('role', 'separator');
+    resize.setAttribute('aria-label', 'Cambiar tamaño de nota');
+    resize.tabIndex = 0;
+    note.append(noteHeader, body, footer, resize);
+
+    const updateText = (patch, inputElement) => {
+      try {
+        const activeBoard = currentBoard();
+        const current = activeBoard?.nodes.find(item => item.id === node.id);
+        if (!current) return;
+        if (patch.title !== undefined && !patch.title.trim()) return;
+        const updated = updateIdeaNode(current, patch);
+        activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? updated : item);
+        node = updated;
+        scheduleBoardSave();
+      } catch (error) {
+        showToast(error.message, 'error');
+        if (inputElement && patch.title !== undefined) inputElement.value = node.title;
+      }
+    };
+    titleInput.addEventListener('input', () => updateText({ title: titleInput.value }, titleInput));
+    titleInput.addEventListener('blur', () => {
+      if (!titleInput.value.trim()) titleInput.value = node.title;
+    });
+    body.addEventListener('input', () => updateText({ body: body.value }, body));
+
+    noteHeader.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('input, button')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      noteHeader.setPointerCapture(event.pointerId);
+      const startX = event.clientX, startY = event.clientY, startLeft = node.x, startTop = node.y;
+      const move = moveEvent => {
+        if (moveEvent.pointerId !== event.pointerId) return;
+        const dx = (moveEvent.clientX - startX) / camera.zoom;
+        const dy = (moveEvent.clientY - startY) / camera.zoom;
+        const x = Math.max(-1000000, Math.min(1000000, startLeft + dx));
+        const y = Math.max(-1000000, Math.min(1000000, startTop + dy));
+        note.style.left = x + 'px';
+        note.style.top = y + 'px';
+        const activeBoard = currentBoard();
+        const current = activeBoard?.nodes.find(item => item.id === node.id);
+        if (current) {
+          try {
+            const updated = updateIdeaNode(current, { x, y });
+            activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? updated : item);
+            node = updated;
+          } catch {}
+        }
+      };
+      const finish = finishEvent => {
+        if (finishEvent.pointerId !== event.pointerId) return;
+        noteHeader.removeEventListener('pointermove', move);
+        noteHeader.removeEventListener('pointerup', finish);
+        noteHeader.removeEventListener('pointercancel', finish);
+        scheduleBoardSave();
+      };
+      noteHeader.addEventListener('pointermove', move);
+      noteHeader.addEventListener('pointerup', finish);
+      noteHeader.addEventListener('pointercancel', finish);
+    });
+    resize.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      resize.setPointerCapture(event.pointerId);
+      const startX = event.clientX, startY = event.clientY, startWidth = node.width, startHeight = node.height;
+      const move = moveEvent => {
+        if (moveEvent.pointerId !== event.pointerId) return;
+        const width = Math.max(120, Math.min(2000, startWidth + (moveEvent.clientX - startX) / camera.zoom));
+        const height = Math.max(120, Math.min(2000, startHeight + (moveEvent.clientY - startY) / camera.zoom));
+        note.style.width = width + 'px';
+        note.style.height = height + 'px';
+        const activeBoard = currentBoard();
+        const current = activeBoard?.nodes.find(item => item.id === node.id);
+        if (current) {
+          try {
+            const updated = updateIdeaNode(current, { width, height });
+            activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? updated : item);
+            node = updated;
+          } catch {}
+        }
+      };
+      const finish = finishEvent => {
+        if (finishEvent.pointerId !== event.pointerId) return;
+        resize.removeEventListener('pointermove', move);
+        resize.removeEventListener('pointerup', finish);
+        resize.removeEventListener('pointercancel', finish);
+        scheduleBoardSave();
+      };
+      resize.addEventListener('pointermove', move);
+      resize.addEventListener('pointerup', finish);
+      resize.addEventListener('pointercancel', finish);
+    });
+    resize.addEventListener('keydown', event => {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const width = Math.max(120, Math.min(2000, node.width + (event.key === 'ArrowRight' ? 20 : event.key === 'ArrowLeft' ? -20 : 0)));
+      const height = Math.max(120, Math.min(2000, node.height + (event.key === 'ArrowDown' ? 20 : event.key === 'ArrowUp' ? -20 : 0)));
+      const activeBoard = currentBoard();
+      const current = activeBoard?.nodes.find(item => item.id === node.id);
+      if (!current) return;
+      const updated = updateIdeaNode(current, { width, height });
+      activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? updated : item);
+      node = updated;
+      note.style.width = width + 'px';
+      note.style.height = height + 'px';
+      scheduleBoardSave();
+    });
+    world.append(note);
+  };
+  const renderNotes = () => {
+    world.replaceChildren();
+    (currentBoard()?.nodes || []).filter(node => node.type === 'note').forEach(renderNote);
+  };
+  const addNoteAtCenter = () => {
+    const activeBoard = currentBoard();
+    if (!activeBoard) return;
+    if (activeBoard.nodes.length >= window.OIsymDomain.IDEA_BOARD_LIMITS.nodes) return showToast('Has alcanzado el máximo de elementos del pizarrón.', 'error');
+    const node = createIdeaNode('note', {
+      x: Math.round(-camera.x / camera.zoom - 130),
+      y: Math.round(-camera.y / camera.zoom - 95)
+    });
+    activeBoard.nodes.push(node);
+    renderNotes();
+    paint();
+    scheduleBoardSave();
+    showToast('Nota creada.');
+  };
+  renderNotes();
   paint();
 }
 
@@ -1918,6 +2107,63 @@ root.addEventListener('click', async event => {
     return;
   }
   if (action === 'navigate') { if (state.ideaViewportSaveTimer) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'ideas-note-create') {
+    const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
+    if (!board) return showToast('No se encontró el pizarrón.', 'error');
+    const viewport = $('.ideas-canvas-viewport');
+    const zoom = Number(board.viewport?.zoom) || 1;
+    const node = createIdeaNode('note', {
+      x: Math.round(-(Number(board.viewport?.x) || 0) / zoom - 130),
+      y: Math.round(-(Number(board.viewport?.y) || 0) / zoom - 95)
+    });
+    if (board.nodes.length >= window.OIsymDomain.IDEA_BOARD_LIMITS.nodes) return showToast('Has alcanzado el máximo de elementos del pizarrón.', 'error');
+    board.nodes.push(node);
+    board.modifiedAt = new Date().toISOString();
+    if (!await save()) { board.nodes = board.nodes.filter(item => item.id !== node.id); return; }
+    updateShell();
+    showToast('Nota creada.');
+    return;
+  }
+  if (action === 'ideas-note-color') {
+    const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
+    const node = board?.nodes.find(item => item.id === id && item.type === 'note');
+    if (!node) return;
+    const previous = node.color;
+    try {
+      const updated = updateIdeaNode(node, { color: target.dataset.color });
+      board.nodes = board.nodes.map(item => item.id === id ? updated : item);
+      board.modifiedAt = new Date().toISOString();
+      if (!await save()) { board.nodes = board.nodes.map(item => item.id === id ? { ...updated, color: previous } : item); return; }
+      updateShell();
+    } catch (error) { showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'ideas-note-duplicate') {
+    const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
+    const source = board?.nodes.find(item => item.id === id && item.type === 'note');
+    if (!source) return;
+    if (board.nodes.length >= window.OIsymDomain.IDEA_BOARD_LIMITS.nodes) return showToast('Has alcanzado el máximo de elementos del pizarrón.', 'error');
+    const copy = createIdeaNode('note', { ...source, x: source.x + 32, y: source.y + 32, title: source.title + ' (copia)' });
+    board.nodes.push(copy);
+    board.modifiedAt = new Date().toISOString();
+    if (!await save()) { board.nodes = board.nodes.filter(item => item.id !== copy.id); return; }
+    updateShell();
+    showToast('Nota duplicada.');
+    return;
+  }
+  if (action === 'ideas-note-delete') {
+    const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
+    const note = board?.nodes.find(item => item.id === id && item.type === 'note');
+    if (!note) return;
+    if (!confirm('¿Eliminar esta nota? Esta acción no se puede deshacer.')) return;
+    const previous = board.nodes;
+    board.nodes = board.nodes.filter(item => item.id !== id);
+    board.modifiedAt = new Date().toISOString();
+    if (!await save()) { board.nodes = previous; return; }
+    updateShell();
+    showToast('Nota eliminada.');
+    return;
+  }
   if (action === 'ideas-library') {
     if (state.ideaViewportSaveTimer) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; }
     state.plannerSection = 'library'; state.selectedIdeaBoardId = null; updateShell(); return;
