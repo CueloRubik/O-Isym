@@ -112,7 +112,7 @@ Los IDs deben ser únicos. Las conexiones y referencias de grupos deben apuntar 
 
 Mantener la aplicación vanilla JS y sus convenciones actuales. Añadir módulos independientes y cargar los scripts en orden desde `index.html`:
 
-- `src/ideas-domain.js`: creación, normalización, validación y operaciones puras sobre pizarrones y nodos.
+- `src/domain.js` (ampliación compatible): creación, normalización, validación y operaciones puras sobre pizarrones y nodos; el dominio se mantiene junto a las reglas de perfiles y tareas existentes.
 - `src/ideas-library.js`: pantalla de biblioteca y operaciones de administración.
 - `src/ideas-editor.js`: estado del editor, selección, herramientas y composición de la interfaz.
 - `src/ideas-canvas.js`: cámara, zoom, desplazamiento, coordenadas y renderizado visible.
