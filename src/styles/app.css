@@ -756,3 +756,23 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 }
 
 .due-date-chip { color: #92704b; background: #fbf4eb; font-weight: 650; }
+
+
+/* Biblioteca inicial del Organizador de ideas */
+.ideas-library-toolbar { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); border-radius:13px; background:var(--surface); }
+.ideas-library-toolbar .search-field { flex:1; min-width:180px; }
+.ideas-library-toolbar select { min-width:220px; }
+.ideas-board-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:15px; }
+.ideas-board-card { min-width:0; padding:14px; }
+.ideas-board-open { display:flex; width:100%; min-height:112px; align-items:center; justify-content:center; gap:10px; border:1px solid #e4ece6; border-radius:11px; background:#f5f9f6; color:var(--accent-dark); cursor:pointer; }
+.ideas-board-preview-mark { display:grid; width:40px; height:40px; place-items:center; border-radius:12px; background:#e1eee6; color:#39785b; font-size:24px; font-weight:800; }
+.ideas-board-open-label { font-size:12px; font-weight:750; }
+.ideas-board-card-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:13px 0 5px; }
+.ideas-board-card-title h3 { min-width:0; overflow-wrap:anywhere; }
+.ideas-board-card-title > span { flex:0 0 auto; font-size:10px; }
+.ideas-board-description { min-height:18px; font-size:12px; }
+.ideas-board-card-footer { display:flex; flex-direction:column; gap:10px; margin-top:13px; padding-top:11px; border-top:1px solid var(--line); }
+.ideas-board-actions { display:flex; flex-wrap:wrap; gap:6px; }
+.ideas-board-actions .button { flex:1; }
+.ideas-board-placeholder { min-height:300px; display:grid; place-items:center; }
+@media(max-width:560px) { .ideas-library-toolbar { align-items:stretch; flex-direction:column; } .ideas-library-toolbar select { width:100%; } }
