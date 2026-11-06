@@ -808,3 +808,24 @@ button:disabled { cursor: not-allowed; opacity: .55; }
   .ideas-canvas-toolbar { gap:6px; }
   .ideas-canvas-toolbar-divider { display:none; }
 }
+
+
+/* Notas editables del lienzo */
+.ideas-note-card { position:absolute; display:flex; flex-direction:column; min-width:120px; min-height:120px; overflow:hidden; border:1px solid rgba(70,80,70,.16); border-radius:11px; background:var(--note-color,#fff2bf); box-shadow:0 5px 16px rgba(37,55,42,.12); color:#354239; }
+.ideas-note-header { display:flex; align-items:center; gap:6px; min-height:42px; padding:6px 7px 6px 11px; border-bottom:1px solid rgba(65,75,65,.12); cursor:grab; user-select:none; }
+.ideas-note-header:active { cursor:grabbing; }
+.ideas-note-title { flex:1; min-width:0; height:28px; padding:3px 5px; border:0; border-radius:5px; background:transparent; color:#344239; font-size:13px; font-weight:700; box-shadow:none; }
+.ideas-note-title:focus { outline:2px solid rgba(61,117,83,.35); background:rgba(255,255,255,.42); }
+.ideas-note-actions { display:flex; align-items:center; gap:3px; }
+.ideas-note-icon-button { display:grid; width:26px; height:26px; place-items:center; padding:0; border:0; border-radius:6px; background:transparent; color:#536357; font-size:17px; cursor:pointer; }
+.ideas-note-icon-button:hover { background:rgba(255,255,255,.55); }
+.ideas-note-editor { flex:1; width:100%; min-height:35px; resize:none; padding:10px 12px; border:0; border-radius:0; outline:none; background:transparent; color:#354239; font:12px/1.55 inherit; box-shadow:none; }
+.ideas-note-editor:focus { background:rgba(255,255,255,.2); }
+.ideas-note-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:32px; padding:4px 9px; border-top:1px solid rgba(65,75,65,.1); }
+.ideas-note-palette { display:flex; align-items:center; gap:5px; }
+.ideas-note-swatch { width:15px; height:15px; min-width:15px; padding:0; border:1px solid rgba(48,62,52,.25); border-radius:50%; cursor:pointer; }
+.ideas-note-swatch.active { outline:2px solid #527b60; outline-offset:2px; }
+.ideas-note-label { color:rgba(53,66,57,.65); font-size:10px; }
+.ideas-note-resize { position:absolute; right:2px; bottom:2px; width:14px; height:14px; border-right:2px solid rgba(53,66,57,.38); border-bottom:2px solid rgba(53,66,57,.38); cursor:nwse-resize; touch-action:none; }
+.ideas-note-card input, .ideas-note-card textarea { font-family:inherit; }
+@media(max-width:600px) { .ideas-note-card { box-shadow:0 3px 10px rgba(37,55,42,.15); } .ideas-note-swatch { width:17px; height:17px; min-width:17px; } }
