@@ -829,3 +829,5 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .ideas-note-resize { position:absolute; right:2px; bottom:2px; width:14px; height:14px; border-right:2px solid rgba(53,66,57,.38); border-bottom:2px solid rgba(53,66,57,.38); cursor:nwse-resize; touch-action:none; }
 .ideas-note-card input, .ideas-note-card textarea { font-family:inherit; }
 @media(max-width:600px) { .ideas-note-card { box-shadow:0 3px 10px rgba(37,55,42,.15); } .ideas-note-swatch { width:17px; height:17px; min-width:17px; } }
+
+.ideas-canvas-empty[hidden] { display:none; }
