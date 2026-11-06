@@ -72,6 +72,7 @@ function createProfile(name, color = '#27856b', age = null) {
       workingDayEnd: '17:00'
     },
     activities: [],
+    ideaBoards: [],
     tasks: [],
     goals: [],
     focusSessions: [],
@@ -630,14 +631,14 @@ function validateIdeaNode(node) {
   const now = new Date().toISOString();
   const board = {
     id: 'validation-board', title: 'Validación', description: '', createdAt: now, modifiedAt: now,
-    viewport: { x: 0, y: 0, zoom: 1 }, nodes: [node], connections: []
+    viewport: { x: 0, y: 0, zoom: 1 }, nodes: [node.type === 'group' ? { ...node, childrenIds: [] } : node], connections: []
   };
   return validateIdeaBoard(board);
 }
 
 function updateIdeaNode(node, patch = {}) {
   const next = { ...node, ...patch, modifiedAt: new Date().toISOString() };
-  if (patch.title !== undefined) next.title = String(patch.title).trim().slice(0, 160);
+  if (patch.title !== undefined) { next.title = String(patch.title).trim().slice(0, 160); if (!next.title) throw new Error('El título no puede quedar vacío.'); }
   if (patch.body !== undefined) next.body = String(patch.body).slice(0, 10000);
   if (patch.category !== undefined) next.category = String(patch.category || '').trim().slice(0, 50);
   if (patch.color !== undefined && !/^#[0-9a-f]{6}$/i.test(patch.color)) throw new Error('El color no es válido.');
