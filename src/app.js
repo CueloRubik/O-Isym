@@ -679,7 +679,6 @@ function renderIdeaBoardCanvas(main, board) {
   viewport.setAttribute('aria-label', 'Lienzo del pizarrón. Arrastra el fondo para desplazarte y usa la rueda o los controles para cambiar el zoom.');
   viewport.tabIndex = 0;
   const world = element('div', 'ideas-canvas-world');
-  world.setAttribute('aria-hidden', 'true');
   const emptyState = element('div', 'ideas-canvas-empty');
   emptyState.append(element('span', 'ideas-canvas-empty-mark', 'O'), element('strong', '', 'Tu lienzo está vacío'), element('p', 'muted', 'En la siguiente etapa podrás añadir notas y actividades aquí.'));
   viewport.append(world, emptyState);
