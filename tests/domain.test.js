@@ -444,3 +444,26 @@ test('idea board activities preserve editable planning fields and reject reverse
   assert.throws(() => updateIdeaNode(activity, { startDate: '2026-11-16' }), /anterior a su inicio/);
   assert.throws(() => updateIdeaNode(activity, { estimatedMinutes: 1500 }), /duración/);
 });
+
+
+test('idea board connections require distinct existing endpoints and valid metadata', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Mapa de ideas' });
+  const first = createIdeaNode('note', { title: 'Pregunta' });
+  const second = createIdeaNode('activity', { title: 'Investigar' });
+  board.nodes.push(first, second);
+  const connection = {
+    id: 'connection-test-1',
+    from: first.id,
+    to: second.id,
+    label: 'Se relaciona con',
+    style: 'straight',
+    directed: true
+  };
+  board.connections.push(connection);
+  assert.equal(validateIdeaBoard(board), true);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, to: 'missing-node' }] }), /elementos inexistentes/);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, to: first.id }] }), /elementos inexistentes o iguales/);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, label: 'x'.repeat(101) }] }), /etiqueta de una conexión/);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, directed: 'yes' }] }), /dirección de una conexión/);
+});
