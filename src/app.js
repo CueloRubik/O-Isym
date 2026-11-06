@@ -975,20 +975,6 @@ function renderIdeaBoardCanvas(main, board) {
     world.replaceChildren();
     (currentBoard()?.nodes || []).filter(node => node.type === 'note').forEach(renderNote);
   };
-  const addNoteAtCenter = () => {
-    const activeBoard = currentBoard();
-    if (!activeBoard) return;
-    if (activeBoard.nodes.length >= window.OIsymDomain.IDEA_BOARD_LIMITS.nodes) return showToast('Has alcanzado el máximo de elementos del pizarrón.', 'error');
-    const node = createIdeaNode('note', {
-      x: Math.round(-camera.x / camera.zoom - 130),
-      y: Math.round(-camera.y / camera.zoom - 95)
-    });
-    activeBoard.nodes.push(node);
-    renderNotes();
-    paint();
-    scheduleBoardSave();
-    showToast('Nota creada.');
-  };
   renderNotes();
   paint();
 }
@@ -2110,7 +2096,6 @@ root.addEventListener('click', async event => {
   if (action === 'ideas-note-create') {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
-    const viewport = $('.ideas-canvas-viewport');
     const zoom = Number(board.viewport?.zoom) || 1;
     const node = createIdeaNode('note', {
       x: Math.round(-(Number(board.viewport?.x) || 0) / zoom - 130),
