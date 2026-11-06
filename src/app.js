@@ -940,6 +940,20 @@ function renderIdeaBoardCanvas(main, board) {
         connectionLayer.append(label);
       }
     });
+    world.querySelectorAll('.ideas-group-frame').forEach(frame => {
+      const active = currentBoard();
+      const group = active?.nodes.find(node => node.id === frame.dataset.groupId && node.type === 'group');
+      if (!group) return;
+      const children = active.nodes.filter(node => group.childrenIds.includes(node.id));
+      if (!children.length) return;
+      const left = Math.min(...children.map(node => node.x)) - 14;
+      const top = Math.min(...children.map(node => node.y)) - 48;
+      const right = Math.max(...children.map(node => node.x + node.width)) + 14;
+      const bottom = Math.max(...children.map(node => node.y + node.height)) + 14;
+      group.x = left; group.y = top; group.width = Math.max(160, right - left); group.height = Math.max(100, bottom - top);
+      frame.style.left = left + 'px'; frame.style.top = top + 'px';
+      frame.style.width = group.width + 'px'; frame.style.height = group.height + 'px';
+    });
   };
   const saveConnection = async (from, to, directed) => {
     const activeBoard = currentBoard();
