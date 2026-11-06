@@ -1,5 +1,5 @@
 const {
-  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask, createIdeaBoard, normalizeIdeaBoards,
+  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask, createIdeaBoard, normalizeIdeaBoards, validateIdeaBoard,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
 } = window.OIsymDomain;
@@ -662,8 +662,16 @@ function renderPlanner(main) {
 function renderIdeaBoardLibrary(main) {
   const header = element('div', 'view-heading-row');
   header.append(heading('Mis pizarrones', 'Un espacio para reunir ideas, proyectos y conexiones.', 'navigation/planner.png'));
-  header.append(button('+ Nuevo pizarrón', 'ideas-create', 'button primary'));
-  main.append(header);
+  const headerActions = element('div', 'ideas-library-header-actions');
+  headerActions.append(button('Importar .oisym', 'ideas-import-trigger', 'button secondary'));
+  headerActions.append(button('+ Nuevo pizarrón', 'ideas-create', 'button primary'));
+  header.append(headerActions);
+  const importInput = element('input');
+  importInput.type = 'file';
+  importInput.id = 'ideas-import-file';
+  importInput.accept = '.oisym,application/json';
+  importInput.hidden = true;
+  main.append(header, importInput);
   const toolbar = element('div', 'ideas-library-toolbar');
   const search = input('idea-board-search', 'Buscar pizarrones…', 'search', state.ideaBoardSearch);
   search.id = 'idea-board-search';
@@ -700,7 +708,8 @@ function renderIdeaBoardLibrary(main) {
     const footer = element('div', 'ideas-board-card-footer');
     footer.append(element('span', 'small-note', 'Modificado ' + new Date(board.modifiedAt).toLocaleDateString('es-MX')));
     const actions = element('div', 'ideas-board-actions');
-    actions.append(button('Renombrar', 'ideas-rename', 'button secondary small', { id: board.id }));
+    actions.append(button('Editar', 'ideas-edit', 'button secondary small', { id: board.id }));
+    actions.append(button('Exportar', 'ideas-export', 'button secondary small', { id: board.id }));
     actions.append(button('Duplicar', 'ideas-duplicate', 'button secondary small', { id: board.id }));
     actions.append(button('Eliminar', 'ideas-delete', 'button secondary small', { id: board.id }));
     footer.append(actions);
@@ -1780,6 +1789,39 @@ root.addEventListener('click', async event => {
     } catch (error) { showToast(error.message, 'error'); }
     return;
   }
+  if (action === 'ideas-import-trigger') { $('#ideas-import-file')?.click(); return; }
+  if (action === 'ideas-edit') {
+    const board = state.profile.ideaBoards.find(item => item.id === id);
+    if (!board) return showToast('No se encontró el pizarrón.', 'error');
+    const title = window.prompt('Nombre del pizarrón:', board.title);
+    if (title === null) return;
+    if (!title.trim()) return showToast('El nombre no puede quedar vacío.', 'error');
+    const description = window.prompt('Descripción (opcional, máximo 500 caracteres):', board.description || '');
+    if (description === null) return;
+    if (description.length > 500) return showToast('La descripción admite hasta 500 caracteres.', 'error');
+    const previous = cloneActiveProfile();
+    board.title = title.trim().slice(0, 100);
+    board.description = description.trim();
+    board.modifiedAt = new Date().toISOString();
+    try {
+      state.profile.ideaBoards = normalizeIdeaBoards(state.profile.ideaBoards);
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      updateShell(); showToast('Pizarrón actualizado.');
+    } catch (error) { restoreActiveProfile(previous); updateShell(); showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'ideas-export') {
+    const board = state.profile.ideaBoards.find(item => item.id === id);
+    if (!board) return showToast('No se encontró el pizarrón.', 'error');
+    const payload = { format: 'oisym', formatVersion: '1.0.0', exportedAt: new Date().toISOString(), board: JSON.parse(JSON.stringify(board)) };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = element('a');
+    anchor.href = url;
+    anchor.download = 'oisym-' + String(board.title).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '.oisym';
+    document.body.append(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+    showToast('Pizarrón exportado.'); return;
+  }
   if (action === 'ideas-rename') {
     const board = state.profile.ideaBoards.find(item => item.id === id);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
@@ -2410,6 +2452,52 @@ root.addEventListener('input', event => {
   }
 });
 root.addEventListener('change', async event => {
+  if (event.target.id === 'ideas-import-file') {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      if (file.size > 10 * 1024 * 1024) throw new Error('El archivo supera el límite de 10 MB.');
+      const payload = JSON.parse(await file.text());
+      if (!payload || payload.format !== 'oisym' || payload.formatVersion !== '1.0.0' || !payload.board || typeof payload.board !== 'object') {
+        throw new Error('El archivo no es un pizarrón .oisym compatible.');
+      }
+      const imported = JSON.parse(JSON.stringify(payload.board));
+      validateIdeaBoard(imported);
+      if (state.profile.ideaBoards.length >= 100) throw new Error('Has alcanzado el máximo de 100 pizarrones.');
+      const nodeIds = new Map(imported.nodes.map(node => [node.id, window.OIsymDomain.makeId('idea')]));
+      imported.id = window.OIsymDomain.makeId('board');
+      imported.nodes = imported.nodes.map(node => ({
+        ...node,
+        id: nodeIds.get(node.id),
+        ...(node.type === 'group' ? { childrenIds: node.childrenIds.map(childId => nodeIds.get(childId)) } : {})
+      }));
+      imported.connections = imported.connections.map(connection => ({
+        ...connection,
+        id: window.OIsymDomain.makeId('connection'),
+        from: nodeIds.get(connection.from),
+        to: nodeIds.get(connection.to)
+      }));
+      imported.createdAt = imported.modifiedAt = new Date().toISOString();
+      const existingNames = new Set(state.profile.ideaBoards.map(board => board.title.toLocaleLowerCase('es')));
+      const baseTitle = imported.title;
+      let title = baseTitle, suffix = 2;
+      while (existingNames.has(title.toLocaleLowerCase('es'))) title = baseTitle.slice(0, Math.max(1, 94 - String(suffix).length)) + ' (' + suffix++ + ')';
+      imported.title = title;
+      normalizeIdeaBoards([imported]);
+      const summary = 'Archivo: ' + file.name + '\nPizarrón: ' + imported.title + '\nElementos: ' + imported.nodes.length + '\nConexiones: ' + imported.connections.length + '\n\nSe añadirá como un pizarrón nuevo. No se sobrescribirá ninguno existente. ¿Importar?';
+      if (!confirm(summary)) return;
+      const previous = cloneActiveProfile();
+      state.profile.ideaBoards = normalizeIdeaBoards([...state.profile.ideaBoards, imported]);
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      state.plannerSection = 'library';
+      state.selectedIdeaBoardId = null;
+      updateShell();
+      showToast('Pizarrón importado correctamente.');
+    } catch (error) { showToast('No se pudo importar el pizarrón: ' + error.message, 'error'); }
+    return;
+  }
+
   if (event.target.id === 'idea-board-sort') { state.ideaBoardSort = event.target.value; updateShell(); return; }
 
   if(event.target.id==='profile-import-file'){
