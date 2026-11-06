@@ -870,11 +870,6 @@ function renderIdeaBoardCanvas(main, board) {
       world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
       note.classList.add('is-selected');
     });
-    viewport.addEventListener('click', event => {
-      if (event.target === viewport || event.target === world || event.target === emptyState) {
-        world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
-      }
-    });
     const updateText = (patch, inputElement) => {
       try {
         const activeBoard = currentBoard();
@@ -985,6 +980,11 @@ function renderIdeaBoardCanvas(main, board) {
     world.replaceChildren();
     (currentBoard()?.nodes || []).filter(node => node.type === 'note').forEach(renderNote);
   };
+  viewport.addEventListener('click', event => {
+    if (event.target === viewport || event.target === world || event.target === emptyState) {
+      world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
+    }
+  });
   renderNotes();
   paint();
 }
