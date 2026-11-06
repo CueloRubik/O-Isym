@@ -553,7 +553,7 @@ function validateIdeaBoard(board) {
       if (!Number.isFinite(node.estimatedMinutes) || node.estimatedMinutes < 0 || node.estimatedMinutes > 1440) fail('la duración de una actividad no es válida.');
     }
     if (node.type === 'group') {
-      if (!Array.isArray(node.childrenIds) || node.childrenIds.length > IDEA_BOARD_LIMITS.nodes) fail('un grupo contiene referencias no válidas.');
+      if (!Array.isArray(node.childrenIds) || node.childrenIds.length > IDEA_BOARD_LIMITS.nodes || new Set(node.childrenIds).size !== node.childrenIds.length) fail('un grupo contiene referencias no válidas.');
     }
   }
   for (const node of board.nodes) {
@@ -562,7 +562,7 @@ function validateIdeaBoard(board) {
   const connectionIds = new Set();
   for (const connection of board.connections) {
     if (!connection || typeof connection !== 'object' || Array.isArray(connection) ||
-        typeof connection.id !== 'string' || !connection.id || connectionIds.has(connection.id)) fail('hay conexiones con identificadores inválidos o repetidos.');
+        typeof connection.id !== 'string' || !connection.id || connectionIds.has(connection.id) || ids.has(connection.id)) fail('hay conexiones con identificadores inválidos o repetidos.');
     connectionIds.add(connection.id);
     if (!ids.has(connection.from) || !ids.has(connection.to) || connection.from === connection.to) fail('una conexión apunta a elementos inexistentes o iguales.');
     if (typeof connection.label !== 'string' || connection.label.length > 100) fail('la etiqueta de una conexión no es válida.');
@@ -576,7 +576,12 @@ function normalizeIdeaBoards(boards) {
   if (boards === undefined || boards === null) return [];
   if (!Array.isArray(boards)) throw new TypeError('La colección de pizarrones no es válida.');
   if (boards.length > IDEA_BOARD_LIMITS.boards) throw new RangeError('Has alcanzado el máximo de pizarrones.');
-  boards.forEach(validateIdeaBoard);
+  const ids = new Set();
+  boards.forEach(board => {
+    validateIdeaBoard(board);
+    if (ids.has(board.id)) throw new TypeError('Hay pizarrones con identificadores repetidos.');
+    ids.add(board.id);
+  });
   return boards;
 }
 
