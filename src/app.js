@@ -865,6 +865,16 @@ function renderIdeaBoardCanvas(main, board) {
     resize.tabIndex = 0;
     note.append(noteHeader, body, footer, resize);
 
+    note.addEventListener('click', event => {
+      if (event.target.closest('button')) return;
+      world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
+      note.classList.add('is-selected');
+    });
+    viewport.addEventListener('click', event => {
+      if (event.target === viewport || event.target === world || event.target === emptyState) {
+        world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
+      }
+    });
     const updateText = (patch, inputElement) => {
       try {
         const activeBoard = currentBoard();
