@@ -1133,7 +1133,7 @@ function renderIdeaBoardCanvas(main, board) {
     body.addEventListener('input', () => updateText({ body: body.value }, body));
 
     noteHeader.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.target.closest('input, button')) return;
+      if (event.button !== 0 || event.shiftKey || event.target.closest('input, button')) return;
       event.preventDefault();
       event.stopPropagation();
       noteHeader.setPointerCapture(event.pointerId);
@@ -1312,7 +1312,7 @@ function renderIdeaBoardCanvas(main, board) {
       selectNode(node.id, event.shiftKey);
     });
     header.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.target.closest('input, button')) return;
+      if (event.button !== 0 || event.shiftKey || event.target.closest('input, button')) return;
       event.preventDefault();
       event.stopPropagation();
       header.setPointerCapture(event.pointerId);
@@ -1350,9 +1350,10 @@ function renderIdeaBoardCanvas(main, board) {
     const bounds = children.length ? { left: Math.min(...children.map(node => node.x))-14, top: Math.min(...children.map(node => node.y))-48, right: Math.max(...children.map(node => node.x+node.width))+14, bottom: Math.max(...children.map(node => node.y+node.height))+14 } : { left: group.x, top: group.y, right: group.x+group.width, bottom: group.y+group.height };
     frame.style.left=bounds.left+'px'; frame.style.top=bounds.top+'px'; frame.style.width=Math.max(160,bounds.right-bounds.left)+'px'; frame.style.height=Math.max(100,bounds.bottom-bounds.top)+'px';
     const bar=element('div','ideas-group-header');
+    const handle=element('span','ideas-group-drag-handle','Mover');
     const title=input('group-title','Nombre del grupo','text',group.title); title.maxLength=160; title.classList.add('ideas-group-title'); title.setAttribute('aria-label','Nombre del grupo');
     title.addEventListener('change',()=>{ if(!title.value.trim()){title.value=group.title;return;} const activeBoard=currentBoard(); const current=activeBoard?.nodes.find(item=>item.id===group.id); if(!current)return; try{const updated=updateIdeaNode(current,{title:title.value});activeBoard.nodes=activeBoard.nodes.map(item=>item.id===group.id?updated:item);group.title=updated.title;scheduleBoardSave();}catch(error){showToast(error.message,'error');title.value=group.title;}});
-    const ungroup=button('Desagrupar','ideas-group-remove','ideas-group-small-action',{id:group.id}); ungroup.title='Quitar el grupo sin eliminar sus elementos'; bar.append(title,ungroup); frame.append(bar);
+    const ungroup=button('Desagrupar','ideas-group-remove','ideas-group-small-action',{id:group.id}); ungroup.title='Quitar el grupo sin eliminar sus elementos'; bar.append(handle,title,ungroup); frame.append(bar);
     bar.addEventListener('pointerdown',event=>{
       if(event.button!==0||event.target.closest('input,button'))return; event.preventDefault();event.stopPropagation();bar.setPointerCapture(event.pointerId);
       const startX=event.clientX,startY=event.clientY;const starts=new Map(children.map(node=>[node.id,{x:node.x,y:node.y}]));
