@@ -412,3 +412,35 @@ test('imported profiles validate ideas board collections and reject malformed bo
   profile.ideaBoards[0].nodes = [{ id: 'bad', type: 'unknown' }];
   assert.throws(() => validateImportedProfile(profile), /Pizarrón no válido/);
 });
+
+
+test('idea board activities preserve editable planning fields and reject reversed dates', () => {
+  const { createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Actividades' });
+  const activity = createIdeaNode('activity', {
+    title: 'Preparar presentación',
+    body: 'Reunir fuentes y organizar las diapositivas.',
+    startDate: '2026-11-10',
+    dueDate: '2026-11-14',
+    status: 'in-progress',
+    priority: 'high',
+    category: 'Escuela',
+    estimatedMinutes: 90
+  });
+  board.nodes.push(activity);
+  assert.equal(validateIdeaBoard(board), true);
+  const revised = updateIdeaNode(activity, {
+    startDate: '2026-11-11',
+    dueDate: '2026-11-15',
+    status: 'done',
+    priority: 'low',
+    category: 'Personal',
+    estimatedMinutes: 45
+  });
+  assert.equal(revised.status, 'done');
+  assert.equal(revised.priority, 'low');
+  assert.equal(revised.category, 'Personal');
+  assert.equal(revised.estimatedMinutes, 45);
+  assert.throws(() => updateIdeaNode(activity, { startDate: '2026-11-16' }), /anterior a su inicio/);
+  assert.throws(() => updateIdeaNode(activity, { estimatedMinutes: 1500 }), /duración/);
+});
