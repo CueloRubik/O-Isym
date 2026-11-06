@@ -201,7 +201,7 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 ### Etapa 4: notas en el lienzo
 
 - Se incorporó la creación de notas en el centro de la vista actual, con límite de elementos del modelo.
-- Cada nota permite editar título y contenido directamente, moverla desde su encabezado y redimensionarla desde la esquina inferior derecha; los cambios de texto, posición y tamaño se guardan con debounce.
+- Cada nota permite editar título y contenido directamente, seleccionarse visualmente, moverse desde su encabezado y redimensionarse desde la esquina inferior derecha; los cambios de texto, posición y tamaño se guardan con debounce.
 - Se añadieron seis colores, duplicación y eliminación con confirmación. Los identificadores de las copias se generan de nuevo mediante el modelo de dominio.
 - El lienzo muestra un estado vacío solo cuando no hay elementos; la cuadrícula y la cámara continúan funcionando con tarjetas presentes.
 - Las notas se guardan dentro de `ideaBoards[].nodes` y pasan por `createIdeaNode` / `updateIdeaNode`; no se introduce almacenamiento paralelo.
