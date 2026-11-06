@@ -182,5 +182,6 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - [x] Validación de límites, fechas, IDs y referencias entre elementos.
 - [x] Primeros casos automatizados añadidos a `tests/domain.test.js`.
 - [ ] Ejecutar la suite en un entorno Node 18 y corregir cualquier fallo.
-- [ ] Implementar la biblioteca visual y su flujo de administración.
+- [x] Implementar primera biblioteca visual: crear, abrir, buscar, ordenar, duplicar y eliminar pizarrones.
+- [x] Añadir edición de nombre y descripción, exportación individual e importación validada con confirmación.
 - [ ] Implementar el editor y sus herramientas por etapas.
