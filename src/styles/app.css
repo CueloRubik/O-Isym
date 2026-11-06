@@ -863,7 +863,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .ideas-note-card.is-connection-source, .ideas-activity-card.is-connection-source { outline:3px solid #4b9b6a; outline-offset:3px; }
 
 /* Grupos visuales del organizador de ideas */
-.ideas-group-frame { position:absolute; z-index:1; box-sizing:border-box; border:2px dashed #8aa995; border-radius:14px; background:rgba(226,239,230,.24); pointer-events:none; }
+.ideas-group-frame { position:absolute; z-index:1; box-sizing:border-box; border:2px dashed var(--group-color,#8aa995); border-radius:14px; background:rgba(226,239,230,.24); pointer-events:none; }
 .ideas-group-header { position:absolute; left:0; top:0; display:flex; align-items:center; gap:8px; width:min(100%,320px); min-height:34px; padding:3px 7px; border:1px solid #c8d9cd; border-radius:9px; background:#edf5ef; box-shadow:0 2px 7px rgba(40,75,51,.08); pointer-events:auto; cursor:grab; user-select:none; }
 .ideas-group-header:active { cursor:grabbing; }
 .ideas-group-title { min-width:0; flex:1; height:26px; padding:3px 6px; border:0; background:transparent; color:#365b43; font-size:12px; font-weight:750; box-shadow:none; }
