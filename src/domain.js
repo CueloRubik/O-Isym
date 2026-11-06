@@ -548,6 +548,7 @@ function validateIdeaBoard(board) {
     if (!timestamp(node.createdAt) || !timestamp(node.modifiedAt)) fail('hay fechas de elemento no válidas.');
     if (node.type === 'activity') {
       if (!isValidDateKey(node.startDate) || !isValidDateKey(node.dueDate)) fail('una actividad tiene una fecha no válida.');
+      if (node.startDate && node.dueDate && node.dueDate < node.startDate) fail('la fecha límite de una actividad no puede ser anterior a su inicio.');
       if (!['pending', 'in-progress', 'done'].includes(node.status)) fail('una actividad tiene un estado no válido.');
       if (!['low', 'medium', 'high'].includes(node.priority)) fail('una actividad tiene una prioridad no válida.');
       if (!Number.isFinite(node.estimatedMinutes) || node.estimatedMinutes < 0 || node.estimatedMinutes > 1440) fail('la duración de una actividad no es válida.');
