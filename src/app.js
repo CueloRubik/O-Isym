@@ -691,6 +691,7 @@ function renderIdeaBoardLibrary(main) {
   boards.forEach(board => {
     const item = card('ideas-board-card');
     const open = button('', 'ideas-open', 'ideas-board-open', { id: board.id });
+    open.setAttribute('aria-label', 'Abrir pizarrón ' + board.title);
     open.append(element('span', 'ideas-board-preview-mark', 'O'), element('span', 'ideas-board-open-label', 'Abrir pizarrón'));
     const title = element('div', 'ideas-board-card-title');
     title.append(element('h3', '', board.title), element('span', 'muted', board.nodes.length + ' elementos'));
@@ -2394,7 +2395,7 @@ root.addEventListener('input', event => {
   if (event.target.id === 'idea-board-search') {
     state.ideaBoardSearch = event.target.value;
     const cursor = event.target.selectionStart;
-    render();
+    updateShell();
     const next = $('#idea-board-search');
     if (next) { next.focus(); next.setSelectionRange(cursor, cursor); }
     return;
