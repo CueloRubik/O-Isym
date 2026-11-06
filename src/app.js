@@ -1117,7 +1117,7 @@ function renderIdeaBoardCanvas(main, board) {
   };
   viewport.addEventListener('click', event => {
     if (!event.target.closest('.ideas-note-card, .ideas-activity-card')) {
-      world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
+      world.querySelectorAll('.ideas-note-card.is-selected, .ideas-activity-card.is-selected').forEach(item => item.classList.remove('is-selected'));
     }
   });
   renderNotes();
