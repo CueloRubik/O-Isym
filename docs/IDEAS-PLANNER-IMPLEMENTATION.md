@@ -2,7 +2,7 @@
 
 **Rama de trabajo:** `development`  
 **Plataforma inicial:** macOS Intel  
-**Estado:** implementación iniciada; modelo de dominio y validación en desarrollo  
+**Estado:** etapas 1–5 implementadas en `development`; pendientes conexiones, grupos y herramientas de productividad  
 **Objetivo:** añadir un administrador de pizarrones y un editor visual de ideas sin alterar el funcionamiento de las tareas, actividades, perfiles ni Focus existentes.
 
 ## 1. Decisiones de producto
@@ -185,7 +185,8 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - [x] Implementar primera biblioteca visual: crear, abrir, buscar, ordenar, duplicar y eliminar pizarrones.
 - [x] Añadir edición de nombre y descripción, exportación individual e importación validada con confirmación.
 - [x] Implementar la primera base del editor: lienzo virtual, desplazamiento, zoom con punto de referencia, centrado y ajuste a pantalla.
-- [ ] Añadir elementos visuales al lienzo y continuar las herramientas del editor por etapas.
+- [x] Añadir notas y actividades visuales editables al lienzo.
+- [ ] Continuar con conexiones, grupos y herramientas de productividad.
 
 
 ### Etapa 3: lienzo navegable
@@ -205,3 +206,13 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Se añadieron seis colores, duplicación y eliminación con confirmación. Los identificadores de las copias se generan de nuevo mediante el modelo de dominio.
 - El lienzo muestra un estado vacío solo cuando no hay elementos; la cuadrícula y la cámara continúan funcionando con tarjetas presentes.
 - Las notas se guardan dentro de `ideaBoards[].nodes` y pasan por `createIdeaNode` / `updateIdeaNode`; no se introduce almacenamiento paralelo.
+
+
+### Etapa 5: actividades en el lienzo
+
+- Se añadió «+ Actividad» a la barra del editor. Las tarjetas nuevas se colocan cerca del centro de la vista actual y se guardan dentro de `ideaBoards[].nodes`, sin crear ni modificar actividades de la agenda general.
+- Cada tarjeta permite editar título y descripción, fecha de inicio, fecha límite, estado (pendiente, en curso o completada), prioridad, categoría y duración estimada en minutos.
+- Las actividades se pueden mover arrastrando su encabezado, seleccionar, duplicar y eliminar con confirmación. También pueden cambiarse entre cuatro colores.
+- Los campos se validan mediante el modelo de dominio existente y se guardan con el mismo guardado automático con debounce utilizado por las notas.
+- Se añadió validación para impedir que la fecha límite sea anterior a la fecha de inicio y pruebas automatizadas de los campos de planificación y duración.
+- La etapa no incluye todavía filtros por estado/categoría/fecha; esos controles permanecen en la etapa de productividad.
