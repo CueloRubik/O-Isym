@@ -868,7 +868,7 @@ function renderIdeaBoardCanvas(main, board) {
 
     note.addEventListener('click', event => {
       if (event.target.closest('button')) return;
-      world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
+      world.querySelectorAll('.ideas-note-card.is-selected, .ideas-activity-card.is-selected').forEach(item => item.classList.remove('is-selected'));
       note.classList.add('is-selected');
     });
     const updateText = (patch, inputElement) => {
@@ -1057,16 +1057,15 @@ function renderIdeaBoardCanvas(main, board) {
         scheduleBoardSave();
       } catch (error) {
         showToast(error.message, 'error');
-        if (control && patch.title !== undefined) control.value = node.title;
-        if (control && patch.estimatedMinutes !== undefined) control.value = String(node.estimatedMinutes || 0);
+        if (control) { const key = Object.keys(patch)[0]; control.value = node[key] == null ? '' : String(node[key]); }
       }
     };
     titleInput.addEventListener('input', () => update({ title: titleInput.value }, titleInput));
     titleInput.addEventListener('blur', () => { if (!titleInput.value.trim()) titleInput.value = node.title; });
     description.addEventListener('input', () => update({ body: description.value }));
     category.addEventListener('change', () => update({ category: category.value }));
-    startDate.addEventListener('change', () => update({ startDate: startDate.value }));
-    dueDate.addEventListener('change', () => update({ dueDate: dueDate.value }));
+    startDate.addEventListener('change', () => update({ startDate: startDate.value }, startDate));
+    dueDate.addEventListener('change', () => update({ dueDate: dueDate.value }, dueDate));
     status.addEventListener('change', () => update({ status: status.value }));
     priority.addEventListener('change', () => update({ priority: priority.value }));
     duration.addEventListener('change', () => update({ estimatedMinutes: duration.value }, duration));
@@ -1117,7 +1116,7 @@ function renderIdeaBoardCanvas(main, board) {
     });
   };
   viewport.addEventListener('click', event => {
-    if (!event.target.closest('.ideas-note-card')) {
+    if (!event.target.closest('.ideas-note-card, .ideas-activity-card')) {
       world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
     }
   });
