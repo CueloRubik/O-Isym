@@ -60,7 +60,8 @@ const state = {
   plannerSection: 'library',
   selectedIdeaBoardId: null,
   ideaBoardSearch: '',
-  ideaBoardSort: 'modified'
+  ideaBoardSort: 'modified',
+  ideaViewportSaveTimer: null
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -647,16 +648,160 @@ function renderPlanner(main) {
   if (state.plannerSection === 'board') {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     if (!board) { state.plannerSection = 'library'; renderIdeaBoardLibrary(main); return; }
-    const header = element('div', 'view-heading-row');
-    header.append(heading(board.title, board.description || 'Este pizarrón está listo para organizar tus ideas.'));
-    header.append(button('Volver a mis pizarrones', 'ideas-library', 'button secondary'));
-    main.append(header);
-    const notice = card('ideas-board-placeholder');
-    notice.append(empty('El editor del pizarrón será la siguiente etapa', 'Tu pizarrón ya está creado y guardado. En la siguiente etapa construiremos el lienzo para añadir notas, actividades, grupos y conexiones.'));
-    main.append(notice);
+    renderIdeaBoardCanvas(main, board);
     return;
   }
   renderPlannerAgenda(main);
+}
+
+function renderIdeaBoardCanvas(main, board) {
+  const header = element('div', 'ideas-canvas-header');
+  const titleArea = element('div', 'ideas-canvas-title');
+  titleArea.append(element('h1', '', board.title));
+  titleArea.append(element('p', 'muted', board.description || 'Organiza tus ideas en un espacio visual.'));
+  header.append(titleArea, button('← Mis pizarrones', 'ideas-library', 'button secondary'));
+  main.append(header);
+
+  const toolbar = element('div', 'ideas-canvas-toolbar');
+  const zoomOut = button('−', 'ideas-canvas-zoom-out', 'button secondary ideas-canvas-zoom-button');
+  zoomOut.setAttribute('aria-label', 'Alejar');
+  const zoomValue = element('span', 'ideas-canvas-zoom-value', '100%');
+  zoomValue.setAttribute('aria-live', 'polite');
+  const zoomIn = button('+', 'ideas-canvas-zoom-in', 'button secondary ideas-canvas-zoom-button');
+  zoomIn.setAttribute('aria-label', 'Acercar');
+  const center = button('Centrar', 'ideas-canvas-center', 'button secondary');
+  const fit = button('Ajustar todo', 'ideas-canvas-fit', 'button secondary');
+  toolbar.append(zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
+  main.append(toolbar);
+
+  const viewport = element('div', 'ideas-canvas-viewport');
+  viewport.setAttribute('role', 'application');
+  viewport.setAttribute('aria-label', 'Lienzo del pizarrón. Arrastra el fondo para desplazarte y usa la rueda o los controles para cambiar el zoom.');
+  viewport.tabIndex = 0;
+  const world = element('div', 'ideas-canvas-world');
+  world.setAttribute('aria-hidden', 'true');
+  const emptyState = element('div', 'ideas-canvas-empty');
+  emptyState.append(element('span', 'ideas-canvas-empty-mark', 'O'), element('strong', '', 'Tu lienzo está vacío'), element('p', 'muted', 'En la siguiente etapa podrás añadir notas y actividades aquí.'));
+  viewport.append(world, emptyState);
+  main.append(viewport, element('p', 'ideas-canvas-hint', 'Arrastra el fondo para moverte · Rueda o trackpad para zoom · Centrar y Ajustar todo para recuperar la vista'));
+
+  const camera = {
+    x: Number(board.viewport?.x) || 0,
+    y: Number(board.viewport?.y) || 0,
+    zoom: Math.max(0.1, Math.min(4, Number(board.viewport?.zoom) || 1))
+  };
+  let pointer = null;
+  let moved = false;
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const currentBoard = () => state.profile?.ideaBoards?.find(item => item.id === board.id);
+  const paint = () => {
+    world.style.transform = 'translate(calc(-50% + ' + camera.x + 'px), calc(-50% + ' + camera.y + 'px)) scale(' + camera.zoom + ')';
+    viewport.style.setProperty('--ideas-grid-size', (28 * camera.zoom) + 'px');
+    viewport.style.setProperty('--ideas-camera-x', camera.x + 'px');
+    viewport.style.setProperty('--ideas-camera-y', camera.y + 'px');
+    zoomValue.textContent = Math.round(camera.zoom * 100) + '%';
+    zoomOut.disabled = camera.zoom <= 0.1;
+    zoomIn.disabled = camera.zoom >= 4;
+  };
+  const updateViewport = () => {
+    const activeBoard = currentBoard();
+    if (!activeBoard) return;
+    activeBoard.viewport = { x: camera.x, y: camera.y, zoom: camera.zoom };
+    activeBoard.modifiedAt = new Date().toISOString();
+    clearTimeout(state.ideaViewportSaveTimer);
+    state.ideaViewportSaveTimer = setTimeout(async () => {
+      state.ideaViewportSaveTimer = null;
+      await save();
+    }, 350);
+  };
+  const zoomAt = (nextZoom, clientX, clientY) => {
+    const rect = viewport.getBoundingClientRect();
+    const pointX = clientX === undefined ? rect.left + rect.width / 2 : clientX;
+    const pointY = clientY === undefined ? rect.top + rect.height / 2 : clientY;
+    const localX = pointX - rect.left - rect.width / 2;
+    const localY = pointY - rect.top - rect.height / 2;
+    const worldX = (localX - camera.x) / camera.zoom;
+    const worldY = (localY - camera.y) / camera.zoom;
+    camera.zoom = clamp(nextZoom, 0.1, 4);
+    camera.x = localX - worldX * camera.zoom;
+    camera.y = localY - worldY * camera.zoom;
+    paint();
+    updateViewport();
+  };
+  const centerContent = fitAll => {
+    const nodes = currentBoard()?.nodes || [];
+    if (!nodes.length) {
+      camera.x = 0;
+      camera.y = 0;
+      camera.zoom = 1;
+    } else {
+      const minX = Math.min(...nodes.map(node => node.x));
+      const minY = Math.min(...nodes.map(node => node.y));
+      const maxX = Math.max(...nodes.map(node => node.x + node.width));
+      const maxY = Math.max(...nodes.map(node => node.y + node.height));
+      const middleX = (minX + maxX) / 2;
+      const middleY = (minY + maxY) / 2;
+      if (fitAll) {
+        const rect = viewport.getBoundingClientRect();
+        const width = Math.max(1, maxX - minX);
+        const height = Math.max(1, maxY - minY);
+        camera.zoom = clamp(Math.min((rect.width - 100) / width, (rect.height - 100) / height, 1.5), 0.1, 4);
+      }
+      camera.x = -middleX * camera.zoom;
+      camera.y = -middleY * camera.zoom;
+    }
+    paint();
+    updateViewport();
+  };
+
+  zoomOut.addEventListener('click', () => zoomAt(camera.zoom / 1.2));
+  zoomIn.addEventListener('click', () => zoomAt(camera.zoom * 1.2));
+  center.addEventListener('click', () => centerContent(false));
+  fit.addEventListener('click', () => centerContent(true));
+  viewport.addEventListener('wheel', event => {
+    event.preventDefault();
+    zoomAt(camera.zoom * Math.exp(-event.deltaY * 0.0015), event.clientX, event.clientY);
+  }, { passive: false });
+  viewport.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || event.target.closest('button, input, textarea, select, a')) return;
+    pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, cameraX: camera.x, cameraY: camera.y };
+    moved = false;
+    viewport.setPointerCapture(event.pointerId);
+    viewport.classList.add('is-panning');
+  });
+  viewport.addEventListener('pointermove', event => {
+    if (!pointer || event.pointerId !== pointer.id) return;
+    const dx = event.clientX - pointer.x;
+    const dy = event.clientY - pointer.y;
+    if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
+    camera.x = pointer.cameraX + dx;
+    camera.y = pointer.cameraY + dy;
+    paint();
+  });
+  const finishPan = event => {
+    if (!pointer || (event && event.pointerId !== pointer.id)) return;
+    if (moved) updateViewport();
+    pointer = null;
+    viewport.classList.remove('is-panning');
+  };
+  viewport.addEventListener('pointerup', finishPan);
+  viewport.addEventListener('pointercancel', finishPan);
+  viewport.addEventListener('lostpointercapture', finishPan);
+  viewport.addEventListener('keydown', event => {
+    if (event.target !== viewport) return;
+    const step = event.shiftKey ? 120 : 48;
+    if (event.key === 'ArrowLeft') camera.x += step;
+    else if (event.key === 'ArrowRight') camera.x -= step;
+    else if (event.key === 'ArrowUp') camera.y += step;
+    else if (event.key === 'ArrowDown') camera.y -= step;
+    else if (event.key === '+' || event.key === '=') { zoomAt(camera.zoom * 1.2); event.preventDefault(); return; }
+    else if (event.key === '-') { zoomAt(camera.zoom / 1.2); event.preventDefault(); return; }
+    else return;
+    event.preventDefault();
+    paint();
+    updateViewport();
+  });
+  paint();
 }
 
 function renderIdeaBoardLibrary(main) {
@@ -1772,8 +1917,11 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
-  if (action === 'ideas-library') { state.plannerSection = 'library'; state.selectedIdeaBoardId = null; updateShell(); return; }
+  if (action === 'navigate') { if (state.ideaViewportSaveTimer) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'ideas-library') {
+    if (state.ideaViewportSaveTimer) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; }
+    state.plannerSection = 'library'; state.selectedIdeaBoardId = null; updateShell(); return;
+  }
   if (action === 'ideas-open') { state.selectedIdeaBoardId = id; state.plannerSection = 'board'; updateShell(); return; }
   if (action === 'ideas-create') {
     const title = window.prompt('Nombre del nuevo pizarrón:');
