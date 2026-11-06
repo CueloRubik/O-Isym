@@ -184,4 +184,15 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - [ ] Ejecutar la suite en un entorno Node 18 y corregir cualquier fallo.
 - [x] Implementar primera biblioteca visual: crear, abrir, buscar, ordenar, duplicar y eliminar pizarrones.
 - [x] Añadir edición de nombre y descripción, exportación individual e importación validada con confirmación.
-- [ ] Implementar el editor y sus herramientas por etapas.
+- [x] Implementar la primera base del editor: lienzo virtual, desplazamiento, zoom con punto de referencia, centrado y ajuste a pantalla.
+- [ ] Añadir elementos visuales al lienzo y continuar las herramientas del editor por etapas.
+
+
+### Etapa 3: lienzo navegable
+
+- El editor provisional se sustituyó por un lienzo amplio con cámara virtual; no se crea una superficie de tamaño infinito ni nodos DOM masivos.
+- El desplazamiento se realiza arrastrando el fondo. También se puede navegar con las flechas cuando el lienzo tiene el foco; Shift aumenta el paso.
+- El zoom funciona con rueda/trackpad y controles +/−, conserva el punto situado bajo el puntero y está limitado al rango validado de 0.1 a 4.
+- «Centrar» vuelve al centro del contenido y «Ajustar todo» calcula un zoom que intenta encajar los elementos dentro del área visible. Si el pizarrón está vacío, ambos recuperan una vista limpia al centro.
+- La cámara se guarda en `viewport` con debounce al terminar la interacción; al volver a la biblioteca o cambiar de sección se fuerza el guardado pendiente.
+- Esta etapa no añade todavía notas, actividades, grupos ni conexiones. El lienzo vacío muestra una indicación breve de uso.
