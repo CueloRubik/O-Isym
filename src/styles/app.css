@@ -776,3 +776,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .ideas-board-actions .button { flex:1; }
 .ideas-board-placeholder { min-height:300px; display:grid; place-items:center; }
 @media(max-width:560px) { .ideas-library-toolbar { align-items:stretch; flex-direction:column; } .ideas-library-toolbar select { width:100%; } }
+
+
+.ideas-library-header-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.ideas-board-actions { display:flex; flex-wrap:wrap; gap:6px; }
+.ideas-board-actions .button { flex:1 1 auto; }
