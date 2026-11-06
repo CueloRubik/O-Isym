@@ -467,3 +467,16 @@ test('idea board connections require distinct existing endpoints and valid metad
   assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, label: 'x'.repeat(101) }] }), /etiqueta de una conexión/);
   assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, directed: 'yes' }] }), /dirección de una conexión/);
 });
+
+
+test('idea groups reject missing and nested group references', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Grupos' });
+  const note = createIdeaNode('note');
+  const group = createIdeaNode('group', { childrenIds: [note.id] });
+  board.nodes.push(note, group);
+  assert.equal(validateIdeaBoard(board), true);
+  assert.throws(() => validateIdeaBoard({ ...board, nodes: [group] }), /inexistente/);
+  const nested = createIdeaNode('group', { childrenIds: [group.id] });
+  assert.throws(() => validateIdeaBoard({ ...board, nodes: [note, group, nested] }), /otro grupo/);
+});
