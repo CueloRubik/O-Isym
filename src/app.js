@@ -838,8 +838,8 @@ function renderIdeaBoardCanvas(main, board) {
     if (activeNodes.length) {
       const minX = Math.min(...activeNodes.map(node => node.x)) - 100;
       const minY = Math.min(...activeNodes.map(node => node.y)) - 100;
-      const maxX = Math.max(...activeNodes.map(node => node.x + node.width)) + 100;
-      const maxY = Math.max(...activeNodes.map(node => node.y + node.height)) + 100;
+      const maxX = Math.max(...activeNodes.map(node => node.x + Math.max(node.width, node.type === 'activity' ? 260 : 120))) + 100;
+      const maxY = Math.max(...activeNodes.map(node => node.y + Math.max(node.height, node.type === 'activity' ? 230 : 80))) + 100;
       const width = Math.max(1, maxX - minX), height = Math.max(1, maxY - minY);
       connectionLayer.style.left = minX + 'px';
       connectionLayer.style.top = minY + 'px';
@@ -876,8 +876,17 @@ function renderIdeaBoardCanvas(main, board) {
     (activeBoard?.connections || []).forEach(connection => {
       const from = byId.get(connection.from), to = byId.get(connection.to);
       if (!from || !to) return;
-      const x1 = from.x + from.width / 2 - boundsLeft, y1 = from.y + from.height / 2 - boundsTop;
-      const x2 = to.x + to.width / 2 - boundsLeft, y2 = to.y + to.height / 2 - boundsTop;
+      const fromWidth = Math.max(from.width, from.type === 'activity' ? 260 : 120);
+      const fromHeight = Math.max(from.height, from.type === 'activity' ? 230 : 80);
+      const toWidth = Math.max(to.width, to.type === 'activity' ? 260 : 120);
+      const toHeight = Math.max(to.height, to.type === 'activity' ? 230 : 80);
+      const fromCenter = { x: from.x + fromWidth / 2, y: from.y + fromHeight / 2 };
+      const toCenter = { x: to.x + toWidth / 2, y: to.y + toHeight / 2 };
+      const vectorX = toCenter.x - fromCenter.x, vectorY = toCenter.y - fromCenter.y;
+      const edgeFactor = (width, height) => Math.min(vectorX ? width / 2 / Math.abs(vectorX) : Infinity, vectorY ? height / 2 / Math.abs(vectorY) : Infinity);
+      const startFactor = edgeFactor(fromWidth, fromHeight), endFactor = edgeFactor(toWidth, toHeight);
+      const x1 = fromCenter.x + vectorX * startFactor - boundsLeft, y1 = fromCenter.y + vectorY * startFactor - boundsTop;
+      const x2 = toCenter.x - vectorX * endFactor - boundsLeft, y2 = toCenter.y - vectorY * endFactor - boundsTop;
       const dx = x2 - x1, dy = y2 - y1;
       const controlX = (x1 + x2) / 2;
       const controlY = (y1 + y2) / 2 - Math.min(70, Math.abs(dx + dy) * 0.12);
@@ -908,7 +917,7 @@ function renderIdeaBoardCanvas(main, board) {
       if (connection.label) {
         const label = document.createElementNS(svgNS, 'text');
         label.setAttribute('x', String(controlX));
-        label.setAttribute('y', String(controlY - 8));
+        label.setAttribute('y', String((connection.style === 'curved' ? controlY : (y1 + y2) / 2) - 8));
         label.setAttribute('class', 'ideas-connection-label');
         label.textContent = connection.label;
         connectionLayer.append(label);
