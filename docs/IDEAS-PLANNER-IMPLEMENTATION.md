@@ -2,7 +2,7 @@
 
 **Rama de trabajo:** `development`  
 **Plataforma inicial:** macOS Intel  
-**Estado:** etapas 1–5 implementadas en `development`; pendientes conexiones, grupos y herramientas de productividad  
+**Estado:** etapas 1–6 implementadas en `development`; pendientes grupos y herramientas de productividad  
 **Objetivo:** añadir un administrador de pizarrones y un editor visual de ideas sin alterar el funcionamiento de las tareas, actividades, perfiles ni Focus existentes.
 
 ## 1. Decisiones de producto
@@ -186,7 +186,8 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - [x] Añadir edición de nombre y descripción, exportación individual e importación validada con confirmación.
 - [x] Implementar la primera base del editor: lienzo virtual, desplazamiento, zoom con punto de referencia, centrado y ajuste a pantalla.
 - [x] Añadir notas y actividades visuales editables al lienzo.
-- [ ] Continuar con conexiones, grupos y herramientas de productividad.
+- [x] Añadir conexiones entre elementos.
+- [ ] Continuar con grupos y herramientas de productividad.
 
 
 ### Etapa 3: lienzo navegable
@@ -216,3 +217,13 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Los campos se validan mediante el modelo de dominio existente y se guardan con el mismo guardado automático con debounce utilizado por las notas.
 - Se añadió validación para impedir que la fecha límite sea anterior a la fecha de inicio y pruebas automatizadas de los campos de planificación y duración.
 - La etapa no incluye todavía filtros por estado/categoría/fecha; esos controles permanecen en la etapa de productividad.
+
+
+### Etapa 6: conexiones entre elementos
+
+- Se incorporaron dos modos de creación: conexión con flecha y conexión sin flecha. El usuario selecciona dos tarjetas del lienzo y puede escribir una etiqueta opcional de hasta 100 caracteres.
+- Las conexiones se dibujan en una capa SVG independiente, por detrás de las tarjetas, y unen los centros de los elementos. Se actualizan cuando las notas o actividades se mueven o cuando cambia el tamaño de una nota.
+- Las conexiones se guardan en `board.connections` y conservan el formato validado por el dominio: identificador único, origen, destino, etiqueta, estilo y dirección.
+- Al seleccionar una línea aparecen las acciones para editar su etiqueta o eliminarla. La eliminación de una nota o actividad también elimina sus conexiones asociadas para evitar referencias colgantes.
+- Se añadieron pruebas automatizadas de conexiones válidas, referencias inexistentes, extremos iguales, etiquetas fuera de límite y direcciones inválidas.
+- Los grupos aún no se pueden conectar desde la interfaz; se habilitarán cuando se implemente su edición visual.
