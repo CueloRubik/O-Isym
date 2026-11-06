@@ -554,11 +554,12 @@ function validateIdeaBoard(board) {
       if (!Number.isFinite(node.estimatedMinutes) || node.estimatedMinutes < 0 || node.estimatedMinutes > 1440) fail('la duración de una actividad no es válida.');
     }
     if (node.type === 'group') {
-      if (!Array.isArray(node.childrenIds) || node.childrenIds.length > IDEA_BOARD_LIMITS.nodes || new Set(node.childrenIds).size !== node.childrenIds.length) fail('un grupo contiene referencias no válidas.');
+      if (!Array.isArray(node.childrenIds) || node.childrenIds.length > IDEA_BOARD_LIMITS.nodes || new Set(node.childrenIds).size !== node.childrenIds.length || node.childrenIds.some(id => typeof id !== 'string' || !id)) fail('un grupo contiene referencias no válidas.');
     }
   }
+  const nodeById = new Map(board.nodes.map(node => [node.id, node]));
   for (const node of board.nodes) {
-    if (node.type === 'group' && node.childrenIds.some(id => !ids.has(id) || id === node.id)) fail('un grupo apunta a un elemento inexistente o a sí mismo.');
+    if (node.type === 'group' && node.childrenIds.some(id => !nodeById.has(id) || id === node.id || nodeById.get(id).type === 'group')) fail('un grupo apunta a un elemento inexistente, a sí mismo o a otro grupo.');
   }
   const connectionIds = new Set();
   for (const connection of board.connections) {
