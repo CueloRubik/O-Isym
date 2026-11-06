@@ -227,3 +227,11 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Al seleccionar una línea aparecen las acciones para editar su etiqueta o eliminarla. La eliminación de una nota o actividad también elimina sus conexiones asociadas para evitar referencias colgantes.
 - Se añadieron pruebas automatizadas de conexiones válidas, referencias inexistentes, extremos iguales, etiquetas fuera de límite y direcciones inválidas.
 - Los grupos aún no se pueden conectar desde la interfaz; se habilitarán cuando se implemente su edición visual.
+
+
+### Etapa 7: grupos y selección múltiple
+
+- Se habilitó la selección múltiple con Shift + clic sobre notas y actividades. La barra indica cuántos elementos están seleccionados y permite agrupar dos o más.
+- Los grupos se representan como contenedores visuales detrás de las tarjetas. Su encabezado permite cambiar el título, desagrupar sin borrar los elementos y mover el conjunto completo.
+- Los grupos guardan referencias a nodos existentes; el dominio rechaza referencias ausentes, autorreferencias y grupos anidados. Al eliminar una nota o actividad se retira también su referencia del grupo.
+- Eliminar un grupo conserva intactas sus notas y actividades. El guardado continúa usando el almacenamiento habitual del perfil.
