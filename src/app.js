@@ -673,13 +673,15 @@ function renderIdeaBoardCanvas(main, board) {
   const fit = button('Ajustar todo', 'ideas-canvas-fit', 'button secondary');
   const addNote = button('+ Nueva nota', 'ideas-note-create', 'button primary');
   const addActivity = button('+ Actividad', 'ideas-activity-create', 'button secondary');
+  const groupSelection = button('Agrupar selección', 'ideas-group-create', 'button secondary');
+  groupSelection.disabled = true;
   const connectArrow = button('↗ Conectar con flecha', 'ideas-connect-arrow', 'button secondary');
   const connectLine = button('— Conectar sin flecha', 'ideas-connect-line', 'button secondary');
   const editConnection = button('Editar etiqueta', 'ideas-connection-edit', 'button secondary');
   editConnection.disabled = true;
   const deleteConnection = button('Eliminar conexión', 'ideas-connection-delete', 'button secondary');
   deleteConnection.disabled = true;
-  toolbar.append(addNote, addActivity, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
+  toolbar.append(addNote, addActivity, groupSelection, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit);
   main.append(toolbar);
 
   const viewport = element('div', 'ideas-canvas-viewport');
@@ -701,6 +703,17 @@ function renderIdeaBoardCanvas(main, board) {
   let moved = false;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const currentBoard = () => state.profile?.ideaBoards?.find(item => item.id === board.id);
+  const selectedNodeIds = new Set();
+  const syncSelection = () => {
+    world.querySelectorAll('.ideas-note-card, .ideas-activity-card').forEach(card => card.classList.toggle('is-selected', selectedNodeIds.has(card.dataset.nodeId)));
+    groupSelection.disabled = selectedNodeIds.size < 2;
+    groupSelection.textContent = selectedNodeIds.size > 1 ? 'Agrupar selección (' + selectedNodeIds.size + ')' : 'Agrupar selección';
+  };
+  const selectNode = (id, additive = false) => {
+    if (!additive) selectedNodeIds.clear();
+    if (additive && selectedNodeIds.has(id)) selectedNodeIds.delete(id); else selectedNodeIds.add(id);
+    syncSelection();
+  };
   const paint = () => {
     world.style.transform = 'translate(calc(-50% + ' + camera.x + 'px), calc(-50% + ' + camera.y + 'px)) scale(' + camera.zoom + ')';
     emptyState.hidden = Boolean(currentBoard()?.nodes?.length);
@@ -1095,9 +1108,8 @@ function renderIdeaBoardCanvas(main, board) {
     note.append(noteHeader, body, footer, resize);
 
     note.addEventListener('click', event => {
-      if (event.target.closest('button')) return;
-      world.querySelectorAll('.ideas-note-card.is-selected, .ideas-activity-card.is-selected').forEach(item => item.classList.remove('is-selected'));
-      note.classList.add('is-selected');
+      if (event.target.closest('button, input, textarea, select')) return;
+      selectNode(node.id, event.shiftKey);
     });
     const updateText = (patch, inputElement) => {
       try {
@@ -1125,25 +1137,20 @@ function renderIdeaBoardCanvas(main, board) {
       event.preventDefault();
       event.stopPropagation();
       noteHeader.setPointerCapture(event.pointerId);
-      const startX = event.clientX, startY = event.clientY, startLeft = node.x, startTop = node.y;
+      const startX = event.clientX, startY = event.clientY;
+      if (!selectedNodeIds.has(node.id)) selectNode(node.id, false);
+      const dragIds = [...selectedNodeIds];
+      const starts = new Map((currentBoard()?.nodes || []).filter(item => dragIds.includes(item.id)).map(item => [item.id, { x: item.x, y: item.y }]));
       const move = moveEvent => {
         if (moveEvent.pointerId !== event.pointerId) return;
-        const dx = (moveEvent.clientX - startX) / camera.zoom;
-        const dy = (moveEvent.clientY - startY) / camera.zoom;
-        const x = Math.max(-1000000, Math.min(1000000, startLeft + dx));
-        const y = Math.max(-1000000, Math.min(1000000, startTop + dy));
-        note.style.left = x + 'px';
-        note.style.top = y + 'px';
-        const activeBoard = currentBoard();
-        const current = activeBoard?.nodes.find(item => item.id === node.id);
-        if (current) {
-          try {
-            const updated = updateIdeaNode(current, { x, y });
-            activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? updated : item);
-            node = updated;
-            drawConnections();
-          } catch {}
-        }
+        const dx = (moveEvent.clientX - startX) / camera.zoom, dy = (moveEvent.clientY - startY) / camera.zoom;
+        const activeBoard = currentBoard(); if (!activeBoard) return;
+        activeBoard.nodes = activeBoard.nodes.map(item => {
+          const start = starts.get(item.id); return start ? updateIdeaNode(item, { x: Math.max(-1000000, Math.min(1000000, start.x + dx)), y: Math.max(-1000000, Math.min(1000000, start.y + dy)) }) : item;
+        });
+        activeBoard.nodes.filter(item => starts.has(item.id)).forEach(item => { const card = world.querySelector('[data-node-id="' + item.id + '"]'); if (card) { card.style.left = item.x + 'px'; card.style.top = item.y + 'px'; } });
+        node = activeBoard.nodes.find(item => item.id === node.id) || node;
+        drawConnections();
       };
       const finish = finishEvent => {
         if (finishEvent.pointerId !== event.pointerId) return;
@@ -1301,31 +1308,28 @@ function renderIdeaBoardCanvas(main, board) {
     priority.addEventListener('change', () => update({ priority: priority.value }));
     duration.addEventListener('change', () => update({ estimatedMinutes: duration.value }, duration));
     activity.addEventListener('click', event => {
-      if (event.target.closest('button')) return;
-      world.querySelectorAll('.ideas-activity-card.is-selected, .ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
-      activity.classList.add('is-selected');
+      if (event.target.closest('button, input, textarea, select')) return;
+      selectNode(node.id, event.shiftKey);
     });
     header.addEventListener('pointerdown', event => {
       if (event.button !== 0 || event.target.closest('input, button')) return;
       event.preventDefault();
       event.stopPropagation();
       header.setPointerCapture(event.pointerId);
-      const startX = event.clientX, startY = event.clientY, startLeft = node.x, startTop = node.y;
+      const startX = event.clientX, startY = event.clientY;
+      if (!selectedNodeIds.has(node.id)) selectNode(node.id, false);
+      const dragIds = [...selectedNodeIds];
+      const starts = new Map((currentBoard()?.nodes || []).filter(item => dragIds.includes(item.id)).map(item => [item.id, { x: item.x, y: item.y }]));
       const move = moveEvent => {
         if (moveEvent.pointerId !== event.pointerId) return;
-        const x = Math.max(-1000000, Math.min(1000000, startLeft + (moveEvent.clientX - startX) / camera.zoom));
-        const y = Math.max(-1000000, Math.min(1000000, startTop + (moveEvent.clientY - startY) / camera.zoom));
-        activity.style.left = x + 'px';
-        activity.style.top = y + 'px';
-        const activeBoard = currentBoard();
-        const current = activeBoard?.nodes.find(item => item.id === node.id);
-        if (current) {
-          try {
-            node = updateIdeaNode(current, { x, y });
-            activeBoard.nodes = activeBoard.nodes.map(item => item.id === node.id ? node : item);
-            drawConnections();
-          } catch {}
-        }
+        const dx = (moveEvent.clientX - startX) / camera.zoom, dy = (moveEvent.clientY - startY) / camera.zoom;
+        const activeBoard = currentBoard(); if (!activeBoard) return;
+        activeBoard.nodes = activeBoard.nodes.map(item => {
+          const start = starts.get(item.id); return start ? updateIdeaNode(item, { x: Math.max(-1000000, Math.min(1000000, start.x + dx)), y: Math.max(-1000000, Math.min(1000000, start.y + dy)) }) : item;
+        });
+        activeBoard.nodes.filter(item => starts.has(item.id)).forEach(item => { const card = world.querySelector('[data-node-id="' + item.id + '"]'); if (card) { card.style.left = item.x + 'px'; card.style.top = item.y + 'px'; } });
+        node = activeBoard.nodes.find(item => item.id === node.id) || node;
+        drawConnections();
       };
       const finish = finishEvent => {
         if (finishEvent.pointerId !== event.pointerId) return;
@@ -1340,19 +1344,46 @@ function renderIdeaBoardCanvas(main, board) {
     });
     world.append(activity);
   };
+  const renderGroup = group => {
+    const frame = element('section', 'ideas-group-frame'); frame.dataset.groupId = group.id;
+    const children = (currentBoard()?.nodes || []).filter(node => group.childrenIds.includes(node.id));
+    const bounds = children.length ? { left: Math.min(...children.map(node => node.x))-14, top: Math.min(...children.map(node => node.y))-48, right: Math.max(...children.map(node => node.x+node.width))+14, bottom: Math.max(...children.map(node => node.y+node.height))+14 } : { left: group.x, top: group.y, right: group.x+group.width, bottom: group.y+group.height };
+    frame.style.left=bounds.left+'px'; frame.style.top=bounds.top+'px'; frame.style.width=Math.max(160,bounds.right-bounds.left)+'px'; frame.style.height=Math.max(100,bounds.bottom-bounds.top)+'px';
+    const bar=element('div','ideas-group-header');
+    const title=input('group-title','Nombre del grupo','text',group.title); title.maxLength=160; title.classList.add('ideas-group-title'); title.setAttribute('aria-label','Nombre del grupo');
+    title.addEventListener('change',()=>{ if(!title.value.trim()){title.value=group.title;return;} const activeBoard=currentBoard(); const current=activeBoard?.nodes.find(item=>item.id===group.id); if(!current)return; try{const updated=updateIdeaNode(current,{title:title.value});activeBoard.nodes=activeBoard.nodes.map(item=>item.id===group.id?updated:item);group.title=updated.title;scheduleBoardSave();}catch(error){showToast(error.message,'error');title.value=group.title;}});
+    const ungroup=button('Desagrupar','ideas-group-remove','ideas-group-small-action',{id:group.id}); ungroup.title='Quitar el grupo sin eliminar sus elementos'; bar.append(title,ungroup); frame.append(bar);
+    bar.addEventListener('pointerdown',event=>{
+      if(event.button!==0||event.target.closest('input,button'))return; event.preventDefault();event.stopPropagation();bar.setPointerCapture(event.pointerId);
+      const startX=event.clientX,startY=event.clientY;const starts=new Map(children.map(node=>[node.id,{x:node.x,y:node.y}]));
+      const move=moveEvent=>{if(moveEvent.pointerId!==event.pointerId)return;const dx=(moveEvent.clientX-startX)/camera.zoom,dy=(moveEvent.clientY-startY)/camera.zoom;const activeBoard=currentBoard();if(!activeBoard)return;
+        activeBoard.nodes=activeBoard.nodes.map(item=>{const start=starts.get(item.id);return start?updateIdeaNode(item,{x:Math.max(-1000000,Math.min(1000000,start.x+dx)),y:Math.max(-1000000,Math.min(1000000,start.y+dy))}):item;});
+        activeBoard.nodes.filter(item=>starts.has(item.id)).forEach(item=>{const card=world.querySelector('[data-node-id="'+item.id+'"]');if(card){card.style.left=item.x+'px';card.style.top=item.y+'px';}});
+        frame.style.left=(bounds.left+dx)+'px';frame.style.top=(bounds.top+dy)+'px';drawConnections();};
+      const finish=finishEvent=>{if(finishEvent.pointerId!==event.pointerId)return;bar.removeEventListener('pointermove',move);bar.removeEventListener('pointerup',finish);bar.removeEventListener('pointercancel',finish);scheduleBoardSave();};
+      bar.addEventListener('pointermove',move);bar.addEventListener('pointerup',finish);bar.addEventListener('pointercancel',finish);
+    });
+    world.append(frame);
+  };
   const renderNotes = () => {
     world.replaceChildren(connectionLayer);
-    (currentBoard()?.nodes || []).forEach(node => {
-      if (node.type === 'note') renderNote(node);
-      else if (node.type === 'activity') renderActivity(node);
-    });
-    drawConnections();
+    (currentBoard()?.nodes||[]).filter(node=>node.type==='group').forEach(renderGroup);
+    (currentBoard()?.nodes||[]).forEach(node=>{if(node.type==='note')renderNote(node);else if(node.type==='activity')renderActivity(node);});
+    drawConnections(); syncSelection();
   };
   viewport.addEventListener('click', event => {
-    if (!event.target.closest('.ideas-note-card, .ideas-activity-card')) {
-      world.querySelectorAll('.ideas-note-card.is-selected, .ideas-activity-card.is-selected').forEach(item => item.classList.remove('is-selected'));
-    }
+    if (!event.target.closest('.ideas-note-card, .ideas-activity-card') && !event.shiftKey) { selectedNodeIds.clear(); syncSelection(); }
   });
+  groupSelection.addEventListener('click', async () => {
+    const activeBoard=currentBoard(); const ids=[...selectedNodeIds].filter(id=>activeBoard?.nodes.some(node=>node.id===id&&(node.type==='note'||node.type==='activity')));
+    if(!activeBoard||ids.length<2)return; const title=window.prompt('Nombre del grupo:','Nuevo grupo'); if(title===null)return; if(!title.trim())return showToast('El grupo necesita un nombre.','error');
+    const children=activeBoard.nodes.filter(node=>ids.includes(node.id)); const left=Math.min(...children.map(node=>node.x)),top=Math.min(...children.map(node=>node.y)),right=Math.max(...children.map(node=>node.x+node.width)),bottom=Math.max(...children.map(node=>node.y+node.height));
+    const group=createIdeaNode('group',{title,x:left-14,y:top-48,width:Math.max(160,right-left+28),height:Math.max(100,bottom-top+62),childrenIds:ids,color:'#e4efe7'});
+    activeBoard.nodes.push(group);activeBoard.modifiedAt=new Date().toISOString();
+    try{validateIdeaBoard(activeBoard);if(!await save()){activeBoard.nodes=activeBoard.nodes.filter(node=>node.id!==group.id);return;}selectedNodeIds.clear();renderNotes();showToast('Grupo creado. Arrastra su encabezado para mover todos sus elementos.');}
+    catch(error){activeBoard.nodes=activeBoard.nodes.filter(node=>node.id!==group.id);showToast(error.message,'error');}
+  });
+  world.addEventListener('click',async event=>{const target=event.target.closest('[data-action="ideas-group-remove"]');if(!target)return;const activeBoard=currentBoard();const group=activeBoard?.nodes.find(node=>node.id===target.dataset.id&&node.type==='group');if(!group)return;activeBoard.nodes=activeBoard.nodes.filter(node=>node.id!==group.id);activeBoard.modifiedAt=new Date().toISOString();if(!await save())return;renderNotes();showToast('Grupo eliminado; sus elementos se conservaron.');});
   updateConnectionControls();
   renderNotes();
   paint();
@@ -2519,7 +2550,7 @@ root.addEventListener('click', async event => {
     if (!confirm('¿Eliminar esta actividad del pizarrón?')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
-    board.nodes = board.nodes.filter(item => item.id !== id);
+    board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item);
     board.connections = board.connections.filter(connection => connection.from !== id && connection.to !== id);
     if (!await save()) { board.nodes = previous; board.connections = previousConnections; return; }
     updateShell();
@@ -2576,7 +2607,7 @@ root.addEventListener('click', async event => {
     if (!confirm('¿Eliminar esta nota? Esta acción no se puede deshacer.')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
-    board.nodes = board.nodes.filter(item => item.id !== id);
+    board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item);
     board.connections = board.connections.filter(connection => connection.from !== id && connection.to !== id);
     board.modifiedAt = new Date().toISOString();
     if (!await save()) { board.nodes = previous; board.connections = previousConnections; return; }
