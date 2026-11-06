@@ -1,5 +1,5 @@
 const {
-  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask,
+  createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask, createIdeaBoard, normalizeIdeaBoards,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
 } = window.OIsymDomain;
@@ -56,7 +56,11 @@ const state = {
   showActivityForm: false,
   showGoalForm: false,
   launchPromptShown: false,
-  pendingTaskReminder: null
+  pendingTaskReminder: null,
+  plannerSection: 'library',
+  selectedIdeaBoardId: null,
+  ideaBoardSearch: '',
+  ideaBoardSort: 'modified'
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -636,6 +640,80 @@ function renderCalendar(main) {
   layout.append(calendarPrimary,selectedCard);main.append(layout);
 }
 function renderPlanner(main) {
+  if (state.plannerSection === 'library') {
+    renderIdeaBoardLibrary(main);
+    return;
+  }
+  if (state.plannerSection === 'board') {
+    const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
+    if (!board) { state.plannerSection = 'library'; renderIdeaBoardLibrary(main); return; }
+    const header = element('div', 'view-heading-row');
+    header.append(heading(board.title, board.description || 'Este pizarrón está listo para organizar tus ideas.'));
+    header.append(button('Volver a mis pizarrones', 'ideas-library', 'button secondary'));
+    main.append(header);
+    const notice = card('ideas-board-placeholder');
+    notice.append(empty('El editor del pizarrón será la siguiente etapa', 'Tu pizarrón ya está creado y guardado. En la siguiente etapa construiremos el lienzo para añadir notas, actividades, grupos y conexiones.'));
+    main.append(notice);
+    return;
+  }
+  renderPlannerAgenda(main);
+}
+
+function renderIdeaBoardLibrary(main) {
+  const header = element('div', 'view-heading-row');
+  header.append(heading('Mis pizarrones', 'Un espacio para reunir ideas, proyectos y conexiones.', 'navigation/planner.png'));
+  header.append(button('+ Nuevo pizarrón', 'ideas-create', 'button primary'));
+  main.append(header);
+  const toolbar = element('div', 'ideas-library-toolbar');
+  const search = input('idea-board-search', 'Buscar pizarrones…', 'search', state.ideaBoardSearch);
+  search.id = 'idea-board-search';
+  search.setAttribute('aria-label', 'Buscar pizarrones');
+  const searchWrap = element('label', 'search-field');
+  searchWrap.append(iconImage('interface/search.png', '', 'search-icon'), search);
+  const sort = select('idea-board-sort', [
+    { value: 'modified', label: 'Modificados recientemente' },
+    { value: 'created', label: 'Creados recientemente' },
+    { value: 'name', label: 'Nombre' }
+  ], state.ideaBoardSort);
+  sort.id = 'idea-board-sort';
+  sort.setAttribute('aria-label', 'Ordenar pizarrones');
+  toolbar.append(searchWrap, sort);
+  main.append(toolbar);
+  const query = state.ideaBoardSearch.trim().toLocaleLowerCase('es');
+  const boards = state.profile.ideaBoards.filter(board => !query || (board.title + ' ' + board.description).toLocaleLowerCase('es').includes(query));
+  boards.sort((a,b) => state.ideaBoardSort === 'name' ? a.title.localeCompare(b.title, 'es') :
+    state.ideaBoardSort === 'created' ? b.createdAt.localeCompare(a.createdAt) : b.modifiedAt.localeCompare(a.modifiedAt));
+  if (!boards.length) {
+    main.append(empty(query ? 'No hay resultados' : 'Tu biblioteca está vacía', query ? 'Prueba con otro término de búsqueda.' : 'Crea tu primer pizarrón para empezar a organizar ideas visualmente.'));
+    return;
+  }
+  const grid = element('div', 'ideas-board-grid');
+  boards.forEach(board => {
+    const item = card('ideas-board-card');
+    const open = button('', 'ideas-open', 'ideas-board-open', { id: board.id });
+    open.append(element('span', 'ideas-board-preview-mark', 'O'), element('span', 'ideas-board-open-label', 'Abrir pizarrón'));
+    const title = element('div', 'ideas-board-card-title');
+    title.append(element('h3', '', board.title), element('span', 'muted', board.nodes.length + ' elementos'));
+    item.append(open, title);
+    if (board.description) item.append(element('p', 'muted ideas-board-description', board.description));
+    const footer = element('div', 'ideas-board-card-footer');
+    footer.append(element('span', 'small-note', 'Modificado ' + new Date(board.modifiedAt).toLocaleDateString('es-MX')));
+    const actions = element('div', 'ideas-board-actions');
+    actions.append(button('Renombrar', 'ideas-rename', 'button secondary small', { id: board.id }));
+    actions.append(button('Duplicar', 'ideas-duplicate', 'button secondary small', { id: board.id }));
+    actions.append(button('Eliminar', 'ideas-delete', 'button secondary small', { id: board.id }));
+    footer.append(actions);
+    item.append(footer);
+    grid.append(item);
+  });
+  main.append(grid);
+}
+
+function renderPlannerAgenda(main) {
+  const agendaHeader = element('div', 'view-heading-row');
+  agendaHeader.append(heading('Agenda y planificación', 'Organiza tus compromisos y conserva la planificación asistida.'));
+  agendaHeader.append(button('Mis pizarrones', 'ideas-library', 'button secondary'));
+  main.append(agendaHeader);
   const dateBar = element('div', 'calendar-heading');
   const title = element('div', '');
   const plannerTitle = element('div', 'view-title-with-icon');
@@ -1685,6 +1763,66 @@ root.addEventListener('click', async event => {
     return;
   }
   if (action === 'navigate') { const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'ideas-library') { state.plannerSection = 'library'; state.selectedIdeaBoardId = null; updateShell(); return; }
+  if (action === 'ideas-open') { state.selectedIdeaBoardId = id; state.plannerSection = 'board'; updateShell(); return; }
+  if (action === 'ideas-create') {
+    const title = window.prompt('Nombre del nuevo pizarrón:');
+    if (title === null) return;
+    try {
+      const previous = cloneActiveProfile();
+      state.profile.ideaBoards = normalizeIdeaBoards([...state.profile.ideaBoards, createIdeaBoard({ title })]);
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      state.plannerSection = 'board';
+      state.selectedIdeaBoardId = state.profile.ideaBoards[state.profile.ideaBoards.length - 1].id;
+      updateShell();
+      showToast('Pizarrón creado.');
+    } catch (error) { showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'ideas-rename') {
+    const board = state.profile.ideaBoards.find(item => item.id === id);
+    if (!board) return showToast('No se encontró el pizarrón.', 'error');
+    const title = window.prompt('Nuevo nombre del pizarrón:', board.title);
+    if (title === null) return;
+    if (!title.trim()) return showToast('El nombre no puede quedar vacío.', 'error');
+    const previous = cloneActiveProfile();
+    board.title = title.trim().slice(0, 100);
+    board.modifiedAt = new Date().toISOString();
+    if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+    updateShell(); showToast('Nombre actualizado.'); return;
+  }
+  if (action === 'ideas-duplicate') {
+    const source = state.profile.ideaBoards.find(item => item.id === id);
+    if (!source) return showToast('No se encontró el pizarrón.', 'error');
+    if (state.profile.ideaBoards.length >= 100) return showToast('Has alcanzado el máximo de pizarrones.', 'error');
+    const title = window.prompt('Nombre de la copia:', source.title + ' (copia)');
+    if (title === null) return;
+    try {
+      const previous = cloneActiveProfile();
+      const copy = JSON.parse(JSON.stringify(source));
+      const idMap = new Map(copy.nodes.map(node => [node.id, window.OIsymDomain.makeId('idea')]));
+      copy.id = window.OIsymDomain.makeId('board');
+      copy.title = title.trim().slice(0, 100);
+      if (!copy.title) throw new Error('Escribe un nombre para la copia.');
+      copy.createdAt = copy.modifiedAt = new Date().toISOString();
+      copy.nodes = copy.nodes.map(node => ({ ...node, id: idMap.get(node.id), ...(node.type === 'group' ? { childrenIds: node.childrenIds.map(childId => idMap.get(childId)) } : {}) }));
+      copy.connections = copy.connections.map(edge => ({ ...edge, id: window.OIsymDomain.makeId('connection'), from: idMap.get(edge.from), to: idMap.get(edge.to) }));
+      state.profile.ideaBoards = normalizeIdeaBoards([...state.profile.ideaBoards, copy]);
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      updateShell(); showToast('Pizarrón duplicado.'); 
+    } catch (error) { showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'ideas-delete') {
+    const board = state.profile.ideaBoards.find(item => item.id === id);
+    if (!board) return showToast('No se encontró el pizarrón.', 'error');
+    if (!confirm('¿Eliminar el pizarrón «' + board.title + '»? Esta acción no se puede deshacer.')) return;
+    const previous = cloneActiveProfile();
+    state.profile.ideaBoards = state.profile.ideaBoards.filter(item => item.id !== id);
+    if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+    if (state.selectedIdeaBoardId === id) { state.selectedIdeaBoardId = null; state.plannerSection = 'library'; }
+    updateShell(); showToast('Pizarrón eliminado.'); return;
+  }
   if (action === 'new-task') { state.view='tasks';state.editingTaskId=null;state.showTaskForm=true;updateShell();return; }
   if (action === 'new-activity') { state.view='activities';state.editingActivityId=null;state.showActivityForm=true;updateShell();return; }
   if (action === 'new-goal') { state.view='goals';state.editingGoalId=null;state.showGoalForm=true;updateShell();return; }
@@ -2253,6 +2391,15 @@ root.addEventListener('submit', event => {
   handleSubmit(form);
 });
 root.addEventListener('input', event => {
+  if (event.target.id === 'idea-board-search') {
+    state.ideaBoardSearch = event.target.value;
+    const cursor = event.target.selectionStart;
+    render();
+    const next = $('#idea-board-search');
+    if (next) { next.focus(); next.setSelectionRange(cursor, cursor); }
+    return;
+  }
+
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'name' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.name === 'focusAlarmVolume') { const value = $('.alarm-volume-value'); if (value) value.textContent = event.target.value + '%'; }
@@ -2262,6 +2409,8 @@ root.addEventListener('input', event => {
   }
 });
 root.addEventListener('change', async event => {
+  if (event.target.id === 'idea-board-sort') { state.ideaBoardSort = event.target.value; updateShell(); return; }
+
   if(event.target.id==='profile-import-file'){
     const file=event.target.files?.[0];event.target.value='';
     if(!file)return;
