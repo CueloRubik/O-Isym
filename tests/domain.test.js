@@ -382,6 +382,7 @@ test('idea board domain creates and validates notes, activities, and groups', ()
   board.nodes.push(note, activity, group);
   group.childrenIds.push(note.id, activity.id);
   assert.equal(validateIdeaBoard(board), true);
+  assert.throws(() => validateIdeaBoard({ ...board, nodes: [note, { ...activity, id: note.id }] }), /identificadores inválidos o repetidos/);
   assert.equal(updateIdeaNode(note, { title: 'Idea revisada' }).title, 'Idea revisada');
   assert.throws(() => updateIdeaNode(note, { title: ' ' }), /vacío/);
 });
