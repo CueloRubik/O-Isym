@@ -833,3 +833,20 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .ideas-canvas-empty[hidden] { display:none; }
 
 .ideas-note-card.is-selected { outline:2px solid #4b8b64; outline-offset:2px; box-shadow:0 7px 20px rgba(37,75,48,.2); }
+
+
+/* Actividades editables dentro del lienzo de ideas */
+.ideas-activity-card { position:absolute; display:flex; flex-direction:column; gap:10px; min-width:260px; max-width:520px; padding:11px; border:1px solid rgba(63,85,70,.2); border-radius:12px; background:var(--activity-color,#e2f0e5); color:#344239; box-shadow:0 5px 17px rgba(37,55,42,.13); }
+.ideas-activity-card.is-selected { outline:2px solid #4d9569; outline-offset:2px; }
+.ideas-activity-header { display:flex; align-items:center; gap:6px; min-height:34px; padding-bottom:7px; border-bottom:1px solid rgba(65,75,65,.13); cursor:grab; user-select:none; }
+.ideas-activity-header:active { cursor:grabbing; }
+.ideas-activity-title { flex:1; min-width:0; height:29px; padding:3px 6px; border:0; border-radius:5px; background:rgba(255,255,255,.35); color:#344239; font-size:13px; font-weight:750; box-shadow:none; }
+.ideas-activity-title:focus { outline:2px solid rgba(61,117,83,.35); background:rgba(255,255,255,.7); }
+.ideas-activity-actions { display:flex; gap:3px; }
+.ideas-activity-description { width:100%; min-height:55px; max-height:150px; resize:vertical; padding:7px 8px; border:1px solid rgba(65,75,65,.12); border-radius:7px; background:rgba(255,255,255,.42); color:#354239; font:inherit; font-size:12px; line-height:1.45; box-shadow:none; }
+.ideas-activity-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.ideas-activity-fields .field { min-width:0; gap:4px; }
+.ideas-activity-fields .field-label { font-size:10px; }
+.ideas-activity-fields .input { min-width:0; min-height:31px; padding:5px 6px; font-size:11px; background:rgba(255,255,255,.62); }
+.ideas-activity-palette { display:flex; align-items:center; gap:7px; padding-top:2px; }
+@media(max-width:560px) { .ideas-activity-card { max-width:calc(100vw - 50px); } .ideas-activity-fields { gap:6px; } }
