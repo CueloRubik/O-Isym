@@ -1,45 +1,47 @@
-# O-Isym 5
+# O-Isym — Centro de organización del proyecto
 
-O-Isym es un sistema personal de organización: actividades, tareas, calendario, enfoque y objetivos.
+Este repositorio contiene varias líneas de trabajo de O-Isym. **La rama `main` es el centro de documentación y organización del proyecto; no contiene el código de las aplicaciones.**
 
-## Requisitos
+## Dónde está cada cosa
 
-- Node.js 18.x
-- npm 10.x
-- Electron 28.3.3 (se instala automáticamente con npm)
+| Rama | Contenido | ¿Modificar código aquí? |
+|---|---|---|
+| `main` | Organización, hoja de ruta, especificaciones y ejemplos de datos | No |
+| `oisym-mac-intel` | Código y recursos de la versión macOS Intel | Sí, para esa versión |
+| `oisym-mac-universal` | Código y recursos de la versión macOS Universal | Sí, para esa versión |
+| `oisym-windows` | Código y recursos de la versión Windows x64 | Sí, para esa versión |
+| `oisym-website` | Sitio web de O-Isym | Solo para la web |
+| `planning/*` | Propuestas de documentación y organización antes de incorporarlas a `main` | No |
 
-## Preparar el proyecto
+Las ramas de las tres aplicaciones se conservan tal como están. No se mezclan ni se sincronizan automáticamente: cada una puede tener configuraciones, iconos, empaquetado o ajustes propios de su plataforma.
 
-1. Descarga el ZIP de la rama `oisym-5-development` o clona esa rama.
-2. Abre la carpeta del proyecto en Terminal o VS Code.
-3. Ejecuta:
+## Documentación principal
 
-   ```bash
-   npm install
-   ```
+- [Hoja de ruta](docs/ROADMAP.md)
+- [Planificador de ideas](docs/IDEAS-PLANNER.md)
+- [Formato de intercambio .oisym](docs/OISYM-FILE-FORMAT.md)
+- [Organización de ramas](docs/BRANCH-STRATEGY.md)
+- [Estructura del repositorio](docs/REPOSITORY-STRUCTURE.md)
+- [Archivo .oisym de ejemplo](examples/blank-project.oisym)
 
-4. Inicia la aplicación:
+## Orden de prioridades
 
-   ```bash
-   npm start
-   ```
+1. Construir el Planificador de ideas y el formato `.oisym`.
+2. Auditar la compatibilidad de Windows.
+3. Mejorar planificación diaria, calendario y Focus.
+4. Explorar Isym Kids y, mucho más adelante, la miniacademia.
 
-No ejecutes `npm init -y`: el proyecto ya incluye su propio `package.json`.
-Tampoco es necesario instalar Electron por separado: `npm install` instala la versión exacta declarada por el proyecto.
+Consulta la [hoja de ruta completa](docs/ROADMAP.md) para conocer los detalles.
 
-## Estructura actual
+## Reglas importantes
 
-La reorganización se está haciendo por etapas para no romper las funciones existentes ni perder datos guardados localmente.
+- No poner código de aplicación en `main`.
+- No modificar una rama de plataforma al trabajar en otra.
+- No borrar ni reemplazar código de una versión sin comprobar antes el objetivo y crear respaldo cuando corresponda.
+- Las propuestas de organización se trabajan en ramas `planning/*` y se incorporan a `main` mediante Pull Request.
+- Mantener los datos del usuario y la compatibilidad como prioridades.
+- O-Isym sigue siendo un proyecto personal: no hay presión por comercializarlo ni por seguir fechas artificiales.
 
-- `main.js`: proceso principal de Electron.
-- `index.html`, `styles.css`: interfaz actual.
-- `app.js`, `calendar.js`, `planner.js`, `timer.js`, `settings.js`: módulos actuales de la interfaz.
-- `docs/`: auditoría y hoja de ruta.
+## Código y descargas
 
-## Compatibilidad
-
-La versión de Electron está fijada en **28.3.3**. No actualizar Electron sin comprobar antes la compatibilidad con el equipo de desarrollo.
-
-## Estado
-
-Proyecto en desarrollo. La rama `oisym-5-development` es la rama de trabajo; `main` se conserva como versión principal.
+Para trabajar en una aplicación, abre la rama correspondiente a su plataforma. Para consultar planes y decisiones del proyecto, comienza aquí, en `main`.
