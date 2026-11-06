@@ -798,6 +798,7 @@ function renderIdeaBoardCanvas(main, board) {
     else if (event.key === '-') { zoomAt(camera.zoom / 1.2); event.preventDefault(); return; }
     else return;
     event.preventDefault();
+    event.stopPropagation();
     paint();
     updateViewport();
   });
