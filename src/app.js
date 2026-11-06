@@ -1203,6 +1203,7 @@ function renderIdeaBoardCanvas(main, board) {
       node = updated;
       note.style.width = width + 'px';
       note.style.height = height + 'px';
+      drawConnections();
       scheduleBoardSave();
     });
     world.append(note);
