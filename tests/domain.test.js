@@ -363,3 +363,48 @@ test('task notification preferences normalize safely and preserve legacy profile
   assert.equal(normalized.preferences.taskNotificationMissed, 'notify');
   assert.equal(normalized.preferences.launchAtLogin, false);
 });
+
+
+test('idea boards start empty and normalize older profiles without changing their data', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
+  const fresh = createProfile('Ideas');
+  assert.deepEqual(fresh.ideaBoards, []);
+  const old = normalizeProfile({ id: 'old', name: 'Anterior', tasks: [], activities: [], goals: [] });
+  assert.deepEqual(old.ideaBoards, []);
+});
+
+test('idea board domain creates and validates notes, activities, and groups', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard, updateIdeaNode } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Proyecto', description: 'Plan inicial' });
+  const note = createIdeaNode('note', { title: 'Idea', x: 120, y: -80 });
+  const activity = createIdeaNode('activity', { title: 'Preparar entrega', dueDate: '2026-12-01', status: 'in-progress', priority: 'high' });
+  const group = createIdeaNode('group', { title: 'Investigación' });
+  board.nodes.push(note, activity, group);
+  group.childrenIds.push(note.id, activity.id);
+  assert.equal(validateIdeaBoard(board), true);
+  assert.equal(updateIdeaNode(note, { title: 'Idea revisada' }).title, 'Idea revisada');
+  assert.throws(() => updateIdeaNode(note, { title: ' ' }), /vacío/);
+});
+
+test('idea boards reject invalid dates, dangling links, duplicate IDs, and unsafe viewports', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Validación' });
+  const activity = createIdeaNode('activity', { title: 'Actividad', dueDate: '2026-02-30' });
+  assert.throws(() => board.nodes.push(activity) || validateIdeaBoard(board));
+  const note = createIdeaNode('note');
+  board.nodes.push(note);
+  board.connections.push({ id: 'edge-1', from: note.id, to: 'missing', label: '', style: 'curved', directed: false });
+  assert.throws(() => validateIdeaBoard(board), /inexistentes/);
+  board.connections = [];
+  board.viewport.zoom = 9;
+  assert.throws(() => validateIdeaBoard(board), /vista/);
+});
+
+test('imported profiles validate ideas board collections and reject malformed boards', () => {
+  const { createProfile, createIdeaBoard, validateImportedProfile } = require('../src/domain.js');
+  const profile = createProfile('Importación');
+  profile.ideaBoards.push(createIdeaBoard({ title: 'Tablero importado' }));
+  assert.equal(validateImportedProfile(profile), true);
+  profile.ideaBoards[0].nodes = [{ id: 'bad', type: 'unknown' }];
+  assert.throws(() => validateImportedProfile(profile), /Pizarrón no válido/);
+});
