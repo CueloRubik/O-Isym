@@ -831,6 +831,27 @@ function renderIdeaBoardCanvas(main, board) {
   };
   const drawConnections = () => {
     connectionLayer.replaceChildren();
+    const activeNodes = currentBoard()?.nodes || [];
+    if (activeNodes.length) {
+      const minX = Math.min(...activeNodes.map(node => node.x)) - 100;
+      const minY = Math.min(...activeNodes.map(node => node.y)) - 100;
+      const maxX = Math.max(...activeNodes.map(node => node.x + node.width)) + 100;
+      const maxY = Math.max(...activeNodes.map(node => node.y + node.height)) + 100;
+      const width = Math.max(1, maxX - minX), height = Math.max(1, maxY - minY);
+      connectionLayer.style.left = minX + 'px';
+      connectionLayer.style.top = minY + 'px';
+      connectionLayer.style.width = width + 'px';
+      connectionLayer.style.height = height + 'px';
+      connectionLayer.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    } else {
+      connectionLayer.style.left = '0px';
+      connectionLayer.style.top = '0px';
+      connectionLayer.style.width = '1px';
+      connectionLayer.style.height = '1px';
+      connectionLayer.setAttribute('viewBox', '0 0 1 1');
+    }
+    const boundsLeft = parseFloat(connectionLayer.style.left) || 0;
+    const boundsTop = parseFloat(connectionLayer.style.top) || 0;
     const defs = document.createElementNS(svgNS, 'defs');
     const marker = document.createElementNS(svgNS, 'marker');
     marker.setAttribute('id', 'ideas-connection-arrow-' + board.id.replace(/[^a-zA-Z0-9_-]/g, ''));
@@ -852,8 +873,8 @@ function renderIdeaBoardCanvas(main, board) {
     (activeBoard?.connections || []).forEach(connection => {
       const from = byId.get(connection.from), to = byId.get(connection.to);
       if (!from || !to) return;
-      const x1 = from.x + from.width / 2, y1 = from.y + from.height / 2;
-      const x2 = to.x + to.width / 2, y2 = to.y + to.height / 2;
+      const x1 = from.x + from.width / 2 - boundsLeft, y1 = from.y + from.height / 2 - boundsTop;
+      const x2 = to.x + to.width / 2 - boundsLeft, y2 = to.y + to.height / 2 - boundsTop;
       const dx = x2 - x1, dy = y2 - y1;
       const pathData = connection.style === 'curved'
         ? 'M ' + x1 + ' ' + y1 + ' Q ' + (x1 + x2) / 2 + ' ' + (y1 + y2) / 2 - Math.min(70, Math.abs(dx + dy) * 0.12) + ' ' + x2 + ' ' + y2
