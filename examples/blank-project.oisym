@@ -1,0 +1,27 @@
+{
+  "format": "oisym",
+  "formatVersion": "1.0.0",
+  "createdAt": "2026-11-06T12:00:00.000Z",
+  "modifiedAt": "2026-11-06T12:00:00.000Z",
+  "project": {
+    "name": "O-Isym",
+    "description": "Ideas y planificación del proyecto"
+  },
+  "categories": [],
+  "boards": [
+    {
+      "id": "board-main",
+      "title": "Ideas de O-Isym",
+      "description": "",
+      "createdAt": "2026-11-06T12:00:00.000Z",
+      "modifiedAt": "2026-11-06T12:00:00.000Z",
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 1
+      },
+      "nodes": [],
+      "connections": []
+    }
+  ]
+}
