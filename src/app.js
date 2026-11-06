@@ -981,7 +981,7 @@ function renderIdeaBoardCanvas(main, board) {
     (currentBoard()?.nodes || []).filter(node => node.type === 'note').forEach(renderNote);
   };
   viewport.addEventListener('click', event => {
-    if (event.target === viewport || event.target === world || event.target === emptyState) {
+    if (!event.target.closest('.ideas-note-card')) {
       world.querySelectorAll('.ideas-note-card.is-selected').forEach(item => item.classList.remove('is-selected'));
     }
   });
