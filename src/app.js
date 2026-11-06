@@ -2477,10 +2477,12 @@ root.addEventListener('click', async event => {
     if (!activity) return;
     if (!confirm('¿Eliminar esta actividad del pizarrón?')) return;
     const previous = board.nodes;
+    const previousConnections = board.connections;
     board.nodes = board.nodes.filter(item => item.id !== id);
-    if (!await save()) { board.nodes = previous; return; }
+    board.connections = board.connections.filter(connection => connection.from !== id && connection.to !== id);
+    if (!await save()) { board.nodes = previous; board.connections = previousConnections; return; }
     updateShell();
-    showToast('Actividad eliminada.');
+    showToast('Actividad eliminada junto con sus conexiones.');
     return;
   }
   if (action === 'ideas-note-create') {
@@ -2532,11 +2534,13 @@ root.addEventListener('click', async event => {
     if (!note) return;
     if (!confirm('¿Eliminar esta nota? Esta acción no se puede deshacer.')) return;
     const previous = board.nodes;
+    const previousConnections = board.connections;
     board.nodes = board.nodes.filter(item => item.id !== id);
+    board.connections = board.connections.filter(connection => connection.from !== id && connection.to !== id);
     board.modifiedAt = new Date().toISOString();
-    if (!await save()) { board.nodes = previous; return; }
+    if (!await save()) { board.nodes = previous; board.connections = previousConnections; return; }
     updateShell();
-    showToast('Nota eliminada.');
+    showToast('Nota eliminada junto con sus conexiones.');
     return;
   }
   if (action === 'ideas-library') {
