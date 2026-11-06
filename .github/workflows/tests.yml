@@ -3,6 +3,7 @@ name: O-Isym tests
 on:
   push:
     branches:
+      - development
       - oisym-5-development
   pull_request:
     branches:
