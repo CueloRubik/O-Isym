@@ -268,3 +268,10 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - En el lienzo se incorporó búsqueda por título, descripción y categoría, filtro por tipo de elemento y filtros de estado y prioridad para actividades.
 - Los filtros son visuales y temporales: ocultan tarjetas y conexiones que no coinciden, sin modificar ni borrar datos. Los grupos se muestran cuando contienen al menos un elemento visible.
 - Un contador informa cuántos elementos y actividades coinciden con los filtros actuales. Los controles se adaptan a pantallas estrechas.
+
+### Etapa 11: pulido y pruebas finales
+
+- Se revisó la integración del historial con el guardado del perfil. El historial ahora registra un cambio únicamente después de que el almacenamiento confirma el guardado; un fallo de escritura ya no incorpora un estado no persistido a la pila de deshacer.
+- Se revisaron por lectura de código los flujos de importación por lotes, exportación, duplicación, validación de pizarrones, navegación entre biblioteca y lienzo, atajos de teclado y estilos adaptables.
+- La validación automatizada se realiza mediante GitHub Actions (`npm test` y comprobaciones de sintaxis). La ejecución final de esta etapa se documentará cuando termine el workflow.
+- La revisión estática no sustituye una prueba manual en macOS. La comprobación visual y funcional en el equipo del usuario sigue pendiente.
