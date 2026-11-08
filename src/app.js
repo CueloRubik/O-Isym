@@ -61,7 +61,9 @@ const state = {
   selectedIdeaBoardId: null,
   ideaBoardSearch: '',
   ideaBoardSort: 'modified',
-  ideaViewportSaveTimer: null
+  ideaViewportSaveTimer: null,
+  ideaBoardHistories: {},
+  ideaHistoryRestoring: false
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -166,7 +168,61 @@ const restoreActiveProfile = profile => {
   state.snapshot.profiles = state.snapshot.profiles.map(item => item.id === profile.id ? profile : item);
   state.snapshot.activeProfileId = profile.id;
 };
+const cloneIdeaBoard = board => JSON.parse(JSON.stringify(board));
+const getIdeaBoardHistory = board => {
+  if (!board) return null;
+  if (!state.ideaBoardHistories[board.id]) {
+    const snapshot = cloneIdeaBoard(board);
+    state.ideaBoardHistories[board.id] = { past: [], future: [], last: snapshot, lastChangeAt: 0 };
+  }
+  return state.ideaBoardHistories[board.id];
+};
+const recordIdeaBoardChange = () => {
+  if (state.ideaHistoryRestoring || state.plannerSection !== 'board' || !state.selectedIdeaBoardId) return;
+  const board = state.profile?.ideaBoards?.find(item => item.id === state.selectedIdeaBoardId);
+  if (!board) return;
+  const history = getIdeaBoardHistory(board);
+  const current = cloneIdeaBoard(board);
+  if (JSON.stringify(current) === JSON.stringify(history.last)) return;
+  const now = Date.now();
+  if (!history.lastChangeAt || now - history.lastChangeAt > 900) {
+    history.past.push(history.last);
+    if (history.past.length > 50) history.past.shift();
+  }
+  history.last = current;
+  history.lastChangeAt = now;
+  history.future = [];
+};
+const restoreIdeaBoardHistory = async direction => {
+  const boardIndex = state.profile?.ideaBoards?.findIndex(item => item.id === state.selectedIdeaBoardId) ?? -1;
+  if (boardIndex < 0) return false;
+  const board = state.profile.ideaBoards[boardIndex];
+  const history = getIdeaBoardHistory(board);
+  const source = direction === 'undo' ? history.past : history.future;
+  const destination = direction === 'undo' ? history.future : history.past;
+  if (!source.length) return false;
+  const current = cloneIdeaBoard(board);
+  const target = source.pop();
+  destination.push(current);
+  state.profile.ideaBoards[boardIndex] = cloneIdeaBoard(target);
+  history.last = cloneIdeaBoard(target);
+  history.lastChangeAt = 0;
+  state.ideaHistoryRestoring = true;
+  const saved = await save();
+  state.ideaHistoryRestoring = false;
+  if (!saved) {
+    source.push(target);
+    destination.pop();
+    state.profile.ideaBoards[boardIndex] = current;
+    history.last = cloneIdeaBoard(current);
+    return false;
+  }
+  updateShell();
+  showToast(direction === 'undo' ? 'Cambio deshecho.' : 'Cambio restaurado.');
+  return true;
+};
 const save = async () => {
+  recordIdeaBoardChange();
   state.profile.updatedAt = new Date().toISOString();
   state.snapshot.profiles = state.snapshot.profiles.map(profile => profile.id === state.profile.id ? state.profile : profile);
   state.snapshot.activeProfileId = state.profile.id;
@@ -662,6 +718,7 @@ function renderIdeaBoardCanvas(main, board) {
   header.append(titleArea, button('← Mis pizarrones', 'ideas-library', 'button secondary'));
   main.append(header);
 
+  getIdeaBoardHistory(board);
   const toolbar = element('div', 'ideas-canvas-toolbar');
   const zoomOut = button('−', 'ideas-canvas-zoom-out', 'button secondary ideas-canvas-zoom-button');
   zoomOut.setAttribute('aria-label', 'Alejar');
@@ -681,6 +738,8 @@ function renderIdeaBoardCanvas(main, board) {
   activityPriorityFilter.classList.add('ideas-node-filter');
   const clearNodeFilters = button('Limpiar filtros', 'ideas-node-filters-clear', 'button secondary small');
   const filterSummary = element('span', 'ideas-filter-summary', 'Todos los elementos'); filterSummary.setAttribute('aria-live', 'polite');
+  const undoButton = button('↶ Deshacer', 'ideas-history-undo', 'button secondary');
+  const redoButton = button('↷ Rehacer', 'ideas-history-redo', 'button secondary');
   const addNote = button('+ Nueva nota', 'ideas-note-create', 'button primary');
   const addActivity = button('+ Actividad', 'ideas-activity-create', 'button secondary');
   const groupSelection = button('Agrupar selección', 'ideas-group-create', 'button secondary');
@@ -693,9 +752,25 @@ function renderIdeaBoardCanvas(main, board) {
   deleteConnection.disabled = true;
   const filterTools = element('div', 'ideas-canvas-filter-tools');
   filterTools.append(nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter, clearNodeFilters, filterSummary);
-  toolbar.append(addNote, addActivity, groupSelection, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit, filterTools);
+  toolbar.append(undoButton, redoButton, addNote, addActivity, groupSelection, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit, filterTools);
   main.append(toolbar);
 
+  const syncHistoryControls = () => {
+    const history = getIdeaBoardHistory(currentBoard());
+    undoButton.disabled = !history?.past.length;
+    redoButton.disabled = !history?.future.length;
+    undoButton.title = 'Deshacer (⌘/Ctrl + Z)';
+    redoButton.title = 'Rehacer (⇧ + ⌘/Ctrl + Z)';
+  };
+  undoButton.addEventListener('click', () => restoreIdeaBoardHistory('undo'));
+  redoButton.addEventListener('click', () => restoreIdeaBoardHistory('redo'));
+  main.addEventListener('keydown', event => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
+    if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    restoreIdeaBoardHistory(event.shiftKey ? 'redo' : 'undo');
+  });
   const viewport = element('div', 'ideas-canvas-viewport');
   viewport.setAttribute('role', 'application');
   viewport.setAttribute('aria-label', 'Lienzo del pizarrón. Arrastra el fondo para desplazarte y usa la rueda o los controles para cambiar el zoom.');
@@ -1440,6 +1515,7 @@ function renderIdeaBoardCanvas(main, board) {
   updateConnectionControls();
   renderNotes();
   paint();
+  syncHistoryControls();
 }
 
 function renderIdeaBoardLibrary(main) {
