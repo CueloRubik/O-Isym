@@ -3479,6 +3479,7 @@ root.addEventListener('change', async event => {
     } catch (error) { showToast('No se pudo importar: ' + error.message, 'error'); }
     return;
   }
+});
 
   if (event.target.id === 'idea-board-sort') { state.ideaBoardSort = event.target.value; updateShell(); return; }
 
