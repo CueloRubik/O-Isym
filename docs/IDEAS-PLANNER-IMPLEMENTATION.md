@@ -189,7 +189,9 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - [x] Añadir conexiones entre elementos.
 - [x] Implementar grupos visuales, selección múltiple y movimiento conjunto.
 - [x] Añadir búsqueda de contenido, filtros por tipo/estado/prioridad y contador de resultados.
-- [ ] Continuar con historial y robustez.
+- [x] Implementar historial de deshacer/rehacer acotado por pizarrón.
+- [x] Añadir atajos de teclado sin interferir con campos editables.
+- [x] Integrar restauración con guardado y reversión ante errores.
 
 
 ### Etapa 3: lienzo navegable
@@ -238,6 +240,15 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Los grupos guardan referencias a nodos existentes; el dominio rechaza referencias ausentes, autorreferencias y grupos anidados. Al eliminar una nota o actividad se retira también su referencia del grupo.
 - Eliminar un grupo conserva intactas sus notas y actividades. El guardado continúa usando el almacenamiento habitual del perfil.
 
+
+### Etapa 9: historial y robustez
+
+- El editor mantiene un historial independiente por pizarrón, con un máximo de 50 estados anteriores.
+- «Deshacer» y «Rehacer» están disponibles en la barra del lienzo. Los atajos son Cmd/Ctrl + Z para deshacer, Cmd/Ctrl + Shift + Z para rehacer y Ctrl + Y como alternativa; los campos de texto y controles conservan su comportamiento normal.
+- El historial registra cambios persistidos del pizarrón, incluidos contenido, tarjetas, grupos, conexiones y vista. Los cambios de escritura cercanos se agrupan para evitar un paso por cada tecla.
+- Al restaurar un estado se vuelve a validar y guardar mediante el almacenamiento habitual del perfil. Si el guardado falla, el estado visible y las pilas del historial se revierten para no presentar la operación como completada.
+- El historial se conserva al volver a renderizar el editor y se separa por identificador de pizarrón. No se guarda dentro del archivo exportado ni sustituye al guardado automático.
+- Los controles se desactivan cuando no hay cambios que deshacer o rehacer.
 
 ### Etapa 8: búsqueda, filtros y productividad
 
