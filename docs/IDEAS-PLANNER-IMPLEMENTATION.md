@@ -241,6 +241,16 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Eliminar un grupo conserva intactas sus notas y actividades. El guardado continúa usando el almacenamiento habitual del perfil.
 
 
+### Etapa 9: historial y robustez
+
+- El editor mantiene un historial independiente por pizarrón, con un máximo de 50 estados anteriores.
+- «Deshacer» y «Rehacer» están disponibles en la barra del lienzo. Los atajos son Cmd/Ctrl + Z para deshacer, Cmd/Ctrl + Shift + Z para rehacer y Ctrl + Y como alternativa; los campos de texto y controles conservan su comportamiento normal.
+- El historial registra cambios persistidos del pizarrón, incluidos contenido, tarjetas, grupos, conexiones y vista. Los cambios de escritura cercanos se agrupan para evitar un paso por cada tecla.
+- Al restaurar un estado se vuelve a validar y guardar mediante el almacenamiento habitual del perfil. Si el guardado falla, el estado visible y las pilas del historial se revierten para no presentar la operación como completada.
+- El historial se conserva al volver a renderizar el editor y se separa por identificador de pizarrón. No se guarda dentro del archivo exportado ni sustituye al guardado automático.
+- Los controles se desactivan cuando no hay cambios que deshacer o rehacer.
+
+
 ### Etapa 10: importación y exportación mejoradas
 
 - La exportación usa una función de dominio que valida el pizarrón y genera el sobre versionado .oisym en JSON UTF-8.
@@ -251,15 +261,6 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Cada pizarrón recibe IDs nuevos y se remapean las referencias de grupos y conexiones; se resuelven colisiones de nombres también entre archivos del mismo lote.
 - Se muestra un resumen conjunto y se solicita confirmación una sola vez. La operación añade los pizarrones, nunca reemplaza los existentes, y guarda el lote de forma atómica.
 - Se amplían las pruebas del dominio para exportación, validación de versión, IDs, referencias internas, colisiones de nombres y datos malformados.
-
-### Etapa 9: historial y robustez
-
-- El editor mantiene un historial independiente por pizarrón, con un máximo de 50 estados anteriores.
-- «Deshacer» y «Rehacer» están disponibles en la barra del lienzo. Los atajos son Cmd/Ctrl + Z para deshacer, Cmd/Ctrl + Shift + Z para rehacer y Ctrl + Y como alternativa; los campos de texto y controles conservan su comportamiento normal.
-- El historial registra cambios persistidos del pizarrón, incluidos contenido, tarjetas, grupos, conexiones y vista. Los cambios de escritura cercanos se agrupan para evitar un paso por cada tecla.
-- Al restaurar un estado se vuelve a validar y guardar mediante el almacenamiento habitual del perfil. Si el guardado falla, el estado visible y las pilas del historial se revierten para no presentar la operación como completada.
-- El historial se conserva al volver a renderizar el editor y se separa por identificador de pizarrón. No se guarda dentro del archivo exportado ni sustituye al guardado automático.
-- Los controles se desactivan cuando no hay cambios que deshacer o rehacer.
 
 ### Etapa 8: búsqueda, filtros y productividad
 
