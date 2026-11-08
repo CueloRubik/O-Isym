@@ -679,6 +679,7 @@ function renderIdeaBoardCanvas(main, board) {
   activityStatusFilter.classList.add('ideas-node-filter');
   const activityPriorityFilter = select('ideas-activity-priority-filter', [{ value: 'all', label: 'Cualquier prioridad' }, { value: 'high', label: 'Prioridad alta' }, { value: 'medium', label: 'Prioridad media' }, { value: 'low', label: 'Prioridad baja' }], 'all');
   activityPriorityFilter.classList.add('ideas-node-filter');
+  const clearNodeFilters = button('Limpiar filtros', 'ideas-node-filters-clear', 'button secondary small');
   const filterSummary = element('span', 'ideas-filter-summary', 'Todos los elementos'); filterSummary.setAttribute('aria-live', 'polite');
   const addNote = button('+ Nueva nota', 'ideas-note-create', 'button primary');
   const addActivity = button('+ Actividad', 'ideas-activity-create', 'button secondary');
@@ -691,7 +692,7 @@ function renderIdeaBoardCanvas(main, board) {
   const deleteConnection = button('Eliminar conexión', 'ideas-connection-delete', 'button secondary');
   deleteConnection.disabled = true;
   const filterTools = element('div', 'ideas-canvas-filter-tools');
-  filterTools.append(nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter, filterSummary);
+  filterTools.append(nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter, clearNodeFilters, filterSummary);
   toolbar.append(addNote, addActivity, groupSelection, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit, filterTools);
   main.append(toolbar);
 
@@ -726,6 +727,7 @@ function renderIdeaBoardCanvas(main, board) {
       const visible = (!query || text.includes(query)) && (type === 'all' || node.type === type) && (node.type !== 'activity' || (status === 'all' || node.status === status) && (priority === 'all' || node.priority === priority));
       const card = world.querySelector('[data-node-id="' + node.id + '"]');
       if (card) card.classList.toggle('is-filtered-out', !visible);
+      if (!visible) selectedNodeIds.delete(node.id);
       if (visible) matches.add(node.id);
     });
     world.querySelectorAll('.ideas-group-frame').forEach(frame => {
@@ -734,7 +736,13 @@ function renderIdeaBoardCanvas(main, board) {
     });
     const visibleActivities = activeBoard.nodes.filter(node => node.type === 'activity' && matches.has(node.id)).length;
     filterSummary.textContent = matches.size + ' de ' + activeBoard.nodes.filter(node => node.type !== 'group').length + ' elementos · ' + visibleActivities + ' actividades';
+    syncSelection();
     drawConnections();
+  };
+  clearNodeFilters.addEventListener('click', () => { nodeSearch.value = ''; nodeTypeFilter.value = 'all'; activityStatusFilter.value = 'all'; activityPriorityFilter.value = 'all'; applyNodeFilters(); });
+  /* keep the filter state local to this open canvas */
+  const unusedFilterStateMarker = null;
+  const registerNodeFilterListeners = () => {
   };
   [nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter].forEach(control => control.addEventListener('input', applyNodeFilters));
   [nodeTypeFilter, activityStatusFilter, activityPriorityFilter].forEach(control => control.addEventListener('change', applyNodeFilters));
