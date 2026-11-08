@@ -2,7 +2,7 @@
 
 **Rama de trabajo:** `development`  
 **Plataforma inicial:** macOS Intel  
-**Estado:** etapas 1–7 implementadas en `development`; pendientes herramientas de productividad  
+**Estado:** etapas 1–8 implementadas en `development`; pendiente robustez e historial  
 **Objetivo:** añadir un administrador de pizarrones y un editor visual de ideas sin alterar el funcionamiento de las tareas, actividades, perfiles ni Focus existentes.
 
 ## 1. Decisiones de producto
@@ -188,7 +188,8 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - [x] Añadir notas y actividades visuales editables al lienzo.
 - [x] Añadir conexiones entre elementos.
 - [x] Implementar grupos visuales, selección múltiple y movimiento conjunto.
-- [ ] Continuar con las herramientas de productividad.
+- [x] Añadir búsqueda de contenido, filtros por tipo/estado/prioridad y contador de resultados.
+- [ ] Continuar con historial y robustez.
 
 
 ### Etapa 3: lienzo navegable
