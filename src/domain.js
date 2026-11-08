@@ -587,6 +587,62 @@ function normalizeIdeaBoards(boards) {
   return boards;
 }
 
+function createIdeaBoardExport(board, exportedAt = new Date().toISOString()) {
+  validateIdeaBoard(board);
+  if (typeof exportedAt !== 'string' || !Number.isFinite(Date.parse(exportedAt))) {
+    throw new TypeError('La fecha de exportación no es válida.');
+  }
+  return {
+    format: 'oisym',
+    formatVersion: '1.0.0',
+    exportedAt,
+    board: JSON.parse(JSON.stringify(board))
+  };
+}
+
+function prepareIdeaBoardImport(payload, existingBoards = [], options = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+      payload.format !== 'oisym' || payload.formatVersion !== '1.0.0' ||
+      !payload.board || typeof payload.board !== 'object' || Array.isArray(payload.board)) {
+    throw new TypeError('El archivo no es un pizarrón .oisym compatible.');
+  }
+  if (payload.exportedAt !== undefined && (typeof payload.exportedAt !== 'string' || !Number.isFinite(Date.parse(payload.exportedAt)))) {
+    throw new TypeError('La fecha de exportación del archivo no es válida.');
+  }
+  if (!Array.isArray(existingBoards)) throw new TypeError('La biblioteca actual no es válida.');
+  if (existingBoards.length >= IDEA_BOARD_LIMITS.boards) throw new RangeError('Has alcanzado el máximo de 100 pizarrones.');
+  const imported = JSON.parse(JSON.stringify(payload.board));
+  validateIdeaBoard(imported);
+  const makeUniqueId = typeof options.makeId === 'function' ? options.makeId : makeId;
+  const now = options.now || new Date().toISOString();
+  if (typeof now !== 'string' || !Number.isFinite(Date.parse(now))) throw new TypeError('La fecha de importación no es válida.');
+  const nodeIds = new Map(imported.nodes.map(node => [node.id, makeUniqueId('idea')]));
+  imported.id = makeUniqueId('board');
+  imported.nodes = imported.nodes.map(node => ({
+    ...node,
+    id: nodeIds.get(node.id),
+    ...(node.type === 'group' ? { childrenIds: node.childrenIds.map(childId => nodeIds.get(childId)) } : {})
+  }));
+  imported.connections = imported.connections.map(connection => ({
+    ...connection,
+    id: makeUniqueId('connection'),
+    from: nodeIds.get(connection.from),
+    to: nodeIds.get(connection.to)
+  }));
+  imported.createdAt = imported.modifiedAt = now;
+  const existingNames = new Set(existingBoards.map(board => String(board.title || '').toLocaleLowerCase('es')));
+  const baseTitle = imported.title;
+  let title = baseTitle;
+  let suffix = 2;
+  while (existingNames.has(title.toLocaleLowerCase('es'))) {
+    const ending = ' (' + suffix++ + ')';
+    title = baseTitle.slice(0, 100 - ending.length) + ending;
+  }
+  imported.title = title;
+  validateIdeaBoard(imported);
+  return imported;
+}
+
 function createIdeaBoard(input = {}) {
   const now = new Date().toISOString();
   const title = String(input.title || '').trim();
@@ -676,5 +732,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, IDEA_BOARD_LIMITS, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, validateImportedProfile, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard, normalizeIdeaBoards, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
+return { SCHEMA_VERSION, IDEA_BOARD_LIMITS, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, validateImportedProfile, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard, normalizeIdeaBoards, createIdeaBoardExport, prepareIdeaBoardImport, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });
