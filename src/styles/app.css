@@ -870,3 +870,12 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .ideas-group-small-action { min-height:25px; padding:3px 7px; border:1px solid #d2e1d6; border-radius:6px; background:#fff; color:#466b51; font-size:10px; pointer-events:auto; cursor:pointer; }
 .ideas-note-card, .ideas-activity-card { z-index:2; }
 .ideas-group-drag-handle { flex:0 0 auto; padding:3px 5px; border-radius:5px; color:#78917e; font-size:9px; font-weight:750; letter-spacing:.04em; cursor:grab; }
+
+
+/* Búsqueda, filtros y productividad del lienzo */
+.ideas-canvas-filter-tools { display:flex; align-items:center; flex:1 1 100%; flex-wrap:wrap; gap:7px; padding-top:8px; border-top:1px solid var(--line); }
+.ideas-node-search { flex:1 1 210px; min-width:180px; min-height:34px; }
+.ideas-node-filter { flex:0 1 170px; min-width:145px; min-height:34px; padding:6px 8px; font-size:11px; }
+.ideas-filter-summary { margin-left:auto; color:var(--muted); font-size:11px; white-space:nowrap; }
+.ideas-note-card.is-filtered-out, .ideas-activity-card.is-filtered-out, .ideas-group-frame.is-filtered-out { display:none !important; }
+@media(max-width:620px) { .ideas-canvas-filter-tools { align-items:stretch; flex-direction:column; } .ideas-node-search,.ideas-node-filter { width:100%; min-width:0; } .ideas-filter-summary { margin-left:0; } }
