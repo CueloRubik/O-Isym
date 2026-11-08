@@ -208,8 +208,10 @@ const restoreIdeaBoardHistory = async direction => {
   const current = cloneIdeaBoard(board);
   const target = source.pop();
   destination.push(current);
-  state.profile.ideaBoards[boardIndex] = cloneIdeaBoard(target);
-  history.last = cloneIdeaBoard(target);
+  const restored = cloneIdeaBoard(target);
+  restored.modifiedAt = new Date().toISOString();
+  state.profile.ideaBoards[boardIndex] = restored;
+  history.last = cloneIdeaBoard(restored);
   history.lastChangeAt = 0;
   state.ideaHistoryRestoring = true;
   const saved = await save();
