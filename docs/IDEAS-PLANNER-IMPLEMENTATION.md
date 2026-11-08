@@ -2,7 +2,7 @@
 
 **Rama de trabajo:** `development`  
 **Plataforma inicial:** macOS Intel  
-**Estado:** etapas 1–9 implementadas en `development`; pendientes importación/exportación mejoradas y pulido final  
+**Estado:** etapas 1–10 implementadas en `development`; pendiente pulido y pruebas finales  
 **Objetivo:** añadir un administrador de pizarrones y un editor visual de ideas sin alterar el funcionamiento de las tareas, actividades, perfiles ni Focus existentes.
 
 ## 1. Decisiones de producto
@@ -240,6 +240,17 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Los grupos guardan referencias a nodos existentes; el dominio rechaza referencias ausentes, autorreferencias y grupos anidados. Al eliminar una nota o actividad se retira también su referencia del grupo.
 - Eliminar un grupo conserva intactas sus notas y actividades. El guardado continúa usando el almacenamiento habitual del perfil.
 
+
+### Etapa 10: importación y exportación mejoradas
+
+- La exportación usa una función de dominio que valida el pizarrón y genera el sobre versionado .oisym en JSON UTF-8.
+- Los nombres de archivo se normalizan y tienen un nombre alternativo si el título no produce caracteres utilizables.
+- La URL temporal de descarga se libera después de iniciar la descarga, evitando revocarla prematuramente.
+- La importación admite selección múltiple: hasta 20 archivos, 10 MB por archivo y 20 MB combinados.
+- Todos los archivos se leen y validan antes de modificar el perfil. Si uno no es compatible o está dañado, se cancela el lote completo.
+- Cada pizarrón recibe IDs nuevos y se remapean las referencias de grupos y conexiones; se resuelven colisiones de nombres también entre archivos del mismo lote.
+- Se muestra un resumen conjunto y se solicita confirmación una sola vez. La operación añade los pizarrones, nunca reemplaza los existentes, y guarda el lote de forma atómica.
+- Se amplían las pruebas del dominio para exportación, validación de versión, IDs, referencias internas, colisiones de nombres y datos malformados.
 
 ### Etapa 9: historial y robustez
 
