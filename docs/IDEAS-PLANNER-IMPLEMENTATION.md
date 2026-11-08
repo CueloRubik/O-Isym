@@ -2,7 +2,7 @@
 
 **Rama de trabajo:** `development`  
 **Plataforma inicial:** macOS Intel  
-**Estado:** etapas 1–8 implementadas en `development`; pendiente robustez e historial  
+**Estado:** etapas 1–9 implementadas en `development`; pendientes importación/exportación mejoradas y pulido final  
 **Objetivo:** añadir un administrador de pizarrones y un editor visual de ideas sin alterar el funcionamiento de las tareas, actividades, perfiles ni Focus existentes.
 
 ## 1. Decisiones de producto
