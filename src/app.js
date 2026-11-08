@@ -740,10 +740,6 @@ function renderIdeaBoardCanvas(main, board) {
     drawConnections();
   };
   clearNodeFilters.addEventListener('click', () => { nodeSearch.value = ''; nodeTypeFilter.value = 'all'; activityStatusFilter.value = 'all'; activityPriorityFilter.value = 'all'; applyNodeFilters(); });
-  /* keep the filter state local to this open canvas */
-  const unusedFilterStateMarker = null;
-  const registerNodeFilterListeners = () => {
-  };
   [nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter].forEach(control => control.addEventListener('input', applyNodeFilters));
   [nodeTypeFilter, activityStatusFilter, activityPriorityFilter].forEach(control => control.addEventListener('change', applyNodeFilters));
   const syncSelection = () => {
