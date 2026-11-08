@@ -480,3 +480,60 @@ test('idea groups reject missing and nested group references', () => {
   const nested = createIdeaNode('group', { childrenIds: [group.id] });
   assert.throws(() => validateIdeaBoard({ ...board, nodes: [note, group, nested] }), /otro grupo/);
 });
+
+
+test('idea board export creates a versioned portable file without exposing unrelated data', () => {
+  const { createIdeaBoard, createIdeaNode, createIdeaBoardExport } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Proyecto portátil', description: 'Descripción' });
+  board.nodes.push(createIdeaNode('note', { title: 'Una idea' }));
+  const payload = createIdeaBoardExport(board, '2026-11-08T12:00:00.000Z');
+  assert.equal(payload.format, 'oisym');
+  assert.equal(payload.formatVersion, '1.0.0');
+  assert.equal(payload.exportedAt, '2026-11-08T12:00:00.000Z');
+  assert.deepEqual(payload.board, board);
+  assert.notEqual(payload.board, board);
+  assert.throws(() => createIdeaBoardExport(board, 'fecha inválida'), /fecha de exportación/);
+});
+
+test('idea board import regenerates every id and preserves internal references', () => {
+  const { createIdeaBoard, createIdeaNode, createIdeaBoardExport, prepareIdeaBoardImport } = require('../src/domain.js');
+  const source = createIdeaBoard({ title: 'Mapa compartido' });
+  const note = createIdeaNode('note', { title: 'Pregunta' });
+  const activity = createIdeaNode('activity', { title: 'Investigar' });
+  const group = createIdeaNode('group', { title: 'Grupo', childrenIds: [note.id, activity.id] });
+  source.nodes.push(note, activity, group);
+  source.connections.push({ id: 'edge-original', from: note.id, to: activity.id, label: 'Relacionado', style: 'curved', directed: true });
+  const payload = createIdeaBoardExport(source, '2026-11-08T12:00:00.000Z');
+  let nextId = 0;
+  const imported = prepareIdeaBoardImport(payload, [], {
+    now: '2026-11-09T12:00:00.000Z',
+    makeId: prefix => prefix + '-fresh-' + (++nextId)
+  });
+  assert.notEqual(imported.id, source.id);
+  assert.ok(imported.nodes.every(node => !source.nodes.some(original => original.id === node.id)));
+  assert.ok(imported.connections.every(connection => connection.id !== 'edge-original'));
+  const importedNote = imported.nodes.find(node => node.title === 'Pregunta');
+  const importedActivity = imported.nodes.find(node => node.title === 'Investigar');
+  const importedGroup = imported.nodes.find(node => node.type === 'group');
+  assert.deepEqual(importedGroup.childrenIds, [importedNote.id, importedActivity.id]);
+  assert.equal(imported.connections[0].from, importedNote.id);
+  assert.equal(imported.connections[0].to, importedActivity.id);
+  assert.equal(imported.createdAt, '2026-11-09T12:00:00.000Z');
+  assert.equal(imported.modifiedAt, '2026-11-09T12:00:00.000Z');
+  assert.equal(imported.title, source.title);
+});
+
+test('idea board import avoids name collisions and rejects unsupported or malformed files', () => {
+  const { createIdeaBoard, createIdeaBoardExport, prepareIdeaBoardImport } = require('../src/domain.js');
+  const source = createIdeaBoard({ title: 'Proyecto' });
+  const payload = createIdeaBoardExport(source);
+  let nextId = 0;
+  const options = { makeId: prefix => prefix + '-collision-' + (++nextId), now: '2026-11-09T12:00:00.000Z' };
+  const existing = [createIdeaBoard({ title: 'Proyecto' }), createIdeaBoard({ title: 'Proyecto (2)' })];
+  const imported = prepareIdeaBoardImport(payload, existing, options);
+  assert.equal(imported.title, 'Proyecto (3)');
+  assert.throws(() => prepareIdeaBoardImport({ ...payload, formatVersion: '2.0.0' }), /compatible/);
+  assert.throws(() => prepareIdeaBoardImport({ ...payload, exportedAt: 'no-es-fecha' }), /fecha de exportación/);
+  assert.throws(() => prepareIdeaBoardImport({ ...payload, board: { ...source, nodes: [{ id: 'bad', type: 'unknown' }] } }), /Pizarrón no válido/);
+  assert.throws(() => prepareIdeaBoardImport(payload, Array(100).fill(existing[0])), /máximo de 100/);
+});
