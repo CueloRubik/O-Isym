@@ -192,6 +192,10 @@ const recordIdeaBoardChange = () => {
   history.last = current;
   history.lastChangeAt = now;
   history.future = [];
+  const undo = root.querySelector('[data-action="ideas-history-undo"]');
+  const redo = root.querySelector('[data-action="ideas-history-redo"]');
+  if (undo) undo.disabled = !history.past.length;
+  if (redo) redo.disabled = !history.future.length;
 };
 const restoreIdeaBoardHistory = async direction => {
   const boardIndex = state.profile?.ideaBoards?.findIndex(item => item.id === state.selectedIdeaBoardId) ?? -1;
@@ -765,11 +769,13 @@ function renderIdeaBoardCanvas(main, board) {
   undoButton.addEventListener('click', () => restoreIdeaBoardHistory('undo'));
   redoButton.addEventListener('click', () => restoreIdeaBoardHistory('redo'));
   main.addEventListener('keydown', event => {
-    if (!(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
+    if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+    const key = event.key.toLowerCase();
+    if (key !== 'z' && key !== 'y') return;
     if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
     event.preventDefault();
     event.stopPropagation();
-    restoreIdeaBoardHistory(event.shiftKey ? 'redo' : 'undo');
+    restoreIdeaBoardHistory(key === 'y' || event.shiftKey ? 'redo' : 'undo');
   });
   const viewport = element('div', 'ideas-canvas-viewport');
   viewport.setAttribute('role', 'application');
