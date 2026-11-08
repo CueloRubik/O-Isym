@@ -236,3 +236,11 @@ Colaboración en tiempo real, sincronización en nube, comentarios, adjuntos pes
 - Los grupos se representan como contenedores visuales detrás de las tarjetas. Su encabezado permite cambiar el título, desagrupar sin borrar los elementos y mover el conjunto completo.
 - Los grupos guardan referencias a nodos existentes; el dominio rechaza referencias ausentes, autorreferencias y grupos anidados. Al eliminar una nota o actividad se retira también su referencia del grupo.
 - Eliminar un grupo conserva intactas sus notas y actividades. El guardado continúa usando el almacenamiento habitual del perfil.
+
+
+### Etapa 8: búsqueda, filtros y productividad
+
+- La biblioteca ahora busca también dentro del título, descripción, contenido y categoría de las notas y actividades de cada pizarrón. Se añadió el orden «Más elementos».
+- En el lienzo se incorporó búsqueda por título, descripción y categoría, filtro por tipo de elemento y filtros de estado y prioridad para actividades.
+- Los filtros son visuales y temporales: ocultan tarjetas y conexiones que no coinciden, sin modificar ni borrar datos. Los grupos se muestran cuando contienen al menos un elemento visible.
+- Un contador informa cuántos elementos y actividades coinciden con los filtros actuales. Los controles se adaptan a pantallas estrechas.
