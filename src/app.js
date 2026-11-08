@@ -228,7 +228,6 @@ const restoreIdeaBoardHistory = async direction => {
   return true;
 };
 const save = async () => {
-  recordIdeaBoardChange();
   state.profile.updatedAt = new Date().toISOString();
   state.snapshot.profiles = state.snapshot.profiles.map(profile => profile.id === state.profile.id ? state.profile : profile);
   state.snapshot.activeProfileId = state.profile.id;
@@ -236,6 +235,7 @@ const save = async () => {
   try {
     state.snapshot = await window.oisym.storage.save(state.snapshot);
     state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.profile;
+    recordIdeaBoardChange();
     return true;
   } catch (error) {
     showToast('No se pudo guardar: ' + error.message, 'error');
