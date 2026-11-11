@@ -262,6 +262,16 @@ const element = (tag, className, text) => {
   if (text !== undefined && text !== null) node.textContent = String(text);
   return node;
 };
+const iconFallbackLabel = path => {
+  const name = String(path).split('/').pop().replace(/\.png$/i,'');
+  const known = {
+    today:'H', calendar:'C', tasks:'T', activities:'A', dashboard:'P',
+    goals:'O', insights:'E', settings:'⚙', profiles:'P', timer:'F',
+    add:'+', save:'✓', edit:'✎', delete:'×', back:'‹',
+    'zoom-in':'+', 'zoom-out':'−', undo:'↶', redo:'↷'
+  };
+  return known[name] || name.charAt(0).toUpperCase() || '•';
+};
 const iconImage = (path, alt = '', className = 'ui-icon') => {
   const image = element('img', className);
   image.src = 'assets/icons/' + path;
@@ -270,7 +280,13 @@ const iconImage = (path, alt = '', className = 'ui-icon') => {
   image.decoding = 'async';
   image.loading = 'lazy';
   if (!alt) image.setAttribute('aria-hidden', 'true');
-  image.onerror = () => image.remove();
+  image.onerror = () => {
+    // Never leave an action without a visual cue if a packaged asset is missing.
+    const fallback=element('span',className+' icon-fallback',iconFallbackLabel(path));
+    fallback.setAttribute('aria-hidden','true');
+    fallback.title=path;
+    image.replaceWith(fallback);
+  };
   return image;
 };
 const IDEA_ACTION_ICONS = {
@@ -304,14 +320,7 @@ const button = (label, action, className = 'button secondary', data = {}) => {
 };
 const actionIconButton = (label, action, icon, className = 'button secondary', data = {}) => {
   const node = button('', action, className + ' button-with-icon', data);
-  const image = element('img', 'action-button-icon');
-  image.src = 'assets/icons/actions/' + icon;
-  image.alt = '';
-  image.setAttribute('aria-hidden', 'true');
-  image.draggable = false;
-  image.decoding = 'async';
-  image.onerror = () => image.remove();
-  node.append(image, element('span', '', label));
+  node.append(iconImage('actions/' + icon, '', 'action-button-icon'), element('span', '', label));
   return node;
 };
 const field = (labelText, control) => {
