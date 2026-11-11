@@ -62,6 +62,9 @@
     const nav = override('sidebar',blend(surface, page, dark ? .48 : .40));
     const sidebarText = readable(text,nav,'#f5f8fb','#172735',4.5);
     const sidebarMuted = readable(blend(sidebarText,nav,.23),nav,'#d0dbe6','#405268',4.5);
+    const sidebarActive=blend(nav,accent,dark?.26:.15);
+    const sidebarActiveText=readable(sidebarText,sidebarActive,'#f5f8fb','#172735',4.5);
+    const sidebarHover=blend(nav,accent,dark?.10:.065);
     const field=override('field',surface);
     const fieldText=readable(text,field,'#f5f8fb','#172735',4.5);
     const hover = blend(surface, accent, dark ? .11 : .065);
@@ -83,7 +86,9 @@
         // need a monochrome, readable treatment.
         '--ui-content-icon-filter': chooseText(surface) === '#ffffff' ? 'brightness(0) invert(.92)' : 'none',
         '--ui-navigation': nav, '--ui-sidebar': nav, '--ui-sidebar-text': sidebarText,
-        '--ui-sidebar-muted': sidebarMuted, '--ui-field': field, '--ui-field-text':fieldText,
+        '--ui-sidebar-muted': sidebarMuted, '--ui-sidebar-active':sidebarActive,
+        '--ui-sidebar-active-text':sidebarActiveText,'--ui-sidebar-hover':sidebarHover,
+        '--ui-field': field, '--ui-field-text':fieldText,
         '--ui-input-placeholder': readable(blend(fieldText,field,.26),field,'#c6d6e2','#5a6476',4.5),
         '--ui-hover': hover, '--ui-tile': alt,
         '--ui-accent-contrast': emphasis, '--ui-contrast-border': line
