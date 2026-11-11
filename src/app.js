@@ -338,26 +338,47 @@ const iconFallbackLabel = path => {
   return known[name] || name.charAt(0).toUpperCase() || '•';
 };
 const iconImage = (path, alt = '', className = 'ui-icon') => {
-  // Real vector strokes retain their shape and inherit legible text color.
-  const vector = window.OIsymIcons?.glyph(path,document,className,alt);
-  if (vector) return vector;
-  const image = element('img', className);
-  image.src = 'assets/icons/' + path;
-  image.alt = alt;
-  image.draggable = false;
-  image.decoding = 'async';
-  // Tiny local UI icons should never wait for scrolling before loading.
-  image.loading = 'eager';
-  if (!alt) image.setAttribute('aria-hidden', 'true');
-  image.onerror = () => {
-    // Never leave an action without a visual cue if a packaged asset is missing.
-    const fallback=element('span',className+' icon-fallback',iconFallbackLabel(path));
-    fallback.setAttribute('aria-hidden','true');
-    fallback.title=path;
-    image.replaceWith(fallback);
-  };
-  return image;
+  const mode = state.profile?.preferences?.appearanceIconMode || 'vector';
+  const vector = () => window.OIsymIcons?.glyph(path,document,className,alt) || null;
+  let icon;
+  if (mode === 'none') {
+    icon=element('span',className+' icon-disabled');
+    icon.setAttribute('aria-hidden','true');
+  } else if (mode === 'vector' && vector()) {
+    icon=vector();
+  } else {
+    const image=element('img',className+' icon-bitmap');
+    image.src='assets/icons/'+path;
+    image.alt=alt;
+    image.draggable=false;
+    image.decoding='async';
+    image.loading='eager';
+    if (!alt) image.setAttribute('aria-hidden','true');
+    image.onerror=()=>{
+      if (!image.isConnected) return;
+      const fallback=vector() || element('span',className+' icon-fallback',iconFallbackLabel(path));
+      if (fallback.tagName.toLowerCase() === 'span') fallback.setAttribute('aria-hidden','true');
+      fallback.dataset.iconSource=path;
+      fallback.dataset.iconAlt=alt;
+      fallback.dataset.iconClass=className;
+      image.replaceWith(fallback);
+    };
+    icon=image;
+  }
+  icon.dataset.iconSource=path;
+  icon.dataset.iconAlt=alt;
+  icon.dataset.iconClass=className;
+  return icon;
 };
+// Changing icon sources must not recreate input fields, reset cursor positions or
+// destroy an open task editor; only the icon nodes are replaced in place.
+function refreshRenderedIcons() {
+  document.querySelectorAll('[data-icon-source]').forEach(node=>{
+    const {iconSource,iconAlt,iconClass}=node.dataset;
+    node.replaceWith(iconImage(iconSource,iconAlt,iconClass));
+  });
+}
+
 const IDEA_ACTION_ICONS = {
   'ideas-create': 'ideas/board-add.png', 'ideas-import-trigger': 'actions/import.png',
   'ideas-edit': 'actions/edit.png', 'ideas-rename': 'actions/edit.png', 'ideas-export': 'actions/export.png',
