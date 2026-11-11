@@ -6,6 +6,21 @@ const SCHEMA_VERSION = 1;
 const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
 const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...Array.from({ length: 18 }, (_, index) => 'profile-' + (index + 1))];
 const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
+const APPEARANCE_MODES = ['light', 'dark', 'system'];
+const APPEARANCE_PALETTES = ['forest','ocean','midnight','aurora','orchid','lavender','rose','ember','sand','citrus','slate','graphite'];
+const APPEARANCE_COLOR_KEYS = ['accent','page','surface','text'];
+const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+function normalizeAppearanceColors(colors, legacyColor = '') {
+  const source = colors && typeof colors === 'object' && !Array.isArray(colors) ? colors : {};
+  const normalized = {};
+  for (const key of APPEARANCE_COLOR_KEYS) normalized[key] =
+    hexColor(source[key]) ? source[key].toLowerCase() : '';
+  if (colors === undefined && hexColor(legacyColor) && legacyColor.toLowerCase() !== '#27856b') {
+    normalized.accent = legacyColor.toLowerCase();
+  }
+  return normalized;
+}
+const legacyPalette = theme => theme === 'sky' ? 'ocean' : theme === 'warm' ? 'sand' : theme === 'playful' ? 'aurora' : 'forest';
 const FOCUS_ALARM_TONES = ['clock', 'digital', 'funny', 'ringtone1', 'ringtone2', 'ringtone3', 'ringtone4', 'ringtone5', 'ringtone6', 'tititi'];
 const FOCUS_MUSIC_TRACKS = ['focus1', 'focus2', 'focus3', 'focus4', 'focus5', 'focus6', 'focus7', 'focus8', 'focus9', 'focus10', 'focus11', 'focus12', 'focus13', 'focus14'];
 const FOCUS_REMINDER_INTERVALS = [0, 5, 10, 15, 20, 25, 30, 45, 60];
@@ -66,6 +81,9 @@ function createProfile(name, color = '#27856b', age = null) {
       focusMusicTrack: '',
       focusMusicVolume: 35,
       theme: getDefaultThemeForAge(age),
+      appearanceMode: 'light',
+      appearancePalette: legacyPalette(getDefaultThemeForAge(age)),
+      appearanceColors: normalizeAppearanceColors(undefined, color),
       ageBand: getAgeBand(age),
       motionEnabled: true,
       workingDayStart: '09:00',
@@ -116,6 +134,9 @@ function normalizeProfile(profile) {
       focusMusicTrack: FOCUS_MUSIC_TRACKS.includes(preferences.focusMusicTrack) ? preferences.focusMusicTrack : '',
       focusMusicVolume: clampNumber(preferences.focusMusicVolume, 0, 100, 35),
       theme: THEME_IDS.includes(preferences.theme) ? preferences.theme : getDefaultThemeForAge(value.age),
+      appearanceMode: APPEARANCE_MODES.includes(preferences.appearanceMode) ? preferences.appearanceMode : 'light',
+      appearancePalette: APPEARANCE_PALETTES.includes(preferences.appearancePalette) ? preferences.appearancePalette : legacyPalette(preferences.theme),
+      appearanceColors: normalizeAppearanceColors(preferences.appearanceColors, value.color),
       ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
     },
@@ -134,6 +155,15 @@ function validateImportedProfile(profile) {
   if (typeof profile.name !== 'string' || !profile.name.trim() || profile.name.length > 60) throw new TypeError('El nombre del perfil importado no es válido.');
   if (profile.preferences !== undefined && (!profile.preferences || typeof profile.preferences !== 'object' || Array.isArray(profile.preferences))) throw new TypeError('Las preferencias del perfil no son válidas.');
 
+  const appearance = profile.preferences || {};
+  if (appearance.appearanceMode !== undefined && !APPEARANCE_MODES.includes(appearance.appearanceMode)) throw new TypeError('Modo de apariencia no válido.');
+  if (appearance.appearancePalette !== undefined && !APPEARANCE_PALETTES.includes(appearance.appearancePalette)) throw new TypeError('Paleta de apariencia no válida.');
+  if (appearance.appearanceColors !== undefined) {
+    const colors = appearance.appearanceColors;
+    if (!colors || typeof colors !== 'object' || Array.isArray(colors) ||
+      Object.keys(colors).some(key => !APPEARANCE_COLOR_KEYS.includes(key) || colors[key] !== '' && !hexColor(colors[key])))
+      throw new TypeError('Los colores personalizados no son válidos.');
+  }
   const limits = { tasks: 10000, activities: 1000, goals: 1000, focusSessions: 10000 };
   const collections = ['tasks', 'activities', 'goals', 'focusSessions'];
   for (const key of collections) {
@@ -763,5 +793,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, IDEA_BOARD_LIMITS, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, validateImportedProfile, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard, normalizeIdeaBoards, createIdeaBoardExport, prepareIdeaBoardImport, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
+return { SCHEMA_VERSION, IDEA_BOARD_LIMITS, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, APPEARANCE_MODES, APPEARANCE_PALETTES, normalizeAppearanceColors, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, validateImportedProfile, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard, normalizeIdeaBoards, createIdeaBoardExport, prepareIdeaBoardImport, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });
