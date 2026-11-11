@@ -600,3 +600,249 @@ html[data-density="compact"] .appearance-color-control {padding:9px;}
   html[data-scheme] .appearance-palette-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
   html[data-scheme] .appearance-edit-modes .appearance-edit-option {flex:1;}
 }
+
+/* Icon presentation is a per-profile preference. PNG assets preserve their
+   original artwork; SVG glyphs can be recolored without CSS image filters. */
+html[data-scheme] .icon-disabled { display:none !important; }
+html[data-scheme] img.icon-bitmap {
+  display:inline-block;object-fit:contain;filter:none !important;
+  opacity:1 !important;vertical-align:middle;flex-shrink:0;
+}
+html[data-scheme] .appearance-icon-examples {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+html[data-scheme] .appearance-icon-example {
+  background:var(--surface-soft);color:var(--text);
+  border:1px solid var(--line);border-radius:12px;min-height:65px;
+  padding:12px 8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:7px;
+  font-size:11px;font-weight:700;
+}
+html[data-scheme] .appearance-icon-example .appearance-icon-sample {
+  width:23px;height:23px;flex:0 0 23px;
+}
+html[data-scheme] .appearance-icons-settings .field {min-width:0;}
+html[data-scheme] .appearance-icons-settings .appearance-custom-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+html[data-scheme] .appearance-icons-settings .appearance-color-control {
+  min-width:0;
+}
+html[data-icon-mode="vector"][data-icon-variant="bold"] svg.icon-glyph {
+  stroke-width:2.65;
+}
+html[data-icon-mode="vector"][data-icon-variant="duotone"] svg.icon-glyph {
+  stroke-width:1.85;
+}
+html[data-icon-mode="vector"][data-icon-variant="duotone"] svg.icon-glyph > :first-child {
+  fill:currentColor;fill-opacity:.13;
+}
+html[data-icon-mode="vector"][data-icon-variant="filled"] svg.icon-glyph {
+  stroke-width:2.5;
+}
+html[data-icon-mode="vector"][data-icon-variant="filled"] svg.icon-glyph > :first-child {
+  fill:currentColor;fill-opacity:.29;
+}
+html[data-icon-tone="accent"] svg.icon-glyph,
+html[data-icon-tone="custom"] svg.icon-glyph {
+  color:var(--ui-icon-color);
+}
+html[data-icon-tone="accent"] .workspace-sidebar svg.icon-glyph,
+html[data-icon-tone="custom"] .workspace-sidebar svg.icon-glyph {
+  color:var(--ui-nav-icon-color);
+}
+html[data-icon-tone="accent"] .search-field svg.icon-glyph,
+html[data-icon-tone="custom"] .search-field svg.icon-glyph {
+  color:var(--ui-field-text);
+}
+html[data-scheme] .button.primary svg.icon-glyph,
+html[data-scheme] .topbar-create svg.icon-glyph {
+  color:var(--ui-accent-text);
+}
+html[data-icon-background="soft"] svg.icon-glyph,
+html[data-icon-background="soft"] img.icon-bitmap,
+html[data-icon-background="filled"] svg.icon-glyph,
+html[data-icon-background="filled"] img.icon-bitmap {
+  box-sizing:border-box;width:25px;height:25px;
+  padding:4px;border-radius:8px;
+  background:var(--ui-icon-tile);
+}
+html[data-icon-background="soft"] .workspace-sidebar svg.icon-glyph,
+html[data-icon-background="filled"] .workspace-sidebar svg.icon-glyph,
+html[data-icon-background="soft"] .workspace-sidebar img.icon-bitmap,
+html[data-icon-background="filled"] .workspace-sidebar img.icon-bitmap {
+  background:var(--ui-nav-icon-tile);
+}
+html[data-icon-background="filled"] svg.icon-glyph {
+  background:var(--ui-icon-tile);color:var(--ui-icon-tile-ink);
+}
+html[data-icon-background="filled"] .workspace-sidebar svg.icon-glyph {
+  background:var(--ui-nav-icon-tile);color:var(--ui-nav-icon-tile-ink);
+}
+html[data-icon-background="soft"] .appearance-icon-example .appearance-icon-sample,
+html[data-icon-background="filled"] .appearance-icon-example .appearance-icon-sample {
+  width:30px;height:30px;flex-basis:30px;padding:5px;
+}
+html[data-icon-background="filled"] .button.primary svg.icon-glyph,
+html[data-icon-background="filled"] .topbar-create svg.icon-glyph {
+  background:var(--ui-accent-text);color:var(--accent);
+}
+html[data-icon-mode="image"] .workspace-main .action-button-icon,
+html[data-icon-mode="image"] .workspace-main .button-icon,
+html[data-icon-mode="image"] .workspace-sidebar .nav-icon-image {
+  filter:none !important;
+}
+html[data-icon-mode="none"] .appearance-icon-example {gap:2px;}
+
+/* A card's visual weight is configurable. Avoid flat, opaque color blocks. */
+html[data-scheme] .workspace-main .card {
+  background:var(--surface);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+}
+html[data-card-style="elevated"] .workspace-main .card {
+  box-shadow:0 12px 30px rgba(16,35,50,.10),0 2px 7px rgba(16,35,50,.05);
+}
+html[data-scheme="dark"][data-card-style="elevated"] .workspace-main .card {
+  box-shadow:0 13px 34px rgba(0,0,0,.27),0 1px 5px rgba(0,0,0,.1);
+}
+html[data-card-style="soft"] .workspace-main .card {
+  background:var(--surface-soft);
+  box-shadow:0 3px 15px rgba(20,43,55,.055);
+}
+html[data-card-style="outlined"] .workspace-main .card {
+  background:var(--surface);
+  border:2px solid var(--line);
+  box-shadow:none;
+}
+html[data-scheme] .workspace-main .today-completed-card {
+  padding:24px;
+  border-color:var(--line);
+  background:var(--surface);
+}
+html[data-card-style="soft"] .workspace-main .today-completed-card {
+  background:var(--surface-soft);
+}
+html[data-scheme] .workspace-main .today-completed-card .section-heading {
+  gap:6px;margin-bottom:17px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:14px;
+}
+html[data-scheme] .workspace-main .today-completed-card .section-heading h2 {
+  color:var(--text);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-list {
+  gap:9px;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row {
+  min-width:0;display:flex;align-items:center;
+  border:1px solid var(--line);border-radius:12px;
+  background:var(--surface-soft);
+  padding:13px 15px;
+  margin:0;gap:10px;
+  transition:background .15s,border-color .15s;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row:last-child {
+  border:1px solid var(--line);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row:hover {
+  background:var(--ui-hover);
+  border-color:var(--accent);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-content {
+  min-width:0;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-content > strong {
+  color:var(--muted);font-size:13px;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-actions {
+  margin-left:auto;display:flex;align-items:center;
+  flex-wrap:wrap;gap:6px;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row .button.secondary,
+html[data-scheme] .workspace-main .today-completed-card .task-menu-trigger {
+  background:var(--surface);
+  color:var(--text);border-color:var(--line);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row .button.secondary:hover {
+  background:var(--accent-soft);color:var(--accent-dark);
+}
+html[data-scheme] .workspace-main .today-completed-card .meta-chip {
+  background:var(--accent-soft);color:var(--accent-dark);
+  border:1px solid var(--line);border-radius:7px;
+}
+html[data-scheme] .workspace-main .today-completed-card .completed {
+  color:var(--muted);text-decoration:line-through;
+  text-decoration-color:var(--muted);
+}
+html[data-scheme] .workspace-main .focus-card {
+  position:relative;overflow:hidden;
+  border:1px solid var(--line);
+  background:linear-gradient(130deg,var(--surface) 15%,var(--accent-soft) 100%);
+  padding:24px;
+}
+html[data-scheme] .workspace-main .focus-card::before {
+  content:'';position:absolute;pointer-events:none;
+  width:145px;height:145px;top:-65px;right:-75px;
+  border-radius:50%;border:24px solid var(--accent-soft);opacity:.7;
+}
+html[data-scheme] .workspace-main .focus-card > * {
+  position:relative;z-index:1;
+}
+html[data-scheme] .workspace-main .focus-card .eyebrow {color:var(--muted);}
+html[data-scheme] .workspace-main .focus-card .focus-teaser-heading {
+  display:flex;align-items:center;gap:11px;
+  margin:12px 0 10px;
+}
+html[data-scheme] .workspace-main .focus-card .focus-teaser-icon {
+  width:28px;height:28px;flex:0 0 28px;
+  color:var(--accent-dark);
+}
+html[data-scheme] .workspace-main .focus-card h3 {
+  margin:0;line-height:1.25;font-size:19px;color:var(--text);
+}
+html[data-scheme] .workspace-main .focus-card p {
+  color:var(--muted);font-size:12px;margin-bottom:18px;
+  max-width:32ch;
+}
+html[data-scheme] .workspace-main .focus-card .button.primary {
+  width:max-content;max-width:100%;min-height:41px;
+  background:var(--accent);color:var(--ui-accent-text);
+  border:1px solid transparent;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);
+}
+html[data-scheme] .workspace-main .focus-card .button.primary:hover {
+  filter:brightness(1.06);
+}
+html[data-card-style="outlined"] .workspace-main .focus-card {
+  background:var(--surface);border:2px solid var(--line);
+}
+html[data-card-style="outlined"] .workspace-main .focus-card::before {display:none;}
+html[data-card-style="soft"] .workspace-main .focus-card {background:var(--accent-soft);}
+html[data-card-style="soft"] .workspace-main .today-completed-card .task-row {
+  background:var(--surface);
+}
+html[data-card-style="outlined"] .workspace-main .today-completed-card .task-row {
+  border-width:1px;box-shadow:none;
+}
+@media(max-width:740px) {
+  html[data-scheme] .workspace-main .today-completed-card .task-row {
+    flex-wrap:wrap;row-gap:9px;
+  }
+  html[data-scheme] .workspace-main .today-completed-card .task-actions {
+    margin-left:0;flex:1 1 100%;
+    justify-content:flex-end;
+  }
+}
+@media(max-width:580px) {
+  html[data-scheme] .appearance-icons-settings .appearance-custom-grid {
+    grid-template-columns:1fr;
+  }
+  html[data-scheme] .appearance-icon-examples {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html[data-scheme] .today-completed-card .task-row {transition:none;}
+}
