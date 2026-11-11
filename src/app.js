@@ -2,7 +2,10 @@ const {
   createProfile, normalizeProfile, createActivity, updateActivity, createTask, updateTask, createIdeaBoard, createIdeaNode, updateIdeaNode, makeId, normalizeIdeaBoards, validateIdeaBoard, createIdeaBoardExport, prepareIdeaBoardImport,
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
-} = window.OIsymDomain;
+ } = window.OIsymDomain;
+const { getItemsForDay, getCalendarRange, getUnscheduledTasks, detectScheduleConflicts,
+  getFreeTimeSlots, taskMutation, createDayTemplate, previewDayTemplate,
+  applyDayTemplate, templateAppliesOn } = window.OIsymPlanning;
 
 // Electron does not implement window.prompt. Keep text entry inside the app.
 function requestText(message, initialValue = '') {
@@ -94,6 +97,9 @@ const state = {
   selectedProfileId: null,
   settingsSection: 'profile',
   showTaskForm: false,
+  taskFormDefaults: {},
+  selectedTemplateId: '',
+  templatePreview: null,
   showActivityForm: false,
   showGoalForm: false,
   launchPromptShown: false,
@@ -464,7 +470,8 @@ function updateShell() {
     goals: renderGoals, insights: renderInsights, settings: renderSettings, profiles: renderProfiles
   };
   (renderers[state.view] || renderToday)(main);
-}
+  if (state.showTaskForm || state.editingTaskId) renderSharedTaskDialog(main);
+
 
 function addTaskForm(parent, defaults = {}) {
   const editing = Boolean(state.editingTaskId);
@@ -640,7 +647,7 @@ function renderTasks(main) {
   header.append(create);main.append(header);
   const toolbar = element('div', 'toolbar task-toolbar');
   const filter = select('task-filter', [
-    { value: 'active', label: 'Pendientes' }, { value: 'all', label: 'Todas' }, { value: 'done', label: 'Completadas' }
+    { value: 'inbox', label: 'Bandeja de entrada' }, { value: 'active', label: 'Pendientes' }, { value: 'all', label: 'Todas' }, { value: 'done', label: 'Completadas' }
   ], 'active');
   filter.id = 'task-filter';
   filter.setAttribute('aria-label', 'Filtrar tareas por estado');
@@ -658,7 +665,7 @@ function renderTasks(main) {
     const mode = filter.value;
     const query = search.value.trim().toLocaleLowerCase('es');
     const tasks = state.profile.tasks.filter(task => {
-      const statusMatches = mode === 'all' || (mode === 'done' ? task.status === 'done' : task.status === 'pending');
+      const statusMatches = mode === 'all' || (mode === 'inbox' ? task.status === 'pending' && !task.scheduledDate : (mode === 'done' ? task.status === 'done' : task.status === 'pending'));
       const textMatches = !query || (task.title + ' ' + task.description).toLocaleLowerCase('es').includes(query);
       return statusMatches && textMatches;
     });
@@ -668,16 +675,27 @@ function renderTasks(main) {
   search.addEventListener('input', render);
   render();
   main.append(list);
+
+}
+
+function renderSharedTaskDialog(main) {
   const editing = state.editingTaskId ? taskById(state.editingTaskId) : null;
-  if(state.showTaskForm||editing){
-    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='task-create-button';
-    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','task-modal-title');
-    const form=addTaskForm(dialog,editing||{});form.classList.add('profile-modal-form');
-    const title=form.querySelector('h3');if(title)title.id='task-modal-title';
-    if(!editing)form.querySelector('.form-actions').append(button('Cancelar','close-task-form','button secondary'));
-    overlay.append(dialog);main.append(overlay);
-    $('.task-form input[name="title"]',overlay)?.focus();
-  }
+  if (state.editingTaskId && !editing) { state.editingTaskId = null; state.showTaskForm = false; return; }
+  const overlay = element('div', 'profile-modal-backdrop');
+  overlay.dataset.profileModal = 'true';
+  overlay.dataset.returnFocus = 'task-create-button';
+  const dialog = element('section', 'profile-modal');
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-labelledby', 'task-modal-title');
+  const form = addTaskForm(dialog, editing || state.taskFormDefaults || {});
+  form.classList.add('profile-modal-form');
+  const title = form.querySelector('h3');
+  if (title) title.id = 'task-modal-title';
+  if (!editing) form.querySelector('.form-actions').append(button('Cancelar','close-task-form','button secondary'));
+  overlay.append(dialog);
+  main.append(overlay);
+  $('.task-form input[name="title"]', overlay)?.focus();
 }
 
 function renderActivities(main) {
@@ -2560,15 +2578,20 @@ async function handleSubmit(form) {
         if (!data.startTime || !data.endTime || data.endTime <= data.startTime) throw new Error('El horario debe tener una hora de fin posterior al inicio.');
         data.estimatedMinutes = (Number(data.endTime.slice(0, 2)) * 60 + Number(data.endTime.slice(3))) - (Number(data.startTime.slice(0, 2)) * 60 + Number(data.startTime.slice(3)));
       }
-      const editingId=state.editingTaskId;
-      if (form.dataset.form === 'task-edit') {
-        const current = taskById(editingId);
-        if (!current) throw new Error('La tarea que intentas editar ya no existe.');
-        state.profile.tasks = state.profile.tasks.map(item => item.id === editingId ? updateTask(item, data) : item);
-      } else state.profile.tasks.unshift(createTask(data));
+      const editingId = state.editingTaskId;
+      const candidate = taskMutation(state.profile, form.dataset.form === 'task-edit'
+        ? { type: 'edit', id: editingId, data }
+        : { type: 'create', data });
+      const affected = form.dataset.form === 'task-edit' ? candidate.tasks.find(task => task.id === editingId) : candidate.tasks[0];
+      if (affected?.scheduledDate && affected.startTime && affected.endTime) {
+        const collisions = detectScheduleConflicts(candidate, affected.scheduledDate)
+          .filter(item => item.firstId === affected.id || item.secondId === affected.id);
+        if (collisions.length && !confirm('El horario se superpone con ' + collisions.length + ' bloque(s). ¿Guardar de todos modos?')) return;
+      }
+      state.profile.tasks = candidate.tasks;
       const saved=await save();
       if(!saved){restoreProfile();state.showTaskForm=form.dataset.form!=='planner-task';state.editingTaskId=editingId;return;}
-      state.editingTaskId=null;state.showTaskForm=false;
+      state.editingTaskId=null;state.showTaskForm=false;state.taskFormDefaults={};state.plannerAnalysis=null;
       showToast(form.dataset.form==='task-edit'?'Cambios guardados.':'Tarea guardada.');
       state.view = form.dataset.form === 'planner-task' ? 'planner' : state.view;
     } else if (form.dataset.form === 'activity-edit') {
@@ -2984,7 +3007,7 @@ root.addEventListener('click', async event => {
     if (state.selectedIdeaBoardId === id) { state.selectedIdeaBoardId = null; state.plannerSection = 'library'; }
     updateShell(); showToast('Pizarrón eliminado.'); return;
   }
-  if (action === 'new-task') { state.view='tasks';state.editingTaskId=null;state.showTaskForm=true;updateShell();return; }
+  if (action === 'new-task') { state.editingTaskId=null;state.taskFormDefaults={};state.showTaskForm=true;updateShell();return; }
   if (action === 'new-activity') { state.view='activities';state.editingActivityId=null;state.showActivityForm=true;updateShell();return; }
   if (action === 'new-goal') { state.view='goals';state.editingGoalId=null;state.showGoalForm=true;updateShell();return; }
   if (action === 'close-goal-form') { state.showGoalForm=false;state.editingGoalId=null;updateShell();$('#goal-create-button')?.focus();return; }
@@ -3067,7 +3090,7 @@ root.addEventListener('click', async event => {
     updateProfilePreview(form);$('input[name="name"]',form).focus();
   }
   if (action === 'quick-task') {
-    state.view = 'tasks'; state.showTaskForm = true; state.editingTaskId = null; updateShell();
+    state.taskFormDefaults = {}; state.showTaskForm = true; state.editingTaskId = null; updateShell();
     const title = $('.task-form input[name="title"]');
     if (title) title.focus();
   }
@@ -3091,7 +3114,6 @@ root.addEventListener('click', async event => {
     if (!taskById(id)) return;
     state.editingTaskId = id;
     state.showTaskForm = true;
-    state.view = 'tasks';
     updateShell();
     const titleInput = $('.task-form input[name="title"]');
     if (titleInput) { titleInput.focus(); titleInput.select(); }
@@ -3151,10 +3173,9 @@ root.addEventListener('click', async event => {
     updateShell();
   }
   if (action === 'calendar-add-task') {
-    state.view = 'tasks';
     state.showTaskForm = true;
     state.editingTaskId = null;
-    state.showTaskForm = true;
+    state.taskFormDefaults = { scheduledDate: state.selectedDate };
     updateShell();
     const dateField = $('.task-form input[name="scheduledDate"]');
     const titleField = $('.task-form input[name="title"]');
@@ -3509,8 +3530,8 @@ document.addEventListener('keydown', event => {
   }
   if (key === 'n') {
     event.preventDefault();
-    state.view = 'tasks';
     state.editingTaskId = null;
+    state.taskFormDefaults = {};
     state.showTaskForm = true;
     updateShell();
     const titleField = $('.task-form input[name="title"]');
