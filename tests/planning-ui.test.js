@@ -325,7 +325,7 @@ test('activity and goal editors use the same side panel layout without changing 
 test('appearance gallery previews full themes and immediately updates the workspace', async t => {
   const r=await renderer();t.after(r.dispose);
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
-  assert.equal(r.w.document.querySelectorAll('.appearance-palette-button').length,12);
+  assert.equal(r.w.document.querySelectorAll('.appearance-palette-button').length,18);
   assert.equal(r.w.document.querySelectorAll('.appearance-palette-scene').length,12);
   const initialAccent=r.w.document.documentElement.style.getPropertyValue('--accent');
   r.click('[data-action="appearance-palette"][data-palette="orchid"]');
