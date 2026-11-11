@@ -562,3 +562,24 @@ test('appearance icon fallback also preserves primary action labels and profile 
   assert.ok(r.query('.task-editor-panel'));
   assert.deepEqual(r.errors,[]);
 });
+
+test('switching profiles flushes the last theme and restores the destination appearance', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const original=r.app.state.profile;
+  const other=D.createProfile('Segundo espacio');
+  other.preferences.appearanceMode='dark';
+  other.preferences.appearancePalette='midnight';
+  r.app.state.snapshot.profiles.push(other);
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="lavender"]');
+  const selector=r.query('#profile-select');
+  selector.value=other.id;
+  selector.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  await settle(r);
+  assert.equal(r.app.state.profile.id,other.id);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  assert.equal(r.saved().profiles.find(p=>p.id===original.id).preferences.appearancePalette,'lavender');
+  assert.equal(r.saved().profiles.find(p=>p.id===other.id).preferences.appearancePalette,'midnight');
+  assert.deepEqual(r.errors,[]);
+});
