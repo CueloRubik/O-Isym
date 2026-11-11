@@ -256,3 +256,10 @@ html[data-scheme="dark"] .week-day-count { color: var(--muted); }
   .appearance-palette-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .appearance-preview-layout { grid-template-columns: 80px minmax(0,1fr); }
 }
+
+/* Icon contrast follows the foreground chosen for bright or dark custom accents. */
+html[data-scheme] .workspace-topbar .topbar-create .button-icon,
+html[data-scheme] .workspace-main .button.primary .button-icon,
+html[data-scheme] .task-editor-actions .button.primary .button-icon {
+  filter: var(--ui-icon-filter);
+}
