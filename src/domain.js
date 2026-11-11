@@ -11,6 +11,15 @@ const APPEARANCE_PALETTES = ['forest','ocean','midnight','aurora','orchid','lave
 const APPEARANCE_COLOR_KEYS = ['accent','page','surface','text','sidebar','field','border','muted'];
 const APPEARANCE_DENSITIES = ['comfortable','compact'];
 const APPEARANCE_RADII = ['soft','rounded','square'];
+const ICON_MODES = ['vector','image','none'];
+const ICON_VARIANTS = ['outline','bold','duotone','filled'];
+const ICON_TONES = ['automatic','accent','custom'];
+const ICON_BACKGROUNDS = ['none','soft','filled'];
+const CARD_STYLES = ['elevated','soft','outlined'];
+const normalizeModeHex = (value) => {
+  const src = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return Object.fromEntries(['light','dark'].map(mode => [mode,hexColor(src[mode]) ? src[mode].toLowerCase() : '']));
+};
 const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
 function normalizeAppearanceColors(colors, legacyColor = '') {
   const source = colors && typeof colors === 'object' && !Array.isArray(colors) ? colors : {};
@@ -102,6 +111,13 @@ function createProfile(name, color = '#27856b', age = null) {
       appearanceColorsByMode: normalizeColorsByMode(null,undefined,color),
       appearanceDensity: 'comfortable',
       appearanceRadius: 'soft',
+      appearanceIconMode: 'vector',
+      appearanceIconVariant: 'outline',
+      appearanceIconTone: 'automatic',
+      appearanceIconBackground: 'none',
+      appearanceIconColorsByMode: normalizeModeHex(null),
+      appearanceIconBackgroundColorsByMode: normalizeModeHex(null),
+      appearanceCardStyle: 'elevated',
       ageBand: getAgeBand(age),
       motionEnabled: true,
       workingDayStart: '09:00',
@@ -160,6 +176,13 @@ function normalizeProfile(profile) {
       appearanceColorsByMode: normalizeColorsByMode(preferences.appearanceColorsByMode, preferences.appearanceColors, value.color),
       appearanceDensity: APPEARANCE_DENSITIES.includes(preferences.appearanceDensity) ? preferences.appearanceDensity : 'comfortable',
       appearanceRadius: APPEARANCE_RADII.includes(preferences.appearanceRadius) ? preferences.appearanceRadius : 'soft',
+      appearanceIconMode: ICON_MODES.includes(preferences.appearanceIconMode) ? preferences.appearanceIconMode : 'vector',
+      appearanceIconVariant: ICON_VARIANTS.includes(preferences.appearanceIconVariant) ? preferences.appearanceIconVariant : 'outline',
+      appearanceIconTone: ICON_TONES.includes(preferences.appearanceIconTone) ? preferences.appearanceIconTone : 'automatic',
+      appearanceIconBackground: ICON_BACKGROUNDS.includes(preferences.appearanceIconBackground) ? preferences.appearanceIconBackground : 'none',
+      appearanceIconColorsByMode: normalizeModeHex(preferences.appearanceIconColorsByMode),
+      appearanceIconBackgroundColorsByMode: normalizeModeHex(preferences.appearanceIconBackgroundColorsByMode),
+      appearanceCardStyle: CARD_STYLES.includes(preferences.appearanceCardStyle) ? preferences.appearanceCardStyle : 'elevated',
       ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
     },
@@ -205,6 +228,25 @@ function validateImportedProfile(profile) {
     throw new TypeError('Densidad de interfaz no válida.');
   if (appearance.appearanceRadius !== undefined && !APPEARANCE_RADII.includes(appearance.appearanceRadius))
     throw new TypeError('Estilo de esquinas no válido.');
+  for (const [key, options] of [
+    ['appearanceIconMode', ICON_MODES],
+    ['appearanceIconVariant', ICON_VARIANTS],
+    ['appearanceIconTone', ICON_TONES],
+    ['appearanceIconBackground', ICON_BACKGROUNDS],
+    ['appearanceCardStyle', CARD_STYLES]
+  ]) {
+    if (appearance[key] !== undefined && !options.includes(appearance[key]))
+      throw new TypeError('Preferencia visual no válida: ' + key);
+  }
+  for (const key of ['appearanceIconColorsByMode','appearanceIconBackgroundColorsByMode']) {
+    if (appearance[key] !== undefined) {
+      const colors=appearance[key];
+      if (!colors || typeof colors !== 'object' || Array.isArray(colors) ||
+        Object.entries(colors).some(([mode,color])=> !['light','dark'].includes(mode) ||
+          (color !== '' && !hexColor(color))))
+        throw new TypeError('Los colores de iconos no son válidos.');
+    }
+  }
   const limits = { tasks: 10000, activities: 1000, goals: 1000, focusSessions: 10000 };
   const collections = ['tasks', 'activities', 'goals', 'focusSessions'];
   for (const key of collections) {
