@@ -78,7 +78,7 @@ test('every configured icon exists and dialog reopening does not add duplicate i
  const fs=require('node:fs'),path=require('node:path');const r=await renderer();t.after(r.dispose);
  for(const image of r.w.document.querySelectorAll('img[src^="assets/icons/"]')) assert.ok(fs.existsSync(path.join(__dirname,'..',image.getAttribute('src'))),image.src);
  r.app.updateShell();for(const button of r.w.document.querySelectorAll('[data-action^="ideas-"]')) assert.ok(button.querySelectorAll('.button-icon').length<=1);
- assert.ok(r.query('[data-action="ideas-help"] img'));assert.ok(r.query('[data-action="ideas-history-undo"] img'));
+ assert.ok(r.query('[data-action="ideas-help"] .icon-glyph'));assert.ok(r.query('[data-action="ideas-history-undo"] .icon-glyph'));
 });
 test('saved boards survive a real storage roundtrip with text, groups, connections and camera',async t=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
