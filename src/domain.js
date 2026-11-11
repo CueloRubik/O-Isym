@@ -73,6 +73,7 @@ function createProfile(name, color = '#27856b', age = null) {
     },
     activities: [],
     ideaBoards: [],
+    dayTemplates: [],
     tasks: [],
     goals: [],
     focusSessions: [],
@@ -120,6 +121,7 @@ function normalizeProfile(profile) {
     },
     activities: Array.isArray(value.activities) ? value.activities : [],
     ideaBoards: normalizeIdeaBoards(value.ideaBoards),
+    dayTemplates: Array.isArray(value.dayTemplates) ? value.dayTemplates : [],
     tasks: Array.isArray(value.tasks) ? value.tasks : [],
     goals: Array.isArray(value.goals) ? value.goals : [],
     focusSessions: Array.isArray(value.focusSessions) ? value.focusSessions : [],
@@ -158,6 +160,32 @@ function validateImportedProfile(profile) {
     }
   }
   normalizeIdeaBoards(profile.ideaBoards);
+  if (profile.dayTemplates !== undefined) {
+    if (!Array.isArray(profile.dayTemplates) || profile.dayTemplates.length > 100) throw new TypeError('La colección de plantillas no es válida.');
+    const templateIds = new Set();
+    for (const template of profile.dayTemplates) {
+      if (!template || typeof template.id !== 'string' || !template.id || templateIds.has(template.id) ||
+          typeof template.name !== 'string' || !template.name.trim() || template.name.length > 90 ||
+          !Array.isArray(template.entries) || template.entries.length < 1 || template.entries.length > 30 ||
+          !template.recurrence || !Array.isArray(template.recurrence.weekdays)) throw new TypeError('La plantilla de día no es válida.');
+      templateIds.add(template.id);
+      if (!template.recurrence.weekdays.length || template.recurrence.weekdays.some(day => !Number.isInteger(day) || day < 0 || day > 6) ||
+          (template.recurrence.startDate && !isValidDateKey(template.recurrence.startDate)) ||
+          (template.recurrence.endDate && !isValidDateKey(template.recurrence.endDate)) ||
+          (template.recurrence.startDate && template.recurrence.endDate && template.recurrence.endDate < template.recurrence.startDate) ||
+          !Array.isArray(template.recurrence.exceptions) ||
+          template.recurrence.exceptions.length > 500 ||
+          template.recurrence.exceptions.some(date => !isValidDateKey(date))) throw new TypeError('La recurrencia de plantilla no es válida.');
+      const entryIds = new Set();
+      for (const entry of template.entries) {
+        if (!entry || typeof entry.id !== 'string' || !entry.id || entryIds.has(entry.id) ||
+            typeof entry.title !== 'string' || !entry.title.trim() || entry.title.length > 140 ||
+            !isValidTimeKey(entry.startTime) || !entry.startTime || !isValidTimeKey(entry.endTime) ||
+            !entry.endTime || entry.endTime <= entry.startTime) throw new TypeError('La plantilla contiene un bloque inválido.');
+        entryIds.add(entry.id);
+      }
+    }
+  }
   if (profile.activeFocus !== undefined && profile.activeFocus !== null && (!profile.activeFocus || typeof profile.activeFocus !== 'object' || Array.isArray(profile.activeFocus))) {
     throw new TypeError('La sesión Focus activa del perfil no es válida.');
   }
@@ -297,6 +325,8 @@ function createTask(input) {
     reminderEnabled: input.reminderEnabled !== false,
     locked: Boolean(input.locked),
     activityId: input.activityId || null,
+    templateId: typeof input.templateId === 'string' && input.templateId ? input.templateId : null,
+    templateEntryId: typeof input.templateEntryId === 'string' && input.templateEntryId ? input.templateEntryId : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     completedAt: null
