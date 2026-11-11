@@ -8,6 +8,7 @@
 
 - [Organización Unificada: planificación diaria y calendario avanzado](UNIFIED-PLANNING.md) — especificación y bloques de trabajo.
 - [Implementación de Organización Unificada](UNIFIED-PLANNING-IMPLEMENTATION.md) — arquitectura incorporada en `development`, validación automatizada y lista de comprobaciones en Catalina.
+- [Rediseño del espacio de trabajo y ventanas](UNIFIED-UI-REDESIGN.md) — navegación, calendario visual, paneles laterales y pruebas de la nueva interfaz.
 
 ## Desarrollo y revisión
 
