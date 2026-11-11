@@ -620,7 +620,12 @@ const appearanceValues = profile => {
     appearanceColors:{...p.appearanceColors},
     appearancePalettes:{...p.appearancePalettes},
     appearanceColorsByMode:JSON.parse(JSON.stringify(p.appearanceColorsByMode)),
-    appearanceDensity:p.appearanceDensity,appearanceRadius:p.appearanceRadius
+    appearanceDensity:p.appearanceDensity,appearanceRadius:p.appearanceRadius,
+    appearanceIconMode:p.appearanceIconMode,appearanceIconVariant:p.appearanceIconVariant,
+    appearanceIconTone:p.appearanceIconTone,appearanceIconBackground:p.appearanceIconBackground,
+    appearanceIconColorsByMode:{...p.appearanceIconColorsByMode},
+    appearanceIconBackgroundColorsByMode:{...p.appearanceIconBackgroundColorsByMode},
+    appearanceCardStyle:p.appearanceCardStyle
   };
 };
 let appearancePending = null;
@@ -641,7 +646,14 @@ function applyAppearanceSelection(form) {
       Object.values(next.appearanceColorsByMode).some(colors =>
         Object.values(colors).some(color=>color!=='' && !Appearance.validHex(color))) ||
       !['comfortable','compact'].includes(next.appearanceDensity) ||
-      !['soft','rounded','square'].includes(next.appearanceRadius)) {
+      !['soft','rounded','square'].includes(next.appearanceRadius) ||
+      !['vector','image','none'].includes(next.appearanceIconMode) ||
+      !['outline','bold','duotone','filled'].includes(next.appearanceIconVariant) ||
+      !['automatic','accent','custom'].includes(next.appearanceIconTone) ||
+      !['none','soft','filled'].includes(next.appearanceIconBackground) ||
+      !['elevated','soft','outlined'].includes(next.appearanceCardStyle) ||
+      ['appearanceIconColorsByMode','appearanceIconBackgroundColorsByMode'].some(key=>
+        Object.values(next[key]).some(color=>color!=='' && !Appearance.validHex(color)))) {
     appearanceStatus('Revisa los colores seleccionados', true);
     return;
   }
@@ -649,8 +661,10 @@ function applyAppearanceSelection(form) {
   if (!appearancePending || appearancePending.profileId !== profileId) {
     appearancePending = { profileId, persisted: appearanceValues(state.profile) };
   }
+  const oldIconMode=state.profile.preferences.appearanceIconMode || 'vector';
   Object.assign(state.profile.preferences,next);
   applyProfileAppearance();
+  if (oldIconMode !== next.appearanceIconMode) refreshRenderedIcons();
   updateAppearancePreview(form);
   appearanceStatus('Guardando automáticamente…');
   appearanceChangeSerial++;
@@ -681,9 +695,11 @@ async function flushAppearanceChanges() {
       }
     } else if (revision === appearanceChangeSerial) {
       // Do not revert an entire profile: other functions could have edited its tasks.
+      const oldIconMode=state.profile.preferences.appearanceIconMode;
       Object.assign(state.profile.preferences,pending.persisted);
       appearancePending = null;
       applyProfileAppearance();
+      if (oldIconMode!==state.profile.preferences.appearanceIconMode) refreshRenderedIcons();
       updateShell();
       appearanceStatus('No se pudo guardar. Recuperamos la última apariencia.', true);
     }
@@ -3844,6 +3860,8 @@ root.addEventListener('click', async event => {
     appearanceColorFields.forEach(([key]) => {
       form.querySelector('[name="custom-'+key+'"]').checked=false;
     });
+    form.querySelector('[name="appearanceIconTone"]').value='automatic';
+    form.querySelector('[name="appearanceIconBackgroundCustom"]').checked=false;
     applyAppearanceSelection(form);
     return;
   }
@@ -4541,6 +4559,10 @@ root.addEventListener('input', event => {
     }
     const key=appearanceColorFields.find(([name])=>event.target.name==='appearance-'+name)?.[0];
     if (key) appearanceForm.querySelector('[name="custom-'+key+'"]').checked=true;
+    if (event.target.name==='appearanceIconColor')
+      appearanceForm.querySelector('[name="appearanceIconTone"]').value='custom';
+    if (event.target.name==='appearanceIconBackgroundColor')
+      appearanceForm.querySelector('[name="appearanceIconBackgroundCustom"]').checked=true;
     applyAppearanceSelection(appearanceForm);
     return;
   }
