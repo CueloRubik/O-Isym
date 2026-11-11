@@ -43,23 +43,27 @@
   const makeTokens = (preferences = {}, systemDark = false) => {
     const mode = ['light', 'dark', 'system'].includes(preferences.appearanceMode) ? preferences.appearanceMode : 'light';
     const dark = mode === 'dark' || mode === 'system' && Boolean(systemDark);
-    const palette = findPalette(preferences.appearancePalette);
-    const custom = preferences.appearanceColors && typeof preferences.appearanceColors === 'object' ? preferences.appearanceColors : {};
+    const scheme = dark ? 'dark' : 'light';
+    const palette = findPalette(preferences.appearancePalettes?.[scheme] || preferences.appearancePalette);
+    const custom = preferences.appearanceColorsByMode?.[scheme] || preferences.appearanceColors || {};
     const override = (field, fallback) => validHex(custom[field]) ? custom[field].toLowerCase() : fallback;
     const pageBase = dark ? blend(palette.base, '#080e19', .28) : blend('#f6f9fc', palette.light, .028);
     const page = override('page', pageBase);
     const surface = override('surface', dark ? blend(palette.base, '#263444', .34) : '#ffffff');
-    const inkBase = dark ? '#edf4fb' : '#203447';
     const text = readable(custom.text, surface, '#f5f8fb', '#172735');
     const contrastAdjusted = validHex(custom.text) && text.toLowerCase() !== custom.text.toLowerCase();
     const accent = override('accent', dark ? palette.dark : palette.light);
     const accentText = chooseText(accent);
     const emphasis = readable(accent, surface, '#f5f8fb', '#203447');
     const soft = blend(surface, accent, dark ? .19 : .115);
-    const line = blend(surface, text, dark ? .20 : .115);
-    const muted = readable(blend(text, surface, dark ? .27 : .35), surface, '#d1e0ed', '#4c5d6e', 4.5);
+    const line = override('border',blend(surface, text, dark ? .20 : .115));
+    const muted = readable(custom.muted || blend(text, surface, dark ? .27 : .35), surface, '#d1e0ed', '#4c5d6e', 4.5);
     const alt = blend(surface, page, .46);
-    const nav = blend(surface, page, dark ? .48 : .40);
+    const nav = override('sidebar',blend(surface, page, dark ? .48 : .40));
+    const sidebarText = readable(text,nav,'#f5f8fb','#172735',4.5);
+    const sidebarMuted = readable(blend(sidebarText,nav,.23),nav,'#d0dbe6','#405268',4.5);
+    const field=override('field',surface);
+    const fieldText=readable(text,field,'#f5f8fb','#172735',4.5);
     const hover = blend(surface, accent, dark ? .11 : .065);
     return {
       dark, mode, palette: palette.id, contrastAdjusted,
@@ -78,7 +82,9 @@
         // Preserve the colorful icon artwork in light schemes. Dark panels
         // need a monochrome, readable treatment.
         '--ui-content-icon-filter': chooseText(surface) === '#ffffff' ? 'brightness(0) invert(.92)' : 'none',
-        '--ui-navigation': nav, '--ui-field': surface,
+        '--ui-navigation': nav, '--ui-sidebar': nav, '--ui-sidebar-text': sidebarText,
+        '--ui-sidebar-muted': sidebarMuted, '--ui-field': field, '--ui-field-text':fieldText,
+        '--ui-input-placeholder': readable(blend(fieldText,field,.26),field,'#c6d6e2','#5a6476',4.5),
         '--ui-hover': hover, '--ui-tile': alt,
         '--ui-accent-contrast': emphasis, '--ui-contrast-border': line
       }
@@ -90,6 +96,8 @@
       if (!el) continue;
       for (const [name, value] of Object.entries(result.vars)) el.style.setProperty(name, value);
       el.dataset.scheme = result.dark ? 'dark' : 'light';
+      el.dataset.density = preferences.appearanceDensity === 'compact' ? 'compact' : 'comfortable';
+      el.dataset.radius = ['soft','rounded','square'].includes(preferences.appearanceRadius) ? preferences.appearanceRadius : 'soft';
       el.style.colorScheme = result.dark ? 'dark' : 'light';
     }
     return result;
