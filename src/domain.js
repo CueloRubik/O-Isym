@@ -7,7 +7,7 @@ const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
 const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...Array.from({ length: 18 }, (_, index) => 'profile-' + (index + 1))];
 const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
 const APPEARANCE_MODES = ['light', 'dark', 'system'];
-const APPEARANCE_PALETTES = ['forest','ocean','midnight','aurora','orchid','lavender','rose','ember','sand','citrus','slate','graphite'];
+const APPEARANCE_PALETTES = ['forest','ocean','midnight','aurora','orchid','lavender','rose','ember','sand','citrus','slate','graphite','cobalt','sage','coral','amber','plum','glacier'];
 const APPEARANCE_COLOR_KEYS = ['accent','page','surface','text','sidebar','field','border','muted'];
 const APPEARANCE_DENSITIES = ['comfortable','compact'];
 const APPEARANCE_RADII = ['soft','rounded','square'];
