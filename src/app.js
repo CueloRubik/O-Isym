@@ -434,6 +434,82 @@ const save = () => {
   });
   return saveQueue;
 };
+// Appearance changes are painted immediately, then coalesced into one queued write.
+// The rollback only restores appearance fields; tasks, Focus and board data are untouched.
+const appearanceValues = profile => ({
+  appearanceMode: profile.preferences.appearanceMode,
+  appearancePalette: profile.preferences.appearancePalette,
+  appearanceColors: { ...profile.preferences.appearanceColors }
+});
+let appearancePending = null;
+let appearanceTimer = null;
+let appearanceSaving = null;
+let appearanceChangeSerial = 0;
+const appearanceStatus = (message, isError = false) => {
+  const target = $('.appearance-save-status');
+  if (!target) return;
+  target.textContent = message;
+  target.classList.toggle('is-error', isError);
+};
+function applyAppearanceSelection(form) {
+  if (!form || !state.profile) return;
+  const next = appearanceDraft(form);
+  if (!['light','dark','system'].includes(next.appearanceMode) ||
+      !Appearance.PALETTES.some(p=>p.id===next.appearancePalette) ||
+      Object.values(next.appearanceColors).some(color=>color!=='' && !Appearance.validHex(color))) {
+    appearanceStatus('Revisa los colores seleccionados', true);
+    return;
+  }
+  const profileId = state.profile.id;
+  if (!appearancePending || appearancePending.profileId !== profileId) {
+    appearancePending = { profileId, persisted: appearanceValues(state.profile) };
+  }
+  Object.assign(state.profile.preferences,next);
+  applyProfileAppearance();
+  updateAppearancePreview(form);
+  appearanceStatus('Guardando automáticamente…');
+  appearanceChangeSerial++;
+  clearTimeout(appearanceTimer);
+  appearanceTimer = setTimeout(() => { void flushAppearanceChanges(); }, 360);
+}
+async function flushAppearanceChanges() {
+  clearTimeout(appearanceTimer);
+  appearanceTimer = null;
+  if (appearanceSaving) {
+    const result = await appearanceSaving;
+    if (appearancePending) return flushAppearanceChanges();
+    return result;
+  }
+  const pending = appearancePending;
+  if (!pending) return true;
+  if (!state.profile || state.profile.id !== pending.profileId) return false;
+  const revision = appearanceChangeSerial;
+  const captured = appearanceValues(state.profile);
+  const operation = (async () => {
+    const ok = await save();
+    if (appearancePending !== pending) return ok;
+    if (ok) {
+      pending.persisted = captured;
+      if (revision === appearanceChangeSerial) {
+        appearancePending = null;
+        appearanceStatus('Cambios guardados');
+      }
+    } else if (revision === appearanceChangeSerial) {
+      // Do not revert an entire profile: other functions could have edited its tasks.
+      Object.assign(state.profile.preferences,pending.persisted);
+      appearancePending = null;
+      applyProfileAppearance();
+      updateShell();
+      appearanceStatus('No se pudo guardar. Recuperamos la última apariencia.', true);
+    }
+    return ok;
+  })();
+  appearanceSaving = operation;
+  const succeeded = await operation;
+  if (appearanceSaving === operation) appearanceSaving = null;
+  return succeeded;
+}
+
 const flushIdeaChanges = async () => {
   if (!state.profile) return true;
   while (true) {
