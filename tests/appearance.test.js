@@ -6,7 +6,7 @@ const D = require('../src/domain');
 const rgb = value => [1,3,5].map(i => parseInt(value.slice(i,i+2),16));
 
 test('all twelve palettes render both light and dark with legible primary text and actions', () => {
-  assert.equal(A.PALETTES.length, 12);
+  assert.equal(A.PALETTES.length, 18);
   for (const palette of A.PALETTES) {
     for (const mode of ['light','dark']) {
       const result = A.makeTokens({appearancePalette:palette.id,appearanceMode:mode});
