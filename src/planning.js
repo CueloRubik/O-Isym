@@ -160,7 +160,7 @@
     const skipped = [];
     const intervals = scheduledIntervals(profile, date);
     for (const entry of template.entries || []) {
-      const existing = tasksOf(profile).find(task => task.templateId === templateId && task.templateEntryId === entry.id && task.scheduledDate === date);
+      const existing = tasksOf(profile).find(task => task.templateId === templateId && task.templateEntryId === entry.id && (task.templateOccurrenceDate || task.scheduledDate) === date);
       if (existing) { skipped.push({ title: entry.title, reason: 'Ya existe esta instancia para el día.' }); continue; }
       const a = minute(entry.startTime), b = minute(entry.endTime);
       if (!entry.title || a === null || b === null || b <= a) { skipped.push({ title: entry.title, reason: 'Bloque inválido.' }); continue; }
@@ -179,7 +179,7 @@
     let updated = profile;
     for (const entry of preview.proposals) {
       const minutes = minute(entry.endTime) - minute(entry.startTime);
-      updated = taskMutation(updated, { type: 'create', data: { ...entry, scheduledDate: date, estimatedMinutes: minutes } });
+      updated = taskMutation(updated, { type: 'create', data: { ...entry, scheduledDate: date, templateOccurrenceDate: date, estimatedMinutes: minutes } });
     }
     return { profile: updated, added: preview.proposals.length, skipped: preview.skipped.length };
   }
