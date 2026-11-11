@@ -2922,6 +2922,9 @@ async function handleSubmit(form) {
       const profile=createProfile(data.name,'#27856b',age);profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:'profile-1';
       profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(age);
       profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:'#27856b';
+      // Honor choices made in the profile wizard in the new appearance engine.
+      profile.preferences.appearancePalette=appearanceDefaults(profile).appearancePalette;
+      profile.preferences.appearanceColors.accent=profile.color.toLowerCase()==='#27856b' ? '' : profile.color.toLowerCase();
       state.snapshot.profiles.push(profile);
       focusAudioController.stopAll();
       stopFocusTicker();
