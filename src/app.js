@@ -1139,7 +1139,7 @@ function renderToday(main) {
   }
   if (done.length) {
     const doneCard = card('today-completed-card');
-    doneCard.append(heading('Completadas hoy', done.length === 1 ? 'Ya terminaste una tarea.' : 'Ya terminaste ' + done.length + ' tareas.'));
+    doneCard.append(heading('Completadas hoy', done.length === 1 ? 'Ya terminaste una tarea.' : 'Ya terminaste ' + done.length + ' tareas.', 'navigation/tasks.png'));
     renderTaskList(doneCard, done.slice().reverse(), { emptyTitle: 'Todavía no hay tareas completadas', emptyDetail: 'Las tareas que marques como terminadas aparecerán aquí.' });
     primary.append(doneCard);
   }
@@ -1151,7 +1151,10 @@ function renderToday(main) {
   }
   const side = element('div', 'dashboard-side');
   const focusCard = card('focus-card');
-  focusCard.append(element('div', 'eyebrow', 'ESPACIO DE CONCENTRACIÓN'), element('h3', '','Un momento a la vez'), element('p', 'muted', 'Reserva unos minutos para concentrarte en una sola cosa.'));
+  const focusTitle=element('div','focus-teaser-heading');
+  focusTitle.append(iconImage('focus/timer.png','','focus-teaser-icon'),element('h3','','Un momento a la vez'));
+  focusCard.append(element('div', 'eyebrow', 'ESPACIO DE CONCENTRACIÓN'),
+    focusTitle, element('p', 'muted', 'Reserva unos minutos para concentrarte en una sola cosa.'));
   focusCard.append(button('Abrir Focus', 'navigate', 'button primary', { view: 'focus' }));
   side.append(focusCard);
   const suggestions = getRecommendations(state.profile, date);
