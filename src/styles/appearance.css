@@ -263,3 +263,13 @@ html[data-scheme] .workspace-main .button.primary .button-icon,
 html[data-scheme] .task-editor-actions .button.primary .button-icon {
   filter: var(--ui-icon-filter);
 }
+
+/* Icon contrast also adapts when a user chooses a dark surface in light mode. */
+html[data-scheme] .workspace-sidebar .nav-icon-image,
+html[data-scheme] .section-heading-icon,
+html[data-scheme] .view-title-icon,
+html[data-scheme] .task-actions .action-button-icon,
+html[data-scheme] .meta-icon,
+html[data-scheme] .settings-nav-item img {
+  filter: var(--ui-content-icon-filter);
+}
