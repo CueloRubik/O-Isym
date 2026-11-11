@@ -4093,8 +4093,13 @@ async function initializeApp(snapshot) {
 function openTaskFromReminder(reminder) {
   if (!state.profile) { state.pendingTaskReminder = reminder; return; }
   const task = reminder && taskById(reminder.taskId);
-  state.selectedDate = reminder?.scheduledDate || localDate();
-  state.view = task ? 'tasks' : 'planner';
+  // A reminder whose task was deleted must open the original calendar day,
+  // never the unrelated Ideas/Pizarrones section.
+  state.selectedDate = window.OIsymPlanning.validDate(reminder?.scheduledDate)
+    ? reminder.scheduledDate : localDate();
+  state.calendarDate = new Date(state.selectedDate + 'T12:00:00');
+  state.view = task ? 'tasks' : 'calendar';
+  if (!task) state.calendarMode = 'day';
   state.editingTaskId = task ? task.id : null;
   state.showTaskForm = Boolean(task);
   state.plannerAnalysis = null;
