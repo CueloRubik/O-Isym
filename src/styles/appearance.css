@@ -184,6 +184,134 @@ html[data-scheme] .toast { color: #ffffff; }
   padding: 7px; display: flex; flex-direction: column; gap: 7px; text-align: left;
 }
 .appearance-palette-button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* Every option now previews an actual mini workspace, not just three swatches. */
+.appearance-palette-scene {
+  display: grid; grid-template-columns: 25% minmax(0,1fr);
+  width: 100%; height: 90px; border-radius: 8px;
+  background: var(--palette-page);
+  border: 1px solid var(--palette-line);
+  overflow: hidden; pointer-events: none;
+}
+.appearance-palette-scene-nav {
+  background: var(--palette-surface);
+  border-right: 1px solid var(--palette-line);
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: 8px; padding: 9px 5px;
+}
+.appearance-palette-scene-nav > span { display: block; height: 6px; border-radius: 3px; background: var(--palette-line); }
+.appearance-palette-scene-nav > span:first-child {
+  background: var(--palette-accent); color: var(--palette-accent-text);
+  width: 17px; height: 17px; display: grid; place-items: center;
+  font-size: 9px; font-weight: 800; border-radius: 5px;
+}
+.appearance-palette-scene-nav .is-current { background: var(--palette-accent); }
+.appearance-palette-scene-content { display: flex; flex-direction: column; gap: 9px; padding: 12px 9px; }
+.appearance-palette-scene-line { width: 56%; height: 7px; border-radius: 3px; background: var(--palette-ink); opacity: .82; }
+.appearance-palette-scene-card {
+  height: 27px; border-radius: 5px; background: var(--palette-surface);
+  border: 1px solid var(--palette-line);
+}
+.appearance-palette-scene-action { width: 43%; height: 9px; border-radius: 4px; background: var(--palette-accent); }
+.appearance-palette-button { transition: border-color .12s ease, transform .12s ease; gap: 9px; }
+.appearance-palette-button:hover { border-color: var(--accent); transform: translateY(-1px); }
+.appearance-palette-button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.appearance-palette-name { padding: 1px 4px 4px; font-size: 12px; }
+html[data-scheme] .appearance-preview-card .appearance-preview-button {
+  background: var(--preview-accent); color: var(--preview-accent-text);
+}
+.appearance-preview { box-shadow: 0 3px 12px rgba(0,0,0,.075); }
+.appearance-save-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex: 1; justify-content: flex-end; margin: 0;
+  color: var(--accent-dark); font-weight: 700; font-size: 12px;
+}
+.appearance-save-status::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); flex: 0 0 7px;
+}
+.appearance-save-status.is-error { color: var(--danger); }
+.appearance-save-status.is-error::before { background: var(--danger); }
+.appearance-actions { justify-content: space-between; align-items: center; }
+.appearance-color-control .field-label { color: var(--text); }
+.appearance-color-control:has(input[type="checkbox"]:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.appearance-preview-title, .appearance-preview-card strong, .appearance-preview-brand { color: var(--preview-text); }
+.appearance-preview-item:not(.is-selected) { color: var(--preview-muted); }
+.appearance-preview-card span:not(.appearance-preview-button) { color: var(--preview-muted); }
+/* Keep profile age variants within the actual active color system. */
+html[data-scheme] #app[data-audience="child"] .welcome-card,
+html[data-scheme] #app[data-audience="teen"] .welcome-card,
+html[data-scheme] #app[data-audience="adult"] .welcome-card {
+  background: var(--surface-soft); border-color: var(--line);
+}
+/* All generic panel labels, helpers and other controls use inherited tokens. */
+html[data-scheme] .settings-navigation .settings-nav-item,
+html[data-scheme] .profiles-layout .profile-admin-item,
+html[data-scheme] .profile-detail-panel,
+html[data-scheme] .activity-row,
+html[data-scheme] .goal-row,
+html[data-scheme] .metrics-grid .metric-card,
+html[data-scheme] .chart-line,
+html[data-scheme] .week-line,
+html[data-scheme] .history-row,
+html[data-scheme] .profile-row {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .settings-navigation .settings-nav-item.active,
+html[data-scheme] .profiles-layout .profile-admin-item.selected {
+  background: var(--accent-soft); color: var(--accent-dark); border-color: var(--line);
+}
+html[data-scheme] .settings-navigation .settings-nav-item:hover,
+html[data-scheme] .profiles-layout .profile-admin-item:hover {
+  background: var(--ui-hover); color: var(--text);
+}
+html[data-scheme] .profile-preference-grid .profile-preference,
+html[data-scheme] .profile-stats-grid .profile-stat,
+html[data-scheme] .workspace-main .week-line,
+html[data-scheme] .workspace-main .chart-track,
+html[data-scheme] .workspace-main .inbox-row {
+  border-color: var(--line);
+}
+html[data-scheme] .workspace-main .goal-summary-card > span,
+html[data-scheme] .workspace-main .calendar-weekday,
+html[data-scheme] .workspace-main .day-ruler-label,
+html[data-scheme] .workspace-main .topbar-view-name { color: var(--text); }
+html[data-scheme] .workspace-main .empty-state .muted,
+html[data-scheme] .workspace-main .task-description,
+html[data-scheme] .workspace-main .settings-nav-item small,
+html[data-scheme] .workspace-main .day-block-time,
+html[data-scheme] .workspace-main .day-ruler-label { color: var(--muted); }
+html[data-scheme] .ideas-canvas-toolbar .input,
+html[data-scheme] .ideas-library-toolbar .input,
+html[data-scheme] .ideas-canvas-filter-tools .input {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .ideas-canvas-toolbar .button.secondary,
+html[data-scheme] .ideas-library-header-actions .button.secondary,
+html[data-scheme] .ideas-board-actions .button.secondary {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .ideas-canvas-toolbar .button.secondary:hover,
+html[data-scheme] .ideas-library-header-actions .button.secondary:hover,
+html[data-scheme] .ideas-board-actions .button.secondary:hover {
+  background: var(--ui-hover);
+}
+/* Treat icon assets as images, not mandatory black masks, and never hide them on error. */
+html[data-scheme] .icon-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 5px; background: var(--accent-soft); color: var(--accent-dark);
+  font-size: 12px; font-weight: 800; line-height: 1;
+  width: 20px; height: 20px; flex: 0 0 20px; margin-right: 0;
+  filter: none !important;
+}
+html[data-scheme] .button.primary .icon-fallback {
+  background: transparent; color: var(--ui-accent-text);
+}
+html[data-scheme] .button-with-icon .icon-fallback { width: 16px; height: 16px; flex-basis: 16px; }
+html[data-scheme] .nav-item .icon-fallback { width: 21px; height: 21px; flex-basis: 21px; }
+html[data-scheme] .section-heading-title .icon-fallback { width: 24px; height: 24px; flex-basis: 24px; }
+@media(prefers-reduced-motion: reduce) { .appearance-palette-button { transition: none; transform: none !important; } }
+
 .appearance-palette-swatches { display: flex; gap: 0; height: 33px; overflow: hidden; border-radius: 7px; }
 .appearance-palette-swatches span { flex: 1; }
 .appearance-palette-name { font-size: 11px; font-weight: 700; }
