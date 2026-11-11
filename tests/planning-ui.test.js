@@ -395,3 +395,40 @@ test('restoring suggested colors affects preview only until saved', async t => {
   assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
   assert.deepEqual(r.errors,[]);
 });
+
+test('automatic appearance reacts to macOS changes while explicit light stays light', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.query('input[name="appearanceMode"][value="system"]').checked=true;
+  submit(r,'.appearance-form');await settle(r);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  r.setSystemDark(true);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.setSystemDark(false);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  r.query('input[name="appearanceMode"][value="light"]').checked=true;
+  submit(r,'.appearance-form');await settle(r);
+  r.setSystemDark(true);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.deepEqual(r.errors,[]);
+});
+test('appearance is isolated between profiles when switching spaces', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const first=r.app.state.profile;
+  first.preferences.appearanceMode='dark';
+  first.preferences.appearancePalette='midnight';
+  const second=D.createProfile('Espacio B');
+  second.preferences.appearanceMode='light';
+  second.preferences.appearancePalette='rose';
+  r.app.state.snapshot.profiles.push(second);
+  await r.app.save();r.app.updateShell();
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  const selector=r.query('#profile-select');
+  selector.value=second.id;selector.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  await settle(r);
+  assert.equal(r.app.state.profile.id,second.id);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'rose');
+  assert.equal(r.saved().profiles.find(p=>p.id===first.id).preferences.appearanceMode,'dark');
+  assert.deepEqual(r.errors,[]);
+});
