@@ -10,8 +10,9 @@ La sección **Ajustes → Apariencia** permite seleccionar:
 - **Modo:** Claro, Oscuro o Automático. Automático sigue la preferencia de color de macOS mientras O-Isym permanece abierto.
 - **12 paletas:** Bosque, Océano, Medianoche, Aurora, Orquídea, Lavanda, Rosa, Cobre, Arena, Lima, Pizarra y Grafito. Todas disponen de alternativas claras y oscuras.
 - **4 colores configurables:** Acento, Fondo, Paneles y Texto. Cada campo se activa independientemente; los demás siguen los valores calculados de la paleta.
-- **Vista previa:** el editor muestra el menú y una tarjeta con los colores nuevos antes de aplicarlos. Ningún cambio se guarda hasta pulsar Guardar apariencia.
-- **Restablecer selección:** recupera los valores sugeridos del perfil en el formulario, sin sobrescribir datos hasta que el usuario decida guardar.
+- **Previsualización real y aplicación inmediata:** las doce opciones muestran miniaturas de una ventana de O-Isym. Al elegir una paleta o modificar un color, toda la aplicación cambia de inmediato y también se actualiza la vista de ejemplo.
+- **Guardado automático:** los cambios se agrupan durante unos 360 ms para evitar escrituras excesivas. La interfaz informa si se están guardando o ya se guardaron. No existe un botón de guardar apariencia. Al cambiar de sección o perfil, o al cerrar O-Isym, se fuerzan las escrituras pendientes. Si falla una escritura, solo se revierten las preferencias visuales al último estado guardado, sin revertir las tareas ni los pizarrones.
+- **Restablecer colores originales:** recupera al instante el esquema y la paleta sugeridos para ese perfil, también con guardado automático.
 
 Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propia apariencia. Duplicar configuración copia las preferencias visuales. Los perfiles anteriores conservan el esquema actual y reciben valores seguros sin cambiar sus tareas.
 
@@ -19,11 +20,12 @@ Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propi
 
 - `src/appearance.js`: paletas, resolución de esquema, mezcla de colores y contraste. Es un módulo puro; no importa Electron ni accede al almacenamiento.
 - `src/domain.js`: normaliza `preferences.appearanceMode`, `preferences.appearancePalette` y `preferences.appearanceColors`. Rechaza colores que no sean `#RRGGBB` al importar.
-- `src/app.js`: edita y previsualiza la apariencia, guarda mediante la cola actual con recuperación en caso de fallo y actualiza las variables CSS al cambiar de perfil o de modo del sistema.
+- `src/app.js`: actualiza inmediatamente las variables CSS y gestiona los cambios con una cola de escritura aplazada y recuperación de apariencia. Las operaciones existentes de Focus, Pizarrones y perfiles se mantienen.
 - `src/styles/appearance.css`: utiliza variables comunes para ventanas, menús, paneles, formularios, tarjetas, Calendario y elementos de Focus. No recolorea las notas y conexiones del contenido de un pizarrón.
 - `index.html`: carga el módulo de apariencia antes de la aplicación y los estilos después de los estilos base.
 - `tests/appearance.test.js`: comprueba las doce paletas, ambos esquemas, contraste, migración, importación y aislamiento.
-- `tests/planning-ui.test.js`: comprueba previsualización, guardado, restablecimiento, rollback y seguimiento de la preferencia del sistema.
+- `tests/planning-ui.test.js`: comprueba aplicación inmediata en toda la ventana, guardado automático, vaciado pendiente en navegación, reversión segura, cambios de macOS y regresiones de Focus/Pizarrones.
+- `tests/icon-assets.test.js`: comprueba archivos de iconos y avatares PNG, así como referencias de recursos. Si falla un recurso de icono durante la ejecución se muestra un símbolo accesible en vez de eliminarlo.
 
 ### Datos por perfil
 
