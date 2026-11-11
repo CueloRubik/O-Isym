@@ -8,7 +8,9 @@ const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...A
 const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
 const APPEARANCE_MODES = ['light', 'dark', 'system'];
 const APPEARANCE_PALETTES = ['forest','ocean','midnight','aurora','orchid','lavender','rose','ember','sand','citrus','slate','graphite'];
-const APPEARANCE_COLOR_KEYS = ['accent','page','surface','text'];
+const APPEARANCE_COLOR_KEYS = ['accent','page','surface','text','sidebar','field','border','muted'];
+const APPEARANCE_DENSITIES = ['comfortable','compact'];
+const APPEARANCE_RADII = ['soft','rounded','square'];
 const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
 function normalizeAppearanceColors(colors, legacyColor = '') {
   const source = colors && typeof colors === 'object' && !Array.isArray(colors) ? colors : {};
@@ -21,6 +23,18 @@ function normalizeAppearanceColors(colors, legacyColor = '') {
   return normalized;
 }
 const legacyPalette = theme => theme === 'sky' ? 'ocean' : theme === 'warm' ? 'sand' : theme === 'playful' ? 'aurora' : 'forest';
+function normalizePalettes(palettes, fallback) {
+  const source=palettes && typeof palettes==='object' && !Array.isArray(palettes) ? palettes : {};
+  return Object.fromEntries(['light','dark'].map(mode=>[mode,
+    APPEARANCE_PALETTES.includes(source[mode]) ? source[mode] : fallback]));
+}
+function normalizeColorsByMode(allColors, previousColors, avatarColor) {
+  const source=allColors && typeof allColors==='object' && !Array.isArray(allColors) ? allColors : {};
+  const legacy=normalizeAppearanceColors(previousColors,avatarColor);
+  return Object.fromEntries(['light','dark'].map(mode=>[
+    mode,normalizeAppearanceColors(Object.prototype.hasOwnProperty.call(source,mode) ? source[mode] : legacy)
+  ]));
+}
 const FOCUS_ALARM_TONES = ['clock', 'digital', 'funny', 'ringtone1', 'ringtone2', 'ringtone3', 'ringtone4', 'ringtone5', 'ringtone6', 'tititi'];
 const FOCUS_MUSIC_TRACKS = ['focus1', 'focus2', 'focus3', 'focus4', 'focus5', 'focus6', 'focus7', 'focus8', 'focus9', 'focus10', 'focus11', 'focus12', 'focus13', 'focus14'];
 const FOCUS_REMINDER_INTERVALS = [0, 5, 10, 15, 20, 25, 30, 45, 60];
@@ -84,6 +98,10 @@ function createProfile(name, color = '#27856b', age = null) {
       appearanceMode: 'light',
       appearancePalette: legacyPalette(getDefaultThemeForAge(age)),
       appearanceColors: normalizeAppearanceColors(undefined, color),
+      appearancePalettes: normalizePalettes(null,legacyPalette(getDefaultThemeForAge(age))),
+      appearanceColorsByMode: normalizeColorsByMode(null,undefined,color),
+      appearanceDensity: 'comfortable',
+      appearanceRadius: 'soft',
       ageBand: getAgeBand(age),
       motionEnabled: true,
       workingDayStart: '09:00',
@@ -137,6 +155,11 @@ function normalizeProfile(profile) {
       appearanceMode: APPEARANCE_MODES.includes(preferences.appearanceMode) ? preferences.appearanceMode : 'light',
       appearancePalette: APPEARANCE_PALETTES.includes(preferences.appearancePalette) ? preferences.appearancePalette : legacyPalette(preferences.theme),
       appearanceColors: normalizeAppearanceColors(preferences.appearanceColors, value.color),
+      appearancePalettes: normalizePalettes(preferences.appearancePalettes,
+        APPEARANCE_PALETTES.includes(preferences.appearancePalette) ? preferences.appearancePalette : legacyPalette(preferences.theme)),
+      appearanceColorsByMode: normalizeColorsByMode(preferences.appearanceColorsByMode, preferences.appearanceColors, value.color),
+      appearanceDensity: APPEARANCE_DENSITIES.includes(preferences.appearanceDensity) ? preferences.appearanceDensity : 'comfortable',
+      appearanceRadius: APPEARANCE_RADII.includes(preferences.appearanceRadius) ? preferences.appearanceRadius : 'soft',
       ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
     },
@@ -164,6 +187,24 @@ function validateImportedProfile(profile) {
       Object.keys(colors).some(key => !APPEARANCE_COLOR_KEYS.includes(key) || colors[key] !== '' && !hexColor(colors[key])))
       throw new TypeError('Los colores personalizados no son válidos.');
   }
+  if (appearance.appearancePalettes !== undefined) {
+    const values=appearance.appearancePalettes;
+    if (!values || typeof values!=='object' || Array.isArray(values) ||
+      Object.keys(values).some(mode=>!['light','dark'].includes(mode) || !APPEARANCE_PALETTES.includes(values[mode])))
+      throw new TypeError('Las paletas de cada modo no son válidas.');
+  }
+  if (appearance.appearanceColorsByMode !== undefined) {
+    const colors=appearance.appearanceColorsByMode;
+    if (!colors || typeof colors!=='object' || Array.isArray(colors) ||
+      Object.entries(colors).some(([mode,values])=>!['light','dark'].includes(mode) ||
+        !values || typeof values!=='object' || Array.isArray(values) ||
+        Object.entries(values).some(([key,value])=>!APPEARANCE_COLOR_KEYS.includes(key) || value!=='' && !hexColor(value))))
+      throw new TypeError('Los colores por modo no son válidos.');
+  }
+  if (appearance.appearanceDensity !== undefined && !APPEARANCE_DENSITIES.includes(appearance.appearanceDensity))
+    throw new TypeError('Densidad de interfaz no válida.');
+  if (appearance.appearanceRadius !== undefined && !APPEARANCE_RADII.includes(appearance.appearanceRadius))
+    throw new TypeError('Estilo de esquinas no válido.');
   const limits = { tasks: 10000, activities: 1000, goals: 1000, focusSessions: 10000 };
   const collections = ['tasks', 'activities', 'goals', 'focusSessions'];
   for (const key of collections) {
