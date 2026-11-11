@@ -322,66 +322,81 @@ test('activity and goal editors use the same side panel layout without changing 
   assert.deepEqual(r.errors, []);
 });
 
-test('appearance gallery previews twelve palettes without changing the saved profile', async t => {
+test('appearance gallery previews full themes and immediately updates the workspace', async t => {
   const r=await renderer();t.after(r.dispose);
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
-  const picker=r.query('.appearance-form');
-  assert.ok(picker);
   assert.equal(r.w.document.querySelectorAll('.appearance-palette-button').length,12);
-  const initialAccent=r.query('.appearance-preview').style.getPropertyValue('--preview-accent');
+  assert.equal(r.w.document.querySelectorAll('.appearance-palette-scene').length,12);
+  const initialAccent=r.w.document.documentElement.style.getPropertyValue('--accent');
   r.click('[data-action="appearance-palette"][data-palette="orchid"]');
-  const after=r.query('.appearance-preview').style.getPropertyValue('--preview-accent');
-  assert.notEqual(initialAccent,after);
-  assert.equal(r.app.state.profile.preferences.appearancePalette,'forest');
+  const currentAccent=r.w.document.documentElement.style.getPropertyValue('--accent');
+  const livePreviewAccent=r.query('.appearance-preview').style.getPropertyValue('--preview-accent');
+  assert.notEqual(initialAccent,currentAccent);
+  assert.equal(currentAccent,livePreviewAccent);
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'orchid');
   assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.match(r.query('.appearance-save-status').textContent,/Guardando/);
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'orchid');
+  assert.match(r.query('.appearance-save-status').textContent,/guardados/);
   assert.deepEqual(r.errors,[]);
 });
-test('dark appearance saves only after confirmation and survives rerender and reload', async t => {
+test('dark mode immediately applies everywhere and persists without clicking Save', async t => {
   const r=await renderer();t.after(r.dispose);
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  assert.equal(r.query('button[data-action="submit-form"]'),null);
   const dark=r.query('input[name="appearanceMode"][value="dark"]');
   dark.checked=true;dark.dispatchEvent(new r.w.Event('change',{bubbles:true}));
-  r.click('[data-action="appearance-palette"][data-palette="midnight"]');
-  assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
-  submit(r,'.appearance-form');await settle(r);
   assert.equal(r.app.state.profile.preferences.appearanceMode,'dark');
-  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'midnight');
   assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'midnight');
+  const token=r.w.document.documentElement.style.getPropertyValue('--surface');
+  assert.equal(token,r.query('.appearance-preview').style.getPropertyValue('--preview-surface'));
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'dark');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'midnight');
   r.app.updateShell();
   assert.equal(r.query('input[name="appearanceMode"][value="dark"]').checked,true);
   assert.equal(r.query('.appearance-palette-button[data-palette="midnight"]').getAttribute('aria-pressed'),'true');
   assert.deepEqual(r.errors,[]);
 });
-test('custom colors set their own toggles and low contrast text gets a warning', async t => {
+test('custom colors apply instantly, are previewed and corrected for low contrast', async t => {
   const r=await renderer();t.after(r.dispose);
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
-  const color=r.query('[name="appearance-text"]');
+  const text=r.query('[name="appearance-text"]');
   const surface=r.query('[name="appearance-surface"]');
   surface.value='#101010';surface.dispatchEvent(new r.w.Event('input',{bubbles:true}));
-  color.value='#101010';color.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  text.value='#101010';text.dispatchEvent(new r.w.Event('input',{bubbles:true}));
   assert.equal(r.query('[name="custom-surface"]').checked,true);
   assert.equal(r.query('[name="custom-text"]').checked,true);
   assert.ok(r.query('.appearance-contrast-note.warning'));
-  submit(r,'.appearance-form');await settle(r);
+  assert.equal(r.w.document.documentElement.style.getPropertyValue('--surface'),'#101010');
+  assert.notEqual(r.w.document.documentElement.style.getPropertyValue('--text'),'#101010');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
   assert.equal(r.saved().profiles[0].preferences.appearanceColors.text,'#101010');
   assert.equal(r.saved().profiles[0].preferences.appearanceColors.surface,'#101010');
   assert.deepEqual(r.errors,[]);
 });
-test('failed appearance save rolls back colors and mode without affecting tasks', async t => {
+test('failed appearance autosave reverts only the theme, keeping tasks safe', async t => {
   const r=await renderer();t.after(r.dispose);
   const original=D.createTask({title:'Se conserva'});
   r.app.state.profile.tasks.push(original);
   await r.app.save();
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
-  r.query('input[name="appearanceMode"][value="dark"]').checked=true;
-  r.fail(true);submit(r,'.appearance-form');await settle(r);
+  r.fail(true);
+  const dark=r.query('input[name="appearanceMode"][value="dark"]');
+  dark.checked=true;dark.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  assert.equal(await r.app.flushAppearanceChanges(),false);
   assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
   assert.equal(r.w.document.documentElement.dataset.scheme,'light');
   assert.equal(r.saved().profiles[0].tasks[0].id,original.id);
   assert.equal(r.saved().profiles[0].preferences.appearanceMode,'light');
+  assert.match(r.query('.appearance-save-status').textContent,/No se pudo guardar/);
   assert.deepEqual(r.errors,[]);
 });
-test('restoring suggested colors affects preview only until saved', async t => {
+test('reset takes effect immediately and persists automatically', async t => {
   const r=await renderer();t.after(r.dispose);
   r.app.state.profile.preferences.appearanceMode='dark';
   r.app.state.profile.preferences.appearancePalette='orchid';
@@ -389,27 +404,31 @@ test('restoring suggested colors affects preview only until saved', async t => {
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
   r.click('[data-action="appearance-reset"]');
   assert.equal(r.query('input[name="appearanceMode"][value="light"]').checked,true);
-  assert.equal(r.app.state.profile.preferences.appearanceMode,'dark');
-  submit(r,'.appearance-form');await settle(r);
   assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'dark');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
   assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'light');
   assert.deepEqual(r.errors,[]);
 });
-
-test('automatic appearance reacts to macOS changes while explicit light stays light', async t => {
+test('automatic appearance responds instantly to OS changes without losing saved preferences', async t => {
   const r=await renderer();t.after(r.dispose);
   r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
-  r.query('input[name="appearanceMode"][value="system"]').checked=true;
-  submit(r,'.appearance-form');await settle(r);
-  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  const system=r.query('input[name="appearanceMode"][value="system"]');
+  system.checked=true;system.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'system');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
   r.setSystemDark(true);
   assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
   r.setSystemDark(false);
   assert.equal(r.w.document.documentElement.dataset.scheme,'light');
-  r.query('input[name="appearanceMode"][value="light"]').checked=true;
-  submit(r,'.appearance-form');await settle(r);
+  const light=r.query('input[name="appearanceMode"][value="light"]');
+  light.checked=true;light.dispatchEvent(new r.w.Event('change',{bubbles:true}));
   r.setSystemDark(true);
   assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'light');
   assert.deepEqual(r.errors,[]);
 });
 test('appearance is isolated between profiles when switching spaces', async t => {
@@ -448,5 +467,58 @@ test('profile creation wizard transfers its selected legacy theme into the new p
   assert.equal(r.app.state.profile.preferences.appearancePalette,'ocean');
   assert.equal(r.app.state.profile.preferences.appearanceColors.accent,'#225588');
   assert.equal(r.saved().profiles.length,2);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('autosave persists color without any manual submit after a short idle interval', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="citrus"]');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  await new Promise(resolve=>setTimeout(resolve,500));
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'citrus');
+  assert.match(r.query('.appearance-save-status').textContent,/guardados/);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('changing section flushes appearance changes instead of losing them on rerender', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="ocean"]');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  r.click('[data-action="settings-section"][data-section="planning"]');
+  await settle(r);
+  assert.equal(r.app.state.settingsSection,'planning');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'ocean');
+  r.click('[data-action="settings-section"][data-section="appearance"]');
+  await settle(r);
+  assert.equal(r.query('.appearance-palette-button[data-palette="ocean"]').getAttribute('aria-pressed'),'true');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('broken icon assets fall back to a visible symbol without removing navigation', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const nav=r.query('[data-action="navigate"][data-view="calendar"]');
+  const img=nav.querySelector('.nav-icon-image');
+  assert.ok(img);
+  img.dispatchEvent(new r.w.Event('error'));
+  assert.equal(nav.querySelector('img'),null);
+  assert.ok(nav.querySelector('.icon-fallback'));
+  assert.equal(nav.textContent.includes('Calendario'),true);
+  nav.click();await settle(r);
+  assert.equal(r.app.state.view,'calendar');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('Focus and boards remain available when the active theme is dark', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.profile.preferences.appearanceMode='dark';
+  r.app.updateShell();
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.app.state.view='focus';r.app.updateShell();
+  assert.ok(r.query('.focus-panel'));
+  r.app.state.view='planner';r.app.state.plannerSection='board';r.app.updateShell();
+  assert.ok(r.query('.ideas-canvas-viewport'));
+  assert.equal(r.app.state.profile.ideaBoards.length,1);
   assert.deepEqual(r.errors,[]);
 });
