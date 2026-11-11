@@ -3,6 +3,11 @@ name: O-Isym 1.1.0 installers
 # Build from the same source commit. Nothing is published automatically:
 # inspect and test the artifacts before creating the public Release.
 on:
+  push:
+    branches:
+      - development
+    paths:
+      - '.github/workflows/build-installers.yml'
   workflow_dispatch:
 
 permissions:
