@@ -40,7 +40,7 @@ async function renderer({ systemDark = false } = {}) {
     onSaveBeforeClose: cb => { close = cb; }
   };
   for (const file of ['domain.js','planning.js','appearance.js','focus-audio.js','app.js']) {
-    w.eval(fs.readFileSync(path.join(__dirname,'../../src',file),'utf8') + (file==='app.js' ? '\nwindow.testApp={state,save,flushIdeaChanges,restoreIdeaBoardHistory,updateShell};' : ''));
+    w.eval(fs.readFileSync(path.join(__dirname,'../../src',file),'utf8') + (file==='app.js' ? '\nwindow.testApp={state,save,flushIdeaChanges,flushAppearanceChanges,restoreIdeaBoardHistory,updateShell};' : ''));
   }
   await wait();
   const app = w.testApp;
