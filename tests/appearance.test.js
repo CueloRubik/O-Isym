@@ -82,3 +82,63 @@ test('independent profile preferences retain their own palettes', () => {
   assert.notEqual(A.makeTokens(forest.preferences).vars['--page'],A.makeTokens(ocean.preferences).vars['--page']);
   assert.equal(ocean.preferences.appearanceMode,'light');
 });
+
+test('light and dark store independent palette and every custom surface channel', () => {
+  const p=D.createProfile('Modos independientes');
+  p.preferences.appearanceMode='system';
+  p.preferences.appearancePalettes={light:'rose',dark:'midnight'};
+  p.preferences.appearanceColorsByMode={
+    light:{accent:'#b45180',page:'#f8f5f0',surface:'#ffffff',sidebar:'#f5f0fa',field:'#f7f2f9',
+      text:'#283142',border:'#d9ccdf',muted:'#516273'},
+    dark:{accent:'#92aeff',page:'#121c30',surface:'#1c2942',sidebar:'#0f1725',field:'#253c4e',
+      text:'#f1f6fa',border:'#49617a',muted:'#cbd3df'}
+  };
+  const light=A.makeTokens(p.preferences,false);
+  const dark=A.makeTokens(p.preferences,true);
+  assert.equal(light.palette,'rose');
+  assert.equal(dark.palette,'midnight');
+  assert.equal(light.vars['--ui-sidebar'],'#f5f0fa');
+  assert.equal(light.vars['--ui-field'],'#f7f2f9');
+  assert.equal(dark.vars['--ui-sidebar'],'#0f1725');
+  assert.equal(dark.vars['--ui-field'],'#253c4e');
+  for(const tokens of [light,dark]){
+    const vars=tokens.vars;
+    assert.ok(A.contrast(vars['--ui-sidebar-text'],vars['--ui-sidebar'])>=4.5);
+    assert.ok(A.contrast(vars['--ui-sidebar-active-text'],vars['--ui-sidebar-active'])>=4.5);
+    assert.ok(A.contrast(vars['--ui-field-text'],vars['--ui-field'])>=4.5);
+    assert.ok(A.contrast(vars['--ui-input-placeholder'],vars['--ui-field'])>=4.5);
+  }
+  const restored=D.normalizeProfile(p);
+  assert.equal(restored.preferences.appearanceColorsByMode.light.page,'#f8f5f0');
+  assert.equal(restored.preferences.appearanceColorsByMode.dark.page,'#121c30');
+  assert.equal(restored.preferences.appearancePalettes.dark,'midnight');
+});
+
+test('legacy colors migrate into both modes without changing the old profile schema', () => {
+  const legacy=D.normalizeProfile({name:'Configuración anterior',preferences:{
+    appearancePalette:'ocean',appearanceColors:{accent:'#123456',surface:'#ffffff'}
+  }});
+  assert.equal(legacy.preferences.appearancePalettes.light,'ocean');
+  assert.equal(legacy.preferences.appearancePalettes.dark,'ocean');
+  assert.equal(legacy.preferences.appearanceColorsByMode.light.accent,'#123456');
+  assert.equal(legacy.preferences.appearanceColorsByMode.dark.accent,'#123456');
+  assert.equal(legacy.preferences.appearanceColorsByMode.light.surface,'#ffffff');
+  assert.equal(legacy.preferences.appearanceColorsByMode.dark.surface,'#ffffff');
+});
+
+test('new mode data rejects invalid imported colors or palette keys', () => {
+  const p=D.createProfile('Importar');
+  p.preferences.appearancePalettes={light:'rose',dark:'graphite'};
+  p.preferences.appearanceColorsByMode={light:{field:'#fdfdfd'},dark:{sidebar:'#121212'}};
+  p.preferences.appearanceDensity='compact';
+  p.preferences.appearanceRadius='rounded';
+  assert.doesNotThrow(()=>D.validateImportedProfile(p));
+  p.preferences.appearanceColorsByMode.light.field='rgb(0,0,0)';
+  assert.throws(()=>D.validateImportedProfile(p),/colores por modo/i);
+  p.preferences.appearanceColorsByMode.light.field='#123456';
+  p.preferences.appearancePalettes.dark='unknown';
+  assert.throws(()=>D.validateImportedProfile(p),/paletas de cada modo/i);
+  p.preferences.appearancePalettes.dark='graphite';
+  p.preferences.appearanceDensity='unsafe';
+  assert.throws(()=>D.validateImportedProfile(p),/Densidad/i);
+});
