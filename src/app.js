@@ -25,7 +25,12 @@ const appearanceDefaults = profile => {
     appearanceMode:'light', appearancePalette:palette, appearanceColors:empty(),
     appearancePalettes:{light:palette,dark:palette},
     appearanceColorsByMode:{light:empty(),dark:empty()},
-    appearanceDensity:'comfortable', appearanceRadius:'soft'
+    appearanceDensity:'comfortable', appearanceRadius:'soft',
+    appearanceIconMode:'vector', appearanceIconVariant:'outline',
+    appearanceIconTone:'automatic', appearanceIconBackground:'none',
+    appearanceIconColorsByMode:{light:'',dark:''},
+    appearanceIconBackgroundColorsByMode:{light:'',dark:''},
+    appearanceCardStyle:'elevated'
   };
 };
 const appearanceDraft = form => {
@@ -42,12 +47,25 @@ const appearanceDraft = form => {
   palettes[scheme]=form.querySelector('[name="appearancePalette"]')?.value || palettes[scheme] || 'forest';
   colorsByMode[scheme]=colors;
   const actualScheme=appearanceScheme(mode);
+  const iconTone=form.querySelector('[name="appearanceIconTone"]')?.value || 'automatic';
+  const iconColors={...(saved.appearanceIconColorsByMode || {light:'',dark:''})};
+  const iconBackgrounds={...(saved.appearanceIconBackgroundColorsByMode || {light:'',dark:''})};
+  if (iconTone==='custom') iconColors[scheme]=form.querySelector('[name="appearanceIconColor"]')?.value || '';
+  iconBackgrounds[scheme]=form.querySelector('[name="appearanceIconBackgroundCustom"]')?.checked
+    ? (form.querySelector('[name="appearanceIconBackgroundColor"]')?.value || '') : '';
   return {
     appearanceMode:mode, appearancePalette:palettes[actualScheme],
     appearanceColors:{...colorsByMode[actualScheme]},
     appearancePalettes:palettes, appearanceColorsByMode:colorsByMode,
     appearanceDensity:form.querySelector('[name="appearanceDensity"]')?.value || 'comfortable',
-    appearanceRadius:form.querySelector('[name="appearanceRadius"]')?.value || 'soft'
+    appearanceRadius:form.querySelector('[name="appearanceRadius"]')?.value || 'soft',
+    appearanceIconMode:form.querySelector('[name="appearanceIconMode"]')?.value || 'vector',
+    appearanceIconVariant:form.querySelector('[name="appearanceIconVariant"]')?.value || 'outline',
+    appearanceIconTone:iconTone,
+    appearanceIconBackground:form.querySelector('[name="appearanceIconBackground"]')?.value || 'none',
+    appearanceIconColorsByMode:iconColors,
+    appearanceIconBackgroundColorsByMode:iconBackgrounds,
+    appearanceCardStyle:form.querySelector('[name="appearanceCardStyle"]')?.value || 'elevated'
   };
 };
 function refreshAppearanceEditor(form, scheme) {
@@ -66,6 +84,11 @@ function refreshAppearanceEditor(form, scheme) {
     form.querySelector('[name="custom-'+key+'"]').checked=Boolean(colors[key]);
     form.querySelector('[name="appearance-'+key+'"]').value=colors[key] || tokens[token];
   }
+  const iconColor=prefs.appearanceIconColorsByMode?.[selected] || '';
+  const iconBackground=prefs.appearanceIconBackgroundColorsByMode?.[selected] || '';
+  form.querySelector('[name="appearanceIconColor"]').value=iconColor || tokens['--ui-icon-color'];
+  form.querySelector('[name="appearanceIconBackgroundColor"]').value=iconBackground || tokens['--ui-icon-tile'];
+  form.querySelector('[name="appearanceIconBackgroundCustom"]').checked=Boolean(iconBackground);
   updateAppearancePreview(form);
 }
 function updateAppearancePreview(form) {
@@ -77,6 +100,8 @@ function updateAppearancePreview(form) {
   const preview=form.querySelector('.appearance-preview');
   if (preview) {
     const properties={
+      '--preview-icon-color':tokens['--ui-icon-color'],
+      '--preview-icon-tile':tokens['--ui-icon-tile'],
       '--preview-page':tokens['--page'],'--preview-surface':tokens['--surface'],
       '--preview-text':tokens['--text'],'--preview-muted':tokens['--muted'],
       '--preview-line':tokens['--line'],'--preview-accent':tokens['--accent'],
@@ -165,6 +190,54 @@ function renderAppearanceSettings(panel) {
     grid.append(tile);
   });
   custom.append(grid);form.append(custom);
+  const iconSection=element('section','appearance-section appearance-icons-settings');
+  iconSection.append(element('h3','','Iconos e imágenes'),
+    element('p','small-note','Elige las imágenes PNG originales, los iconos vectoriales o una interfaz sin iconos. No se eliminan archivos.'));
+  const iconGrid=element('div','appearance-custom-grid');
+  iconGrid.append(
+    field('Tipo de iconos',select('appearanceIconMode',[
+      {value:'vector',label:'Vectoriales de O-Isym'},
+      {value:'image',label:'Imágenes PNG originales'},
+      {value:'none',label:'Sin iconos'}
+    ],saved.appearanceIconMode || 'vector')),
+    field('Estilo de los vectoriales',select('appearanceIconVariant',[
+      {value:'outline',label:'Línea fina'},
+      {value:'bold',label:'Línea gruesa'},
+      {value:'duotone',label:'Bicolor suave'},
+      {value:'filled',label:'Con relleno'}
+    ],saved.appearanceIconVariant || 'outline')),
+    field('Color del icono',select('appearanceIconTone',[
+      {value:'automatic',label:'Automático, según el texto'},
+      {value:'accent',label:'Color de acento'},
+      {value:'custom',label:'Color personalizado'}
+    ],saved.appearanceIconTone || 'automatic')),
+    field('Fondo de cada icono',select('appearanceIconBackground',[
+      {value:'none',label:'Sin fondo'},
+      {value:'soft',label:'Relleno suave'},
+      {value:'filled',label:'Relleno intenso'}
+    ],saved.appearanceIconBackground || 'none'))
+  );
+  const iconColorTile=element('div','appearance-color-control');
+  iconColorTile.append(element('span','field-label','Color personalizado de iconos'));
+  iconColorTile.append(input('appearanceIconColor','','color','#27856b'),
+    element('p','small-note','Este color se configura de forma independiente en Claro y Oscuro.'));
+  const iconBackgroundTile=element('div','appearance-color-control');
+  iconBackgroundTile.append(element('span','field-label','Color de relleno'));
+  iconBackgroundTile.append(input('appearanceIconBackgroundColor','','color','#d5e8e1'));
+  const customBg=element('label','appearance-custom-toggle');
+  const customBgCheck=element('input');customBgCheck.type='checkbox';customBgCheck.name='appearanceIconBackgroundCustom';
+  customBg.append(customBgCheck,document.createTextNode('Personalizar relleno de este modo'));
+  iconBackgroundTile.append(customBg);
+  iconGrid.append(iconColorTile,iconBackgroundTile);iconSection.append(iconGrid);
+  const examples=element('div','appearance-icon-examples');
+  [['navigation/today.png','Hoy'],['navigation/calendar.png','Calendario'],['navigation/tasks.png','Tareas'],
+    ['focus/timer.png','Focus'],['interface/search.png','Buscar'],['actions/edit.png','Editar']].forEach(([path,label])=>{
+    const item=element('span','appearance-icon-example');
+    item.append(iconImage(path,'','appearance-icon-sample'),element('span','',label));
+    examples.append(item);
+  });
+  iconSection.append(element('span','field-label','Vista previa de iconos'),examples);
+  form.append(iconSection);
   const layoutSection=element('section','appearance-section');
   layoutSection.append(element('h3','','Distribución y esquinas'));
   const layoutGrid=element('div','appearance-custom-grid');
@@ -174,7 +247,12 @@ function renderAppearanceSettings(panel) {
     ],saved.appearanceDensity||'comfortable')),
     field('Esquinas',select('appearanceRadius',[
       {value:'soft',label:'Suaves'},{value:'rounded',label:'Redondeadas'},{value:'square',label:'Rectas'}
-    ],saved.appearanceRadius||'soft'))
+    ],saved.appearanceRadius||'soft')),
+    field('Estilo de tarjetas',select('appearanceCardStyle',[
+      {value:'elevated',label:'Con profundidad y sombra'},
+      {value:'soft',label:'Suaves y ligeramente coloreadas'},
+      {value:'outlined',label:'Contornos definidos'}
+    ],saved.appearanceCardStyle||'elevated'))
   );
   layoutSection.append(layoutGrid);form.append(layoutSection);
   const display=element('section','appearance-section');
