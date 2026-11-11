@@ -14,6 +14,11 @@ La sección **Ajustes → Apariencia** permite seleccionar:
 - **Guardado automático:** los cambios se agrupan durante unos 360 ms para evitar escrituras excesivas. La interfaz informa si se están guardando o ya se guardaron. No existe un botón de guardar apariencia. Al cambiar de sección o perfil, o al cerrar O-Isym, se fuerzan las escrituras pendientes. Si falla una escritura, solo se revierten las preferencias visuales al último estado guardado, sin revertir las tareas ni los pizarrones.
 - **Restablecer colores de este modo:** recupera la paleta y los colores sugeridos únicamente para Claro u Oscuro, sin sobrescribir el otro modo. El guardado sigue siendo automático.
 - **Distribución:** espaciado Cómodo o Compacto y esquinas Suaves, Redondeadas o Rectas, guardados por perfil.
+- **Fuente de iconos:** vectoriales creados para la UI, imágenes PNG originales de `assets/icons` o sin iconos, siempre conservando las etiquetas de navegación y los textos de los botones.
+- **Estilo vectorial:** línea fina, gruesa, bicolor suave o con relleno.
+- **Color de los iconos:** automático, acento del perfil o un color elegido por el usuario, con colores distintos para Claro y Oscuro. También se puede elegir un fondo suave o intenso y personalizar el color de ese fondo para cada modo.
+- **Tarjetas:** estilo con profundidad y sombra, suave o con contornos definidos. «Completadas hoy» agrupa las tareas en filas diferenciadas y la invitación de Focus presenta un encabezado y superficie consistentes con la paleta.
+- **Cambio sin reconstruir formularios:** al alternar PNG/vectorial/sin iconos solo se sustituyen los recursos visuales, sin vaciar un campo en edición ni modificar las tareas o los pizarrones.
 
 Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propia apariencia. Duplicar configuración copia las preferencias visuales. Los perfiles anteriores conservan el esquema actual y reciben valores seguros sin cambiar sus tareas.
 
@@ -23,7 +28,7 @@ Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propi
 - `src/domain.js`: normaliza `preferences.appearanceMode`, `preferences.appearancePalette` y `preferences.appearanceColors`. Rechaza colores que no sean `#RRGGBB` al importar.
 - `src/app.js`: actualiza inmediatamente las variables CSS y gestiona los cambios con una cola de escritura aplazada y recuperación de apariencia. Las operaciones existentes de Focus, Pizarrones y perfiles se mantienen.
 - `src/styles/appearance.css`: estilos coherentes para cada superficie; los campos y su contenedor comparten el mismo color, incluida la búsqueda de pizarrones. Los nodos de ideas mantienen sus colores propios.
-- `src/icons.js`: iconos SVG vectoriales para navegación, acciones y búsqueda, con trazo adaptable a cada tema. Evita los filtros que hacían que los PNG aparecieran como cuadros blancos.
+- `src/icons.js`: iconos SVG con trazo adaptable a cada tema. La interfaz permite usarlos o volver a los PNG sin modificar los archivos originales; hay un modo sin iconos y un respaldo visible cuando un recurso no carga.
 - `index.html`: carga apariencia e iconos antes de la aplicación, y los estilos de apariencia después de los estilos base.
 - `tests/appearance.test.js`: comprueba las dieciocho paletas, ambas variantes por perfil, contraste en menú y buscadores, migración de perfiles antiguos e importación.
 - `tests/planning-ui.test.js`: comprueba aplicación inmediata en toda la ventana, guardado automático, vaciado pendiente en navegación, reversión segura, cambios de macOS y regresiones de Focus/Pizarrones.
@@ -51,7 +56,14 @@ Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propi
       }
     },
     "appearanceDensity": "comfortable",
-    "appearanceRadius": "soft"
+    "appearanceRadius": "soft",
+    "appearanceIconMode": "vector",
+    "appearanceIconVariant": "outline",
+    "appearanceIconTone": "automatic",
+    "appearanceIconBackground": "none",
+    "appearanceIconColorsByMode": { "light": "", "dark": "" },
+    "appearanceIconBackgroundColorsByMode": { "light": "", "dark": "" },
+    "appearanceCardStyle": "elevated"
   }
 }
 ```
