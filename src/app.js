@@ -1912,7 +1912,7 @@ function renderPlannerAgenda(main, listMode = false) {
       element('p', 'small-note', data.proposals.length + ' bloques nuevos · ' + data.skipped.length + ' omitidos'));
     data.proposals.forEach(entry => summary.append(element('p', 'small-note',
       entry.startTime + '–' + entry.endTime + ' · ' + entry.title +
-      (entry.conflicts.length ? ' · Conflicto: ' + entry.conflicts.join(', ') : '')));
+      (entry.conflicts.length ? ' · Conflicto: ' + entry.conflicts.join(', ') : ''))));
     data.skipped.forEach(item => summary.append(element('p', 'small-note', item.title ? item.title + ': ' + item.reason : item.reason)));
     if (data.proposals.length) summary.append(button('Aplicar plantilla al día', 'template-apply', 'button primary', { id: preview.id }));
     summary.append(button('Cerrar vista previa', 'template-preview-close', 'button secondary'));
