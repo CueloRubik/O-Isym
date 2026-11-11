@@ -821,3 +821,26 @@ html[data-scheme] .workspace-main .today-metric {
     grid-template-columns:minmax(60px,78px) minmax(0,1fr) 26px;
   }
 }
+
+/* The modal frame carries the elevation. Its contained form must not draw a
+   second full-size shadow or flatten the margin around the fields. */
+html[data-scheme] .profile-modal .profile-modal-form {
+  box-shadow:none;
+  border:0;
+  border-radius:0;
+  background:var(--surface);
+  padding:var(--ui-outer-padding);
+}
+html[data-scheme] .profile-modal .profile-modal-form > * {
+  min-width:0;
+  max-width:100%;
+}
+html[data-scheme] .workspace-main :is(.inbox-row,.history-row,.profile-row,.week-line,.shortcut-row) {
+  flex-wrap:wrap;
+  row-gap:9px;
+}
+html[data-scheme] .ideas-group-header {
+  left:8px;
+  top:8px;
+  width:min(calc(100% - 16px),320px);
+}
