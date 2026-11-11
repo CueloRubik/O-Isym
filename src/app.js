@@ -617,6 +617,8 @@ function renderTaskList(parent, tasks, options = {}) {
     if (task.description) meta.append(element('span', 'task-description', task.description));
     content.append(meta);
     const actions = element('div', 'task-actions');
+    if (task.status === 'pending') actions.append(button(task.scheduledDate ? 'Mover' : 'Programar',
+      'plan-task', 'button secondary small task-plan-action', { id: task.id }));
     actions.append(actionIconButton('Editar', 'edit-task', 'edit.png', 'button secondary small', { id: task.id }));
     actions.append(button('⋯', 'task-menu', 'icon-button', { id: task.id }));
     row.append(check, content, actions);
@@ -652,7 +654,29 @@ function renderToday(main) {
   bar.append(fill);
   progress.append(progressTop, bar);
   hero.append(progress);
+  const heroActions = element('div', 'today-hero-actions');
+  heroActions.append(button('Organizar el día', 'navigate-date', 'button primary', { date }),
+    button('+ Capturar tarea', 'quick-task', 'button secondary'));
+  hero.append(heroActions);
   main.append(hero);
+
+  const overview = element('div', 'today-overview');
+  const scheduledCount = getItemsForDay(state.profile, date)
+    .filter(item => item.timed && item.task.status === 'pending').length;
+  const counters = [
+    { title: 'En tu día', value: tasks.length, detail: 'tareas pendientes' },
+    { title: 'Con horario', value: scheduledCount, detail: 'bloques planificados' },
+    { title: 'Sin programar', value: getUnscheduledTasks(state.profile).length, detail: 'en la bandeja' },
+    { title: 'Vencidas', value: overdue.length, detail: 'para revisar' }
+  ];
+  counters.forEach(info => {
+    const metric = element('div', 'today-metric');
+    metric.append(element('span', 'today-metric-label', info.title),
+      element('strong', 'today-metric-value', info.value),
+      element('span', 'today-metric-detail', info.detail));
+    overview.append(metric);
+  });
+  main.append(overview);
 
   const grid = element('div', 'dashboard-grid');
   const primary = element('div', 'dashboard-main');
@@ -660,7 +684,6 @@ function renderToday(main) {
   taskCard.append(heading(childMode?'Mis tareas de hoy':'Lo que tienes hoy',childMode?'¡Puedes ir haciendo una cosa a la vez!':'Una lista clara, sin presión.'));
   renderTaskList(taskCard, tasks, { emptyTitle: 'Tu agenda está despejada', emptyDetail: 'Puedes agregar una tarea o reservar tiempo para algo importante.' });
   taskCard.append(button('+ Añadir tarea', 'quick-task', 'button primary'));
-  primary.append(taskCard);
   const timedToday = getItemsForDay(state.profile, date).filter(item => item.timed && item.task.status === 'pending');
   const timelineCard = card('today-agenda-card');
   timelineCard.append(heading('Horarios de hoy', 'El mismo plan que puedes editar desde Calendario.'));
@@ -674,6 +697,7 @@ function renderToday(main) {
   });
   timelineCard.append(button('Organizar el día en Calendario', 'navigate-date', 'button primary', { date }));
   primary.append(timelineCard);
+  primary.append(taskCard);
   const inboxCount = getUnscheduledTasks(state.profile).length;
   if (inboxCount) {
     const inboxCard = card();
@@ -1875,17 +1899,55 @@ function renderPlannerAgenda(main, listMode = false) {
   const timeline = element('div', 'day-timeline');
   if (!timed.length) timeline.append(empty('Sin bloques horarios',
     'Puedes asignar horas a las tareas existentes o aceptar una propuesta.'));
-  timed.forEach(item => {
+  const makeTimeBlock = (item) => {
     const row = element('div', 'day-time-block' + (item.task.locked ? ' is-locked' : ''));
+    row.dataset.taskId = item.id;
     const when = element('div', 'day-block-time', item.task.startTime + '–' + item.task.endTime);
     const detail = element('div', 'day-block-details');
     detail.append(element('strong', '', item.task.title), element('span', 'small-note',
-      (item.task.locked ? 'Compromiso bloqueado · ' : 'Bloque flexible · ') + priorityLabel(item.task.priority)));
+      (item.task.locked ? 'Bloqueado · ' : 'Flexible · ') + priorityLabel(item.task.priority)));
     const edit = button('Editar', 'edit-task', 'button secondary small', { id: item.id });
     edit.setAttribute('aria-label', 'Editar horario de ' + item.task.title);
     row.append(when, detail, edit);
-    timeline.append(row);
-  });
+    return row;
+  };
+  if (listMode) {
+    timeline.classList.add('day-agenda-list');
+    timed.forEach(item => timeline.append(makeTimeBlock(item)));
+  } else if (timed.length) {
+    const layout = getTimelineLayout(state.profile, date);
+    const minutePixels = 1.3;
+    const board = element('div', 'day-visual-timeline');
+    board.setAttribute('aria-label', 'Horario visual del día; cada bloque tiene un botón Editar');
+    const ruler = element('div', 'day-time-ruler');
+    const stage = element('div', 'day-time-stage');
+    const height = (layout.endMinute - layout.startMinute) * minutePixels;
+    ruler.style.height = height + 'px';
+    stage.style.height = height + 'px';
+    layout.hours.forEach(hour => {
+      const offset = (hour.minute - layout.startMinute) * minutePixels;
+      const label = element('span', 'day-ruler-label', hour.label);
+      label.style.top = offset + 'px';
+      ruler.append(label);
+      const line = element('div', 'day-hour-guide');
+      line.style.top = offset + 'px';
+      stage.append(line);
+    });
+    layout.blocks.forEach(block => {
+      const item = { id: block.id, task: block.task };
+      const entry = makeTimeBlock(item);
+      entry.classList.add('day-positioned-block');
+      entry.style.top = ((block.startMinute - layout.startMinute) * minutePixels + 3) + 'px';
+      entry.style.height = Math.max(24, (block.endMinute - block.startMinute) * minutePixels - 7) + 'px';
+      entry.style.left = 'calc(' + (block.column * 100 / block.columns) + '% + 4px)';
+      entry.style.width = 'calc(' + (100 / block.columns) + '% - 8px)';
+      entry.title = block.task.startTime + '–' + block.task.endTime + ' · ' + block.task.title;
+      stage.append(entry);
+    });
+    board.append(ruler, stage); timeline.append(board);
+    timeline.append(element('p', 'small-note day-timeline-caption',
+      'Bloques colocados según la hora real. Los superpuestos aparecen lado a lado. Usa Editar para moverlos.'));
+  }
   timeCard.append(timeline);
   if (free.conflicts.length) {
     const warnings = element('div', 'schedule-conflicts');
