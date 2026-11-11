@@ -472,7 +472,7 @@ function updateShell() {
   };
   (renderers[state.view] || renderToday)(main);
   if (state.showTaskForm || state.editingTaskId) renderSharedTaskDialog(main);
-
+}
 
 function addTaskForm(parent, defaults = {}) {
   const editing = Boolean(state.editingTaskId);
