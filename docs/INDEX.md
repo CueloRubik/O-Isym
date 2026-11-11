@@ -10,6 +10,7 @@
 - [Implementación de Organización Unificada](UNIFIED-PLANNING-IMPLEMENTATION.md) — arquitectura incorporada en `development`, validación automatizada y lista de comprobaciones en Catalina.
 - [Rediseño del espacio de trabajo y ventanas](UNIFIED-UI-REDESIGN.md) — navegación, calendario visual, paneles laterales y pruebas de la nueva interfaz.
 - [Temas claros, oscuros y colores personalizados](APPEARANCE-SYSTEM.md) — paletas por perfil, vista previa, contraste y compatibilidad.
+- [Auditoría de superficies, bordes y espaciado](UI-SURFACE-AUDIT.md) — relieve, esquinas configurables, márgenes interiores y excepciones del lienzo.
 
 ## Desarrollo y revisión
 
