@@ -3229,18 +3229,9 @@ async function handleSubmit(form) {
       if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
       showToast('Perfil actualizado.');
     } else if (form.dataset.form === 'profile-appearance-settings') {
-      const draft=appearanceDraft(form);
-      if (!['light','dark','system'].includes(draft.appearanceMode) ||
-          !Appearance.PALETTES.some(p => p.id===draft.appearancePalette) ||
-          Object.values(draft.appearanceColors).some(color => color!=='' && !Appearance.validHex(color))) {
-        throw new Error('No se pudo validar la apariencia seleccionada.');
-      }
-      const previous=cloneActiveProfile();
-      state.profile.preferences.appearanceMode=draft.appearanceMode;
-      state.profile.preferences.appearancePalette=draft.appearancePalette;
-      state.profile.preferences.appearanceColors={...draft.appearanceColors};
-      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
-      showToast('Apariencia guardada para este perfil.');
+      // Backwards-compatible keyboard submit; autosave already handles normal edits.
+      applyAppearanceSelection(form);
+      await flushAppearanceChanges();
     } else if (form.dataset.form === 'profile-task-notifications') {
       const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
       state.profile.preferences.taskNotificationsEnabled=data.taskNotificationsEnabled==='true';
@@ -3394,7 +3385,7 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { if (state.ideaViewportSaveTimer || state.ideaSaveFailed) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'navigate') { if (!await flushAppearanceChanges()) return; if (state.ideaViewportSaveTimer || state.ideaSaveFailed) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
   if (action === 'ideas-activity-create') {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
@@ -3627,13 +3618,16 @@ root.addEventListener('click', async event => {
   if (action === 'close-goal-form') { state.showGoalForm=false;state.editingGoalId=null;updateShell();$('#goal-create-button')?.focus();return; }
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
   if (action === 'close-task-form') { closeTaskEditor(); return; }
-  if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
+  if (action === 'settings-section') {
+    if (!await flushAppearanceChanges()) return;
+    state.settingsSection = target.dataset.section; updateShell(); return;
+  }
   if (action === 'open-appearance') { state.view='settings'; state.settingsSection='appearance'; updateShell(); return; }
   if (action === 'appearance-palette') {
     const form=target.closest('form[data-form="profile-appearance-settings"]');
     if (!form) return;
     form.querySelector('[name="appearancePalette"]').value=target.dataset.palette;
-    updateAppearancePreview(form);
+    applyAppearanceSelection(form);
     return;
   }
   if (action === 'appearance-reset') {
@@ -3645,7 +3639,7 @@ root.addEventListener('click', async event => {
     appearanceColorFields.forEach(([key]) => {
       form.querySelector('[name="custom-'+key+'"]').checked=false;
     });
-    updateAppearancePreview(form);
+    applyAppearanceSelection(form);
     return;
   }
   if (action === 'dismiss-launch-at-login') {
@@ -4339,7 +4333,7 @@ root.addEventListener('input', event => {
   if (appearanceForm) {
     const key=appearanceColorFields.find(([name]) => event.target.name==='appearance-'+name)?.[0];
     if (key) appearanceForm.querySelector('[name="custom-'+key+'"]').checked=true;
-    updateAppearancePreview(appearanceForm);
+    applyAppearanceSelection(appearanceForm);
     return;
   }
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
@@ -4411,11 +4405,12 @@ root.addEventListener('change', async event => {
     return;
   }
   const appearanceForm=event.target.closest('form[data-form="profile-appearance-settings"]');
-  if (appearanceForm) { updateAppearancePreview(appearanceForm); return; }
+  if (appearanceForm) { applyAppearanceSelection(appearanceForm); return; }
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profileId = event.target.value;
+    if (!await flushAppearanceChanges()) { event.target.value=state.profile.id; return; }
     if (!await flushIdeaChanges()) { event.target.value = state.profile.id; return; }
     const profile = state.snapshot.profiles.find(item => item.id === profileId);
     if (profile && profile.id !== state.profile.id) {
@@ -4606,7 +4601,10 @@ if (systemAppearanceQuery) {
   else if (systemAppearanceQuery.addListener) systemAppearanceQuery.addListener(onAppearanceChange);
 }
 window.oisym?.notifications?.onOpenTask?.(openTaskFromReminder);
-window.oisym?.onSaveBeforeClose?.(flushIdeaChanges);
+window.oisym?.onSaveBeforeClose?.(async () => {
+  if (!await flushAppearanceChanges()) return false;
+  return flushIdeaChanges();
+});
 boot();
 
 
