@@ -514,11 +514,16 @@ const save = () => {
 };
 // Appearance changes are painted immediately, then coalesced into one queued write.
 // The rollback only restores appearance fields; tasks, Focus and board data are untouched.
-const appearanceValues = profile => ({
-  appearanceMode: profile.preferences.appearanceMode,
-  appearancePalette: profile.preferences.appearancePalette,
-  appearanceColors: { ...profile.preferences.appearanceColors }
-});
+const appearanceValues = profile => {
+  const p=profile.preferences;
+  return {
+    appearanceMode:p.appearanceMode,appearancePalette:p.appearancePalette,
+    appearanceColors:{...p.appearanceColors},
+    appearancePalettes:{...p.appearancePalettes},
+    appearanceColorsByMode:JSON.parse(JSON.stringify(p.appearanceColorsByMode)),
+    appearanceDensity:p.appearanceDensity,appearanceRadius:p.appearanceRadius
+  };
+};
 let appearancePending = null;
 let appearanceTimer = null;
 let appearanceSaving = null;
@@ -534,7 +539,10 @@ function applyAppearanceSelection(form) {
   const next = appearanceDraft(form);
   if (!['light','dark','system'].includes(next.appearanceMode) ||
       !Appearance.PALETTES.some(p=>p.id===next.appearancePalette) ||
-      Object.values(next.appearanceColors).some(color=>color!=='' && !Appearance.validHex(color))) {
+      Object.values(next.appearanceColorsByMode).some(colors =>
+        Object.values(colors).some(color=>color!=='' && !Appearance.validHex(color))) ||
+      !['comfortable','compact'].includes(next.appearanceDensity) ||
+      !['soft','rounded','square'].includes(next.appearanceRadius)) {
     appearanceStatus('Revisa los colores seleccionados', true);
     return;
   }
@@ -3711,6 +3719,12 @@ root.addEventListener('click', async event => {
     state.settingsSection = target.dataset.section; updateShell(); return;
   }
   if (action === 'open-appearance') { state.view='settings'; state.settingsSection='appearance'; updateShell(); return; }
+  if (action === 'appearance-edit-scheme') {
+    const form=target.closest('form[data-form="profile-appearance-settings"]');
+    if (!form) return;
+    refreshAppearanceEditor(form,target.dataset.scheme);
+    return;
+  }
   if (action === 'appearance-palette') {
     const form=target.closest('form[data-form="profile-appearance-settings"]');
     if (!form) return;
@@ -3722,8 +3736,8 @@ root.addEventListener('click', async event => {
     const form=target.closest('form[data-form="profile-appearance-settings"]');
     if (!form) return;
     const defaults=appearanceDefaults(state.profile);
-    form.querySelector('[name="appearancePalette"]').value=defaults.appearancePalette;
-    form.querySelector('[name="appearanceMode"][value="light"]').checked=true;
+    const editScheme=form.querySelector('[name="appearanceEditScheme"]').value;
+    form.querySelector('[name="appearancePalette"]').value=defaults.appearancePalettes[editScheme];
     appearanceColorFields.forEach(([key]) => {
       form.querySelector('[name="custom-'+key+'"]').checked=false;
     });
@@ -4419,7 +4433,10 @@ root.addEventListener('input', event => {
 
   const appearanceForm=event.target.closest('form[data-form="profile-appearance-settings"]');
   if (appearanceForm) {
-    const key=appearanceColorFields.find(([name]) => event.target.name==='appearance-'+name)?.[0];
+    if (event.target.name==='appearanceMode') {
+      refreshAppearanceEditor(appearanceForm,appearanceScheme(event.target.value));
+    }
+    const key=appearanceColorFields.find(([name])=>event.target.name==='appearance-'+name)?.[0];
     if (key) appearanceForm.querySelector('[name="custom-'+key+'"]').checked=true;
     applyAppearanceSelection(appearanceForm);
     return;
@@ -4493,7 +4510,12 @@ root.addEventListener('change', async event => {
     return;
   }
   const appearanceForm=event.target.closest('form[data-form="profile-appearance-settings"]');
-  if (appearanceForm) { applyAppearanceSelection(appearanceForm); return; }
+  if (appearanceForm) {
+    if (event.target.name==='appearanceMode')
+      refreshAppearanceEditor(appearanceForm,appearanceScheme(event.target.value));
+    applyAppearanceSelection(appearanceForm);
+    return;
+  }
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
@@ -4683,7 +4705,7 @@ if (systemAppearanceQuery) {
     if (state.profile?.preferences.appearanceMode !== 'system') return;
     applyProfileAppearance();
     if (state.view==='settings' && state.settingsSection==='appearance')
-      updateAppearancePreview($('form[data-form="profile-appearance-settings"]'));
+      refreshAppearanceEditor($('form[data-form="profile-appearance-settings"]'),prefersDark()?'dark':'light');
   };
   if (systemAppearanceQuery.addEventListener) systemAppearanceQuery.addEventListener('change',onAppearanceChange);
   else if (systemAppearanceQuery.addListener) systemAppearanceQuery.addListener(onAppearanceChange);
