@@ -278,7 +278,8 @@ const iconImage = (path, alt = '', className = 'ui-icon') => {
   image.alt = alt;
   image.draggable = false;
   image.decoding = 'async';
-  image.loading = 'lazy';
+  // Tiny local UI icons should never wait for scrolling before loading.
+  image.loading = 'eager';
   if (!alt) image.setAttribute('aria-hidden', 'true');
   image.onerror = () => {
     // Never leave an action without a visual cue if a packaged asset is missing.
