@@ -87,6 +87,7 @@ const state = {
   selectedDate: localDate(),
   calendarDate: new Date(),
   calendarMode: 'month',
+  taskFilter: 'active',
   focusTick: null,
   focusFinishing: false,
   toastTimer: null,
@@ -560,10 +561,7 @@ function renderTaskList(parent, tasks, options = {}) {
 function renderToday(main) {
   const date = localDate();
   const overdue = state.profile.tasks.filter(task => task.status === 'pending' && task.dueDate && task.dueDate < date);
-  const overdueIds = new Set(overdue.map(task => task.id));
-  const tasks = state.profile.tasks.filter(task => task.status === 'pending' && !overdueIds.has(task.id) && (
-    task.scheduledDate === date || task.dueDate === date || (!task.scheduledDate && !task.dueDate)
-  ));
+  const tasks = getItemsForDay(state.profile, date).filter(item => item.task.status === 'pending').map(item => item.task);
   const done = state.profile.tasks.filter(task => task.status === 'done' && task.completedAt && task.completedAt.slice(0, 10) === date);
   const hero = card('welcome-card');
   const greeting = new Date().getHours() < 12 ? 'Buenos días' : (new Date().getHours() < 19 ? 'Buenas tardes' : 'Buenas noches');
@@ -596,6 +594,26 @@ function renderToday(main) {
   renderTaskList(taskCard, tasks, { emptyTitle: 'Tu agenda está despejada', emptyDetail: 'Puedes agregar una tarea o reservar tiempo para algo importante.' });
   taskCard.append(button('+ Añadir tarea', 'quick-task', 'button primary'));
   primary.append(taskCard);
+  const timedToday = getItemsForDay(state.profile, date).filter(item => item.timed && item.task.status === 'pending');
+  const timelineCard = card('today-agenda-card');
+  timelineCard.append(heading('Horarios de hoy', 'El mismo plan que puedes editar desde Calendario.'));
+  if (!timedToday.length) timelineCard.append(element('p', 'muted', 'Todavía no hay tareas con horas asignadas.'));
+  timedToday.forEach(item => {
+    const row = element('div', 'inbox-row');
+    row.append(element('span', 'planner-time', item.task.startTime + '–' + item.task.endTime),
+      element('strong', '', item.task.title));
+    row.append(button('Editar', 'edit-task', 'button secondary small', { id: item.id }));
+    timelineCard.append(row);
+  });
+  timelineCard.append(button('Organizar el día en Calendario', 'navigate-date', 'button primary', { date }));
+  primary.append(timelineCard);
+  const inboxCount = getUnscheduledTasks(state.profile).length;
+  if (inboxCount) {
+    const inboxCard = card();
+    inboxCard.append(heading('Por organizar', inboxCount + ' tareas en la bandeja de entrada.'));
+    inboxCard.append(button('Abrir bandeja de entrada', 'open-inbox', 'button secondary'));
+    primary.append(inboxCard);
+  }
   if (done.length) {
     const doneCard = card('today-completed-card');
     doneCard.append(heading('Completadas hoy', done.length === 1 ? 'Ya terminaste una tarea.' : 'Ya terminaste ' + done.length + ' tareas.'));
@@ -648,7 +666,7 @@ function renderTasks(main) {
   const toolbar = element('div', 'toolbar task-toolbar');
   const filter = select('task-filter', [
     { value: 'inbox', label: 'Bandeja de entrada' }, { value: 'active', label: 'Pendientes' }, { value: 'all', label: 'Todas' }, { value: 'done', label: 'Completadas' }
-  ], 'active');
+  ], state.taskFilter);
   filter.id = 'task-filter';
   filter.setAttribute('aria-label', 'Filtrar tareas por estado');
   const search = input('task-search', 'Buscar por nombre o notas…');
@@ -671,7 +689,7 @@ function renderTasks(main) {
     });
     renderTaskList(list, tasks, { emptyTitle: query ? 'No hay coincidencias' : 'Todavía no hay tareas', emptyDetail: query ? 'Prueba con otras palabras.' : 'Crea tu primera tarea y aparecerá aquí.' });
   };
-  filter.addEventListener('change', render);
+  filter.addEventListener('change', () => { state.taskFilter = filter.value; render(); });
   search.addEventListener('input', render);
   render();
   main.append(list);
@@ -746,6 +764,7 @@ function renderCalendar(main) {
   const selected = state.selectedDate;
   const selectedDate = new Date(selected + 'T12:00:00');
   const layout = element('div', 'calendar-layout');
+  if (state.calendarMode === 'day' || state.calendarMode === 'agenda') layout.classList.add('calendar-full-width');
   const primary = element('div', 'calendar-primary');
   const header = element('div', 'calendar-heading');
   const title = element('div', 'view-title-with-icon');
@@ -3412,6 +3431,9 @@ root.addEventListener('click', async event => {
       showToast(applied.added + ' tareas creadas desde la plantilla.');
     } catch (error) { restoreActiveProfile(previous); showToast(error.message, 'error'); }
     return;
+  }
+  if (action === 'open-inbox') {
+    state.taskFilter = 'inbox'; state.view = 'tasks'; updateShell(); return;
   }
   if (action === 'generate-plan') {
     state.plannerAnalysis = analyzeSchedule(state.profile, state.selectedDate);
