@@ -1,0 +1,258 @@
+/* O-Isym appearance engine. Color tokens are computed from saved profile preferences.
+   Palette overrides sit after workspace.css; no storage or canvas data is rewritten. */
+html[data-scheme] body, html[data-scheme] #app, html[data-scheme] .workspace-shell {
+  background: var(--page);
+  color: var(--text);
+}
+html[data-scheme] .workspace-sidebar,
+html[data-scheme] .workspace-topbar,
+html[data-scheme] .workspace-main .card,
+html[data-scheme] .workspace-main .form-card,
+html[data-scheme] .settings-navigation,
+html[data-scheme] .settings-panel,
+html[data-scheme] .profile-modal,
+html[data-scheme] .task-editor-panel,
+html[data-scheme] .entity-editor-panel,
+html[data-scheme] .task-editor-panel-header,
+html[data-scheme] .task-editor-actions {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .workspace-main h1,
+html[data-scheme] .workspace-main h2,
+html[data-scheme] .workspace-main h3,
+html[data-scheme] .workspace-main h4,
+html[data-scheme] .topbar-view-name,
+html[data-scheme] .brand-copy strong,
+html[data-scheme] .workspace-brand .brand-copy strong,
+html[data-scheme] .task-editor-title,
+html[data-scheme] .task-editor-section h4,
+html[data-scheme] .entity-editor-panel .profile-modal-form h2,
+html[data-scheme] .day-block-details strong {
+  color: var(--text);
+}
+html[data-scheme] .muted,
+html[data-scheme] .small-note,
+html[data-scheme] .eyebrow,
+html[data-scheme] .topbar-eyebrow,
+html[data-scheme] .field-label,
+html[data-scheme] .workspace-main .section-heading p,
+html[data-scheme] .workspace-sidebar .brand-copy span,
+html[data-scheme] .workspace-sidebar .sidebar-note,
+html[data-scheme] .task-editor-description,
+html[data-scheme] .today-metric-label,
+html[data-scheme] .today-metric-detail,
+html[data-scheme] .topbar-date,
+html[data-scheme] .topbar-inbox {
+  color: var(--muted);
+}
+html[data-scheme] .workspace-main .input,
+html[data-scheme] .profile-modal .input,
+html[data-scheme] .workspace-main textarea,
+html[data-scheme] .task-editor-panel .input,
+html[data-scheme] .entity-editor-panel .input,
+html[data-scheme] .workspace-sidebar select,
+html[data-scheme] .workspace-main .task-toolbar,
+html[data-scheme] .workspace-main .day-date-bar {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] select option { background: var(--surface); color: var(--text); }
+html[data-scheme] .workspace-main .button.secondary,
+html[data-scheme] .profile-modal .button.secondary,
+html[data-scheme] .sidebar-toggle,
+html[data-scheme] .task-menu-trigger,
+html[data-scheme] .task-menu-choices,
+html[data-scheme] .task-menu-choice {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .workspace-main .button.secondary:hover,
+html[data-scheme] .profile-modal .button.secondary:hover,
+html[data-scheme] .sidebar-toggle:hover,
+html[data-scheme] .task-menu-trigger:hover,
+html[data-scheme] .task-menu-choice:hover,
+html[data-scheme] .workspace-sidebar .nav-item:hover {
+  background: var(--ui-hover); color: var(--text);
+}
+html[data-scheme] .workspace-main .button.primary,
+html[data-scheme] .workspace-topbar .topbar-create,
+html[data-scheme] .task-editor-actions .button.primary,
+html[data-scheme] .profile-modal .button.primary {
+  background: var(--accent); color: var(--ui-accent-text); border-color: transparent;
+}
+html[data-scheme] .workspace-main .button.primary:hover,
+html[data-scheme] .workspace-topbar .topbar-create:hover { filter: brightness(1.06); }
+html[data-scheme] .workspace-sidebar .profile-switcher,
+html[data-scheme] .profile-advanced-preferences,
+html[data-scheme] .workspace-main .day-date-bar,
+html[data-scheme] .workspace-main .task-toolbar,
+html[data-scheme] .workspace-main .welcome-card,
+html[data-scheme] .workspace-main .focus-card,
+html[data-scheme] .workspace-main .note-card,
+html[data-scheme] .focus-panel,
+html[data-scheme] .focus-alarm-settings,
+html[data-scheme] .today-metric,
+html[data-scheme] .profile-stat,
+html[data-scheme] .profile-preference,
+html[data-scheme] .activity-ideas,
+html[data-scheme] .day-time-stage,
+html[data-scheme] .profile-active-label,
+html[data-scheme] .task-reminder-chip,
+html[data-scheme] .calendar-mode {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .workspace-main .welcome-card > p { color: var(--muted); }
+html[data-scheme] .workspace-main .welcome-card .progress-track,
+html[data-scheme] .progress-track { background: var(--line); }
+html[data-scheme] .today-metric-value { color: var(--accent-dark); }
+html[data-scheme] .workspace-sidebar .nav-item { color: var(--muted); }
+html[data-scheme] .workspace-sidebar .nav-item.active,
+html[data-scheme] .settings-nav-item.active { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--line); }
+html[data-scheme] .workspace-sidebar .profile-add,
+html[data-scheme] .text-button,
+html[data-scheme] .goal-summary-card > strong,
+html[data-scheme] .goal-summary-completed,
+html[data-scheme] .planner-time { color: var(--accent-dark); }
+html[data-scheme] .calendar-day,
+html[data-scheme] .week-day,
+html[data-scheme] .calendar-mode .button,
+html[data-scheme] .task-menu-choices,
+html[data-scheme] .day-visual-timeline,
+html[data-scheme] .day-time-ruler {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .calendar-day:hover,
+html[data-scheme] .week-day:hover { background: var(--ui-hover); }
+html[data-scheme] .calendar-day.is-today,
+html[data-scheme] .calendar-day.is-selected { background: var(--accent-soft); }
+html[data-scheme] .calendar-mode .button.primary {
+  color: var(--ui-accent-text); background: var(--accent);
+}
+html[data-scheme] .calendar-count,
+html[data-scheme] .meta-chip,
+html[data-scheme] .free-slot,
+html[data-scheme] .day-time-block,
+html[data-scheme] .day-time-block.day-positioned-block,
+html[data-scheme] .workspace-main .day-agenda-list .day-time-block,
+html[data-scheme] .planner-proposal,
+html[data-scheme] .template-preview,
+html[data-scheme] .ideas-library-toolbar,
+html[data-scheme] .ideas-canvas-toolbar,
+html[data-scheme] .ideas-canvas-filter-tools {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .meta-chip.priority-high { background: var(--surface-soft); color: var(--danger); }
+html[data-scheme] .meta-chip.priority-medium { background: var(--surface-soft); color: var(--warning); }
+html[data-scheme] .meta-chip.priority-low { background: var(--surface-soft); color: var(--accent-dark); }
+html[data-scheme] .day-time-block.is-locked,
+html[data-scheme] .day-time-block.day-positioned-block.is-locked {
+  border-left-color: var(--warning); background: var(--surface-soft);
+}
+html[data-scheme] .day-time-block { border-left-color: var(--accent); }
+html[data-scheme] .day-hour-guide,
+html[data-scheme] .day-time-ruler,
+html[data-scheme] .task-row,
+html[data-scheme] .inbox-row,
+html[data-scheme] .profile-modal-form .form-actions { border-color: var(--line); }
+html[data-scheme] .day-time-stage { background-image: none; }
+html[data-scheme] .task-check { background: var(--surface); border-color: var(--line); }
+html[data-scheme] .task-check.checked { background: var(--accent); border-color: var(--accent); color: var(--ui-accent-text); }
+html[data-scheme] .profile-modal-backdrop { background: rgba(9,14,22,.62); }
+html[data-scheme] .schedule-conflicts { background: var(--surface-soft); border-color: var(--warning); color: var(--text); }
+html[data-scheme] .focus-clock { color: var(--accent-dark); }
+html[data-scheme] .focus-audio-stop-control { background: var(--surface); color: var(--text); border-color: var(--line); }
+html[data-scheme] .toast { color: #ffffff; }
+
+/* High-contrast customization panel and miniature live workspace. */
+.appearance-form { display: flex; flex-direction: column; gap: 20px; }
+.appearance-section { display: flex; flex-direction: column; gap: 13px; }
+.appearance-section h3 { margin: 0; font-size: 15px; }
+.appearance-section > .small-note { margin: 0; }
+.appearance-mode-options {
+  display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px;
+}
+.appearance-mode-option {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--text); padding: 12px 8px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-weight: 700; cursor: pointer; min-height: 45px;
+}
+.appearance-mode-option input { accent-color: var(--accent); }
+.appearance-mode-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.appearance-palette-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; }
+.appearance-palette-button {
+  border: 2px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--text); cursor: pointer;
+  padding: 7px; display: flex; flex-direction: column; gap: 7px; text-align: left;
+}
+.appearance-palette-button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.appearance-palette-swatches { display: flex; gap: 0; height: 33px; overflow: hidden; border-radius: 7px; }
+.appearance-palette-swatches span { flex: 1; }
+.appearance-palette-name { font-size: 11px; font-weight: 700; }
+.appearance-custom-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.appearance-color-control {
+  display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--surface-soft);
+}
+.appearance-color-control > label { font-size: 12px; font-weight: 750; }
+.appearance-color-control input[type="color"] {
+  width: 100%; height: 36px; min-height: 36px; cursor: pointer;
+  padding: 3px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line);
+}
+.appearance-color-control .appearance-custom-toggle { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--muted); }
+.appearance-color-control input[type="checkbox"] { accent-color: var(--accent); }
+.appearance-preview {
+  border: 1px solid var(--line); padding: 0; overflow: hidden;
+  border-radius: 17px; background: var(--preview-page);
+  color: var(--preview-text);
+}
+.appearance-preview-layout { display: grid; grid-template-columns: 108px minmax(0,1fr); min-height: 196px; }
+.appearance-preview-nav {
+  padding: 15px 10px; background: var(--preview-surface);
+  border-right: 1px solid var(--preview-line);
+  display: flex; flex-direction: column; gap: 13px;
+}
+.appearance-preview-brand { color: var(--preview-text); font-size: 12px; font-weight: 800; }
+.appearance-preview-item { border-radius: 6px; padding: 7px; font-size: 10px; }
+.appearance-preview-item.is-selected { color: var(--preview-accent-text); background: var(--preview-accent); }
+.appearance-preview-main { display: flex; flex-direction: column; gap: 13px; padding: 14px; min-width: 0; }
+.appearance-preview-title { font-size: 14px; font-weight: 800; }
+.appearance-preview-card {
+  padding: 13px; display: flex; flex-direction: column; gap: 7px;
+  background: var(--preview-surface); color: var(--preview-text);
+  border: 1px solid var(--preview-line); border-radius: 10px;
+}
+.appearance-preview-card strong { color: var(--preview-text); }
+.appearance-preview-card span { color: var(--preview-muted); font-size: 11px; }
+.appearance-preview-button {
+  align-self: flex-start; display: inline-flex; padding: 7px 11px; border-radius: 7px;
+  background: var(--preview-accent); color: var(--preview-accent-text);
+  font-size: 11px; font-weight: 750;
+}
+.appearance-contrast-note { font-size: 12px; color: var(--muted); }
+.appearance-contrast-note.warning { color: var(--warning); font-weight: 700; }
+.appearance-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.appearance-actions .button { min-height: 40px; }
+html[data-scheme="dark"] .settings-nav-item,
+html[data-scheme="dark"] .profile-admin-item,
+html[data-scheme="dark"] .task-menu-choice { color: var(--text); }
+html[data-scheme="dark"] .ideas-board-open,
+html[data-scheme="dark"] .ideas-help-panel,
+html[data-scheme="dark"] .ideas-library-toolbar,
+html[data-scheme="dark"] .ideas-tool-group,
+html[data-scheme="dark"] .ideas-board-card-footer {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme="dark"] .ideas-canvas-viewport { border-color: var(--line); }
+html[data-scheme="dark"] .profile-avatar { color: var(--accent-dark); }
+html[data-scheme="dark"] .calendar-weekday,
+html[data-scheme="dark"] .day-ruler-label,
+html[data-scheme="dark"] .topbar-view-name,
+html[data-scheme="dark"] .week-day-count { color: var(--muted); }
+@media(max-width:690px) {
+  .appearance-palette-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .appearance-custom-grid { grid-template-columns: 1fr; }
+}
+@media(max-width:430px) {
+  .appearance-mode-options { grid-template-columns: 1fr; }
+  .appearance-palette-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .appearance-preview-layout { grid-template-columns: 80px minmax(0,1fr); }
+}
