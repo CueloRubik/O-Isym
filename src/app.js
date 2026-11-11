@@ -6,63 +6,114 @@ const {
 const Appearance = window.OIsymAppearance;
 const prefersDark = () => Boolean(window.matchMedia?.('(prefers-color-scheme: dark)')?.matches);
 const applyProfileAppearance = () => Appearance.apply(root,document.documentElement,state.profile?.preferences || {},prefersDark());
-const appearanceColorFields = [['accent','Acento','Botones y controles'],['page','Fondo','Fondo general'],['surface','Paneles','Tarjetas y ventanas'],['text','Texto','Títulos y contenido']];
-const appearanceDefaults = profile => ({
-  appearanceMode: 'light',
-  appearancePalette: profile.preferences.theme === 'sky' ? 'ocean' : profile.preferences.theme === 'warm' ? 'sand' :
-    profile.preferences.theme === 'playful' ? 'aurora' : 'forest',
-  appearanceColors: { accent:'', page:'', surface:'', text:'' }
-});
-const appearanceDraft = form => {
-  const colors = {};
-  appearanceColorFields.forEach(([key]) => {
-    colors[key] = form.querySelector('[name="custom-' + key + '"]')?.checked ?
-      form.querySelector('[name="appearance-' + key + '"]').value : '';
-  });
-  return { appearanceMode: form.querySelector('[name="appearanceMode"]:checked')?.value || 'light',
-    appearancePalette: form.querySelector('[name="appearancePalette"]').value, appearanceColors: colors };
+const appearanceColorFields = [
+  ['accent','Acento','Botones, enlaces y selección','--accent'],
+  ['page','Fondo','Fondo general de la aplicación','--page'],
+  ['surface','Tarjetas','Paneles, ventanas y tarjetas','--surface'],
+  ['sidebar','Menú lateral','Fondo de la navegación','--ui-sidebar'],
+  ['field','Campos','Buscadores y campos de texto','--ui-field'],
+  ['text','Texto','Títulos y contenido principal','--text'],
+  ['border','Bordes','Contornos de las superficies','--line'],
+  ['muted','Texto secundario','Descripción y etiquetas','--muted']
+];
+const appearanceScheme = mode => mode === 'system' ? (prefersDark() ? 'dark' : 'light') : mode === 'dark' ? 'dark' : 'light';
+const appearanceDefaults = profile => {
+  const palette=profile.preferences.theme === 'sky' ? 'ocean' : profile.preferences.theme === 'warm' ? 'sand' :
+    profile.preferences.theme === 'playful' ? 'aurora' : 'forest';
+  const empty=() => Object.fromEntries(appearanceColorFields.map(([key])=>[key,'']));
+  return {
+    appearanceMode:'light', appearancePalette:palette, appearanceColors:empty(),
+    appearancePalettes:{light:palette,dark:palette},
+    appearanceColorsByMode:{light:empty(),dark:empty()},
+    appearanceDensity:'comfortable', appearanceRadius:'soft'
+  };
 };
+const appearanceDraft = form => {
+  const saved=state.profile.preferences;
+  const mode=form.querySelector('[name="appearanceMode"]:checked')?.value || 'light';
+  const scheme=form.querySelector('[name="appearanceEditScheme"]')?.value || appearanceScheme(mode);
+  const palettes={...(saved.appearancePalettes || {light:saved.appearancePalette,dark:saved.appearancePalette})};
+  const colorsByMode=JSON.parse(JSON.stringify(saved.appearanceColorsByMode || {light:saved.appearanceColors,dark:saved.appearanceColors}));
+  const colors={};
+  appearanceColorFields.forEach(([key])=>{
+    colors[key]=form.querySelector('[name="custom-'+key+'"]')?.checked ?
+      form.querySelector('[name="appearance-'+key+'"]')?.value || '' : '';
+  });
+  palettes[scheme]=form.querySelector('[name="appearancePalette"]')?.value || palettes[scheme] || 'forest';
+  colorsByMode[scheme]=colors;
+  const actualScheme=appearanceScheme(mode);
+  return {
+    appearanceMode:mode, appearancePalette:palettes[actualScheme],
+    appearanceColors:{...colorsByMode[actualScheme]},
+    appearancePalettes:palettes, appearanceColorsByMode:colorsByMode,
+    appearanceDensity:form.querySelector('[name="appearanceDensity"]')?.value || 'comfortable',
+    appearanceRadius:form.querySelector('[name="appearanceRadius"]')?.value || 'soft'
+  };
+};
+function refreshAppearanceEditor(form, scheme) {
+  if (!form) return;
+  const selected=scheme === 'dark' ? 'dark' : 'light';
+  form.querySelector('[name="appearanceEditScheme"]').value=selected;
+  form.querySelectorAll('.appearance-edit-option').forEach(node=>{
+    node.setAttribute('aria-pressed',String(node.dataset.scheme===selected));
+  });
+  const prefs=state.profile.preferences;
+  const fallback=appearanceDefaults(state.profile);
+  form.querySelector('[name="appearancePalette"]').value=prefs.appearancePalettes?.[selected] || prefs.appearancePalette || fallback.appearancePalette;
+  const colors=prefs.appearanceColorsByMode?.[selected] || prefs.appearanceColors || fallback.appearanceColors;
+  const tokens=Appearance.makeTokens({...prefs,appearanceMode:selected},prefersDark()).vars;
+  for (const [key,,,token] of appearanceColorFields) {
+    form.querySelector('[name="custom-'+key+'"]').checked=Boolean(colors[key]);
+    form.querySelector('[name="appearance-'+key+'"]').value=colors[key] || tokens[token];
+  }
+  updateAppearancePreview(form);
+}
 function updateAppearancePreview(form) {
   if (!form || form.dataset.form !== 'profile-appearance-settings') return;
-  const selected = appearanceDraft(form), result = Appearance.makeTokens(selected,prefersDark());
-  const preview = form.querySelector('.appearance-preview');
-  const tokens = result.vars;
-  const properties = {
-    '--preview-page': tokens['--page'], '--preview-surface': tokens['--surface'],
-    '--preview-text': tokens['--text'], '--preview-muted': tokens['--muted'],
-    '--preview-line': tokens['--line'], '--preview-accent': tokens['--accent'],
-    '--preview-accent-text': tokens['--ui-accent-text']
-  };
-  if (preview) Object.entries(properties).forEach(([key,value]) => preview.style.setProperty(key,value));
-  form.querySelectorAll('.appearance-palette-button').forEach(item => {
-    const selectedPalette = item.dataset.palette === selected.appearancePalette;
-    item.setAttribute('aria-pressed',String(selectedPalette));
-    const previewTokens=Appearance.makeTokens({
-      appearanceMode: selected.appearanceMode, appearancePalette: item.dataset.palette,
-      appearanceColors: { accent:'',page:'',surface:'',text:'' }
-    },prefersDark()).vars;
-    const props={ '--palette-page':previewTokens['--page'], '--palette-surface':previewTokens['--surface'],
-      '--palette-ink':previewTokens['--text'],'--palette-muted':previewTokens['--muted'],
-      '--palette-accent':previewTokens['--accent'],
-      '--palette-accent-text':previewTokens['--ui-accent-text'],
-      '--palette-line':previewTokens['--line'] };
-    Object.entries(props).forEach(([key,value])=>item.style.setProperty(key,value));
+  const draft=appearanceDraft(form);
+  const editScheme=form.querySelector('[name="appearanceEditScheme"]').value;
+  const result=Appearance.makeTokens({...draft,appearanceMode:editScheme},prefersDark());
+  const tokens=result.vars;
+  const preview=form.querySelector('.appearance-preview');
+  if (preview) {
+    const properties={
+      '--preview-page':tokens['--page'],'--preview-surface':tokens['--surface'],
+      '--preview-text':tokens['--text'],'--preview-muted':tokens['--muted'],
+      '--preview-line':tokens['--line'],'--preview-accent':tokens['--accent'],
+      '--preview-accent-text':tokens['--ui-accent-text'],
+      '--preview-sidebar':tokens['--ui-sidebar'],'--preview-sidebar-text':tokens['--ui-sidebar-text'],
+      '--preview-field':tokens['--ui-field'],'--preview-field-text':tokens['--ui-field-text']
+    };
+    Object.entries(properties).forEach(([key,value])=>preview.style.setProperty(key,value));
+  }
+  form.querySelectorAll('.appearance-palette-button').forEach(item=>{
+    item.setAttribute('aria-pressed',String(item.dataset.palette===draft.appearancePalettes[editScheme]));
+    const option=Appearance.makeTokens({appearanceMode:editScheme,appearancePalette:item.dataset.palette},prefersDark()).vars;
+    const values={
+      '--palette-page':option['--page'],'--palette-surface':option['--surface'],
+      '--palette-ink':option['--text'],'--palette-muted':option['--muted'],
+      '--palette-accent':option['--accent'],'--palette-accent-text':option['--ui-accent-text'],
+      '--palette-line':option['--line']
+    };
+    Object.entries(values).forEach(([key,value])=>item.style.setProperty(key,value));
   });
-  const note=form.querySelector('.appearance-contrast-note');
-  if (note) {
-    note.classList.toggle('warning',result.contrastAdjusted);
-    note.textContent=result.contrastAdjusted ?
-      'El texto elegido se ajustó automáticamente para mantener la legibilidad.' :
-      'Los cambios aparecen en toda la aplicación y se guardan automáticamente.';
+  const warning=form.querySelector('.appearance-contrast-note');
+  if (warning) {
+    warning.classList.toggle('warning',result.contrastAdjusted);
+    const other=editScheme===appearanceScheme(draft.appearanceMode);
+    warning.textContent=result.contrastAdjusted ?
+      'El color de texto elegido se ajusta para que pueda leerse.' :
+      other ? 'Los cambios se ven inmediatamente y se guardan automáticamente.' :
+      'Estás personalizando el otro modo. Su apariencia se aplicará cuando lo actives.';
   }
 }
 function renderAppearanceSettings(panel) {
-  const saved = state.profile.preferences;
+  const saved=state.profile.preferences;
   const form=element('form','form-card settings-form appearance-form');
   form.dataset.form='profile-appearance-settings';
-  form.append(element('p','muted','Elige una paleta o combina tus propios colores. Los cambios se ven al instante y se guardan solos en este perfil.'));
+  form.append(element('p','muted','Personaliza cada modo por separado. Todos los cambios se guardan automáticamente en este perfil.'));
   const modeSection=element('section','appearance-section');
-  modeSection.append(element('h3','','Modo visual'));
+  modeSection.append(element('h3','','Apariencia de O-Isym'));
   const modes=element('div','appearance-mode-options');
   [['light','Claro'],['dark','Oscuro'],['system','Automático']].forEach(([value,label])=>{
     const wrap=element('label','appearance-mode-option');
@@ -70,17 +121,24 @@ function renderAppearanceSettings(panel) {
     radio.checked=(saved.appearanceMode||'light')===value;
     wrap.append(radio,document.createTextNode(label));modes.append(wrap);
   });
-  modeSection.append(modes,element('p','small-note','Automático sigue los ajustes de apariencia de macOS.'));
+  modeSection.append(modes,element('p','small-note','Automático sigue el tema del sistema. Puedes tener una paleta distinta en cada modo.'));
   form.append(modeSection);
   const section=element('section','appearance-section');
-  section.append(element('h3','','Paletas preparadas'),
-    element('p','small-note','Todas incluyen colores compatibles con los modos claro y oscuro.'));
+  section.append(element('h3','','Personalizar el modo'));
+  const schemeButtons=element('div','appearance-edit-modes');
+  [['light','Claro'],['dark','Oscuro']].forEach(([value,label])=>{
+    const control=button(label,'appearance-edit-scheme','appearance-edit-option',{scheme:value});
+    control.setAttribute('aria-pressed','false');schemeButtons.append(control);
+  });
+  const editInput=input('appearanceEditScheme','','hidden',appearanceScheme(saved.appearanceMode));
+  section.append(schemeButtons,editInput,element('h3','','Paletas preparadas'),
+    element('p','small-note','Cada miniatura muestra cómo quedarán las superficies del modo seleccionado.'));
   section.append(input('appearancePalette','','hidden',saved.appearancePalette||'forest'));
   const paletteGrid=element('div','appearance-palette-grid');
   Appearance.PALETTES.forEach(palette=>{
     const choice=button('','appearance-palette','appearance-palette-button',{palette:palette.id});
     choice.setAttribute('aria-label','Paleta '+palette.name);
-    choice.setAttribute('aria-pressed',String(saved.appearancePalette===palette.id));
+    choice.setAttribute('aria-pressed','false');
     const miniature=element('span','appearance-palette-scene');
     const miniSidebar=element('span','appearance-palette-scene-nav');
     miniSidebar.append(element('span','','O'),element('span','is-current',''),element('span','',''));
@@ -89,54 +147,61 @@ function renderAppearanceSettings(panel) {
       element('span','appearance-palette-scene-card',''),
       element('span','appearance-palette-scene-action',''));
     miniature.append(miniSidebar,miniContent);
-    choice.append(miniature,element('span','appearance-palette-name',palette.name));
-    paletteGrid.append(choice);
+    choice.append(miniature,element('span','appearance-palette-name',palette.name));paletteGrid.append(choice);
   });
   section.append(paletteGrid);form.append(section);
   const custom=element('section','appearance-section');
   custom.append(element('h3','','Colores personalizados'),
-    element('p','small-note','Marca los colores que quieras controlar. El resto se adapta a tu paleta.'));
+    element('p','small-note','Controla acentos, fondos, ventanas, menú, campos, texto y bordes. Cada cambio afecta únicamente al modo que estás editando.'));
   const grid=element('div','appearance-custom-grid');
-  const current=Appearance.makeTokens(saved,prefersDark()).vars;
   appearanceColorFields.forEach(([key,label,detail])=>{
     const tile=element('div','appearance-color-control');
-    const paint=input('appearance-'+key,'','color',
-      saved.appearanceColors?.[key]||current[({accent:'--accent',page:'--page',surface:'--surface',text:'--text'})[key]]);
+    const paint=input('appearance-'+key,'','color','#ffffff');
     const title=element('label','',label);title.append(paint);
     const toggle=element('label','appearance-custom-toggle');
     const check=element('input');check.type='checkbox';check.name='custom-'+key;
-    check.checked=Boolean(saved.appearanceColors?.[key]);
     toggle.append(check,document.createTextNode('Usar mi color'));
     tile.append(element('span','field-label',label),title,element('p','small-note',detail),toggle);
     grid.append(tile);
   });
   custom.append(grid);form.append(custom);
+  const layoutSection=element('section','appearance-section');
+  layoutSection.append(element('h3','','Distribución y esquinas'));
+  const layoutGrid=element('div','appearance-custom-grid');
+  layoutGrid.append(
+    field('Espaciado',select('appearanceDensity',[
+      {value:'comfortable',label:'Cómodo'},{value:'compact',label:'Compacto'}
+    ],saved.appearanceDensity||'comfortable')),
+    field('Esquinas',select('appearanceRadius',[
+      {value:'soft',label:'Suaves'},{value:'rounded',label:'Redondeadas'},{value:'square',label:'Rectas'}
+    ],saved.appearanceRadius||'soft'))
+  );
+  layoutSection.append(layoutGrid);form.append(layoutSection);
   const display=element('section','appearance-section');
-  display.append(element('h3','','Así se ve O-Isym'),element('p','small-note','Este ejemplo cambia contigo, igual que el resto de la aplicación.'));
+  display.append(element('h3','','Vista previa del modo seleccionado'),
+    element('p','small-note','Incluye el menú, una tarjeta, un botón y un buscador.'));
   const preview=element('div','appearance-preview');
-  preview.setAttribute('role','img');
-  preview.setAttribute('aria-label','Ejemplo visual de menú y tarjeta con la nueva paleta');
+  preview.setAttribute('role','img');preview.setAttribute('aria-label','Ejemplo del modo claro u oscuro seleccionado');
   const layout=element('div','appearance-preview-layout');
   const sidebar=element('div','appearance-preview-nav');
   sidebar.append(element('span','appearance-preview-brand','O-Isym'),
     element('span','appearance-preview-item is-selected','Hoy'),
-    element('span','appearance-preview-item','Calendario'),
-    element('span','appearance-preview-item','Tareas'));
-  const main=element('div','appearance-preview-main');
-  main.append(element('strong','appearance-preview-title','Tu espacio'));
+    element('span','appearance-preview-item','Calendario'),element('span','appearance-preview-item','Tareas'));
+  const exampleMain=element('div','appearance-preview-main');
+  exampleMain.append(element('strong','appearance-preview-title','Tu espacio'));
   const card=element('div','appearance-preview-card');
-  card.append(element('strong','','Organizar el día'),
-    element('span','','Tareas y actividades en una vista'),
+  card.append(element('strong','','Organizar el día'),element('span','','Tu agenda en un solo lugar'),
     element('span','appearance-preview-button','Nueva tarea'));
-  main.append(card);layout.append(sidebar,main);preview.append(layout);display.append(preview);
-  const note=element('p','appearance-contrast-note');note.setAttribute('role','status');display.append(note);form.append(display);
+  const search=element('div','appearance-preview-search','Buscar pizarrones');
+  exampleMain.append(card,search);layout.append(sidebar,exampleMain);preview.append(layout);
+  display.append(preview);const note=element('p','appearance-contrast-note');
+  note.setAttribute('role','status');display.append(note);form.append(display);
   const actions=element('div','appearance-actions');
-  actions.append(button('Restablecer colores originales','appearance-reset','button secondary'));
+  actions.append(button('Restablecer colores de este modo','appearance-reset','button secondary'));
   const status=element('p','appearance-save-status','Todo guardado');
-  status.setAttribute('role','status');
-  status.setAttribute('aria-live','polite');
-  actions.append(status);
-  form.append(actions);panel.append(form);updateAppearancePreview(form);
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  actions.append(status);form.append(actions);panel.append(form);
+  refreshAppearanceEditor(form,appearanceScheme(saved.appearanceMode));
 }
 const { getItemsForDay, getCalendarRange, getUnscheduledTasks, detectScheduleConflicts,
   getFreeTimeSlots, getTimelineLayout, taskMutation, createDayTemplate, previewDayTemplate,
