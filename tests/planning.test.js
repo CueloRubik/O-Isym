@@ -170,3 +170,28 @@ test('a rescheduled template instance keeps its occurrence key and cannot regene
   assert.equal(P.previewDayTemplate(profile, template.id, date).proposals.length, 0);
   assert.equal(P.applyDayTemplate(profile, template.id, date).added, 0);
 });
+
+test('visual timeline places overlapping blocks in separate columns without duplicating tasks', () => {
+  const profile = sample();
+  const first = add(profile, { title: 'Sesión A', scheduledDate: date, startTime: '09:00', endTime: '10:00' });
+  const second = add(profile, { title: 'Sesión B', scheduledDate: date, startTime: '09:30', endTime: '10:30' });
+  const third = add(profile, { title: 'Sesión C', scheduledDate: date, startTime: '11:00', endTime: '12:00' });
+  const layout = P.getTimelineLayout(profile, date);
+  assert.equal(layout.blocks.length, 3);
+  assert.deepEqual(layout.blocks.slice(0, 2).map(x => x.id), [first.id, second.id]);
+  assert.deepEqual(layout.blocks.slice(0, 2).map(x => x.columns), [2, 2]);
+  assert.notEqual(layout.blocks[0].column, layout.blocks[1].column);
+  assert.equal(layout.blocks.find(x => x.id === third.id).columns, 1);
+  assert.ok(layout.hours.some(x => x.label === '09:00'));
+  assert.equal(profile.tasks.length, 3);
+});
+test('visual timeline includes blocks outside preferred hours without losing their date', () => {
+  const profile = sample();
+  add(profile, { title: 'Temprano', scheduledDate: date, startTime: '06:30', endTime: '07:15' });
+  add(profile, { title: 'Tarde', scheduledDate: date, startTime: '19:00', endTime: '20:00' });
+  const result = P.getTimelineLayout(profile, date);
+  assert.equal(result.startMinute, 360);
+  assert.equal(result.endMinute, 1200);
+  assert.equal(result.blocks.length, 2);
+  assert.equal(P.getTimelineLayout(profile, 'not-a-date').blocks.length, 0);
+});
