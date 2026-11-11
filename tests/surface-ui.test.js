@@ -90,3 +90,30 @@ test('small windows keep nested padding and do not force dialog content against 
   assert.match(source,/\.ideas-library-toolbar \.search-field/);
   assert.match(source,/\.ideas-library-toolbar select/);
 });
+
+test('the surface stylesheet parses as a complete CSS stylesheet',()=>{
+  const dom=new JSDOM('<!doctype html><html><head></head><body></body></html>');
+  const style=dom.window.document.createElement('style');
+  style.textContent=source;
+  dom.window.document.head.append(style);
+  assert.ok(style.sheet,'Stylesheet did not parse');
+  assert.ok(style.sheet.cssRules.length>55,'Surface selectors may be missing');
+  dom.window.close();
+});
+test('formerly flat list rows have an inset frame and never clip task popovers',()=>{
+  for(const row of ['.task-row','.inbox-row','.activity-row','.goal-row',
+    '.history-row','.profile-row','.suggestion','.template-row','.week-line',
+    '.chart-line','.shortcut-row','.profile-admin-item'])
+    assert.ok(source.includes(row),'Missing framed row: '+row);
+  assert.match(source,/\.workspace-main \.card \.task-row[^}]+overflow:\s*visible/s);
+  assert.match(source,/\.workspace-main \.card \.task-row\.task-actions|\.workspace-main \.card \.task-row \.task-actions/);
+  assert.match(source,/\.task-row\s*\{[^}]+flex-wrap:\s*wrap/s);
+  assert.match(source,/\.workspace-main \.card \.activity-row[^}]+flex-wrap:\s*wrap/s);
+});
+test('modal and canvas exceptions retain safe insets without duplicate shadows',()=>{
+  assert.match(source,/\.profile-modal \.profile-modal-form\s*\{[^}]+box-shadow:\s*none/s);
+  assert.match(source,/\.profile-modal \.profile-modal-form\s*\{[^}]+padding:\s*var\(--ui-outer-padding\)/s);
+  assert.match(source,/\.ideas-group-header\s*\{[^}]+left:\s*8px/s);
+  assert.match(source,/\.ideas-group-header\s*\{[^}]+top:\s*8px/s);
+  assert.match(source,/\.ideas-canvas-viewport\s*\{[^}]+border-radius:\s*var\(--ui-radius-card\)/s);
+});
