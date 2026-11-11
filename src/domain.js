@@ -327,6 +327,7 @@ function createTask(input) {
     activityId: input.activityId || null,
     templateId: typeof input.templateId === 'string' && input.templateId ? input.templateId : null,
     templateEntryId: typeof input.templateEntryId === 'string' && input.templateEntryId ? input.templateEntryId : null,
+    templateOccurrenceDate: typeof input.templateOccurrenceDate === 'string' && input.templateOccurrenceDate ? input.templateOccurrenceDate : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     completedAt: null
