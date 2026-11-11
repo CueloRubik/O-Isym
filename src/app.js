@@ -273,6 +273,9 @@ const iconFallbackLabel = path => {
   return known[name] || name.charAt(0).toUpperCase() || '•';
 };
 const iconImage = (path, alt = '', className = 'ui-icon') => {
+  // Real vector strokes retain their shape and inherit legible text color.
+  const vector = window.OIsymIcons?.glyph(path,document,className,alt);
+  if (vector) return vector;
   const image = element('img', className);
   image.src = 'assets/icons/' + path;
   image.alt = alt;
