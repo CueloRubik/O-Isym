@@ -522,3 +522,43 @@ test('Focus and boards remain available when the active theme is dark', async t 
   assert.equal(r.app.state.profile.ideaBoards.length,1);
   assert.deepEqual(r.errors,[]);
 });
+
+test('changing palettes rapidly saves only the latest choice, without altering task data', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const task=D.createTask({title:'No perder'});
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="rose"]');
+  r.click('[data-action="appearance-palette"][data-palette="slate"]');
+  r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'midnight');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'midnight');
+  assert.equal(r.saved().profiles[0].tasks.length,1);
+  assert.equal(r.saved().profiles[0].tasks[0].id,task.id);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('closing the app flushes a pending appearance change before finishing the board save', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="aurora"]');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.equal(await r.close(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'aurora');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('appearance icon fallback also preserves primary action labels and profile avatar slots', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='tasks';r.app.updateShell();
+  const add=r.query('.topbar-create'),icon=add.querySelector('img');
+  assert.ok(icon);
+  icon.dispatchEvent(new r.w.Event('error'));
+  assert.ok(add.querySelector('.icon-fallback'));
+  assert.match(add.textContent,/Nueva tarea/);
+  add.click();await settle(r);
+  assert.ok(r.query('.task-editor-panel'));
+  assert.deepEqual(r.errors,[]);
+});
