@@ -1,6 +1,6 @@
 # Organización Unificada — Planificación diaria y calendario avanzado
 
-**Estado:** propuesta de arquitectura y producto, pendiente de implementación.
+**Estado:** bloques A–E integrados en `development`; pruebas automatizadas incorporadas, verificación manual en macOS Catalina pendiente. Consulta [el informe de implementación](UNIFIED-PLANNING-IMPLEMENTATION.md).
 **Rama:** development.
 **Prioridad actual:** macOS Intel / experiencia central de O-Isym.
 **Aplazado:** auditoría específica de Windows, integración con servicios externos y nuevas funciones educativas.
@@ -151,6 +151,6 @@ Event(id) ---[vista derivada]-------> Calendario / Hoy
 
 Auditoría específica de Windows, sincronización remota, colaboración multiusuario, inteligencia artificial obligatoria, Isym Kids y academia. Mantener sus ideas en la hoja de ruta general, sin bloquear esta etapa.
 
-## 10. Próxima decisión
+## 10. Situación tras la implementación
 
-Comenzar por el Bloque A. Antes de implementar recurrencia/eventos, cerrar su modelo de datos. Mantener la versión actual como referencia y trabajar exclusivamente en `development`, sin modificar `main` ni publicar nuevos instaladores durante la fase de diseño.
+Los bloques A–E están integrados en `development` con las limitaciones y pruebas indicadas en [el informe de implementación](UNIFIED-PLANNING-IMPLEMENTATION.md). Antes de publicar instaladores es necesario realizar la comprobación manual en macOS Catalina. Los eventos nativos y el arrastre gráfico de bloques permanecen reservados para una ampliación posterior con migración explícita. No fusionar con `main` ni publicar nuevas Releases sin esa validación.
