@@ -34,21 +34,33 @@ function updateAppearancePreview(form) {
     '--preview-accent-text': tokens['--ui-accent-text']
   };
   if (preview) Object.entries(properties).forEach(([key,value]) => preview.style.setProperty(key,value));
-  form.querySelectorAll('.appearance-palette-button').forEach(item =>
-    item.setAttribute('aria-pressed',String(item.dataset.palette === selected.appearancePalette)));
+  form.querySelectorAll('.appearance-palette-button').forEach(item => {
+    const selectedPalette = item.dataset.palette === selected.appearancePalette;
+    item.setAttribute('aria-pressed',String(selectedPalette));
+    const previewTokens=Appearance.makeTokens({
+      appearanceMode: selected.appearanceMode, appearancePalette: item.dataset.palette,
+      appearanceColors: { accent:'',page:'',surface:'',text:'' }
+    },prefersDark()).vars;
+    const props={ '--palette-page':previewTokens['--page'], '--palette-surface':previewTokens['--surface'],
+      '--palette-ink':previewTokens['--text'],'--palette-muted':previewTokens['--muted'],
+      '--palette-accent':previewTokens['--accent'],
+      '--palette-accent-text':previewTokens['--ui-accent-text'],
+      '--palette-line':previewTokens['--line'] };
+    Object.entries(props).forEach(([key,value])=>item.style.setProperty(key,value));
+  });
   const note=form.querySelector('.appearance-contrast-note');
   if (note) {
     note.classList.toggle('warning',result.contrastAdjusted);
     note.textContent=result.contrastAdjusted ?
-      'El texto elegido no tiene suficiente contraste. La aplicación mostrará un color legible.' :
-      'Esto es una vista previa. Los cambios solo se aplicarán al guardar.';
+      'El texto elegido se ajustó automáticamente para mantener la legibilidad.' :
+      'Los cambios aparecen en toda la aplicación y se guardan automáticamente.';
   }
 }
 function renderAppearanceSettings(panel) {
   const saved = state.profile.preferences;
   const form=element('form','form-card settings-form appearance-form');
   form.dataset.form='profile-appearance-settings';
-  form.append(element('p','muted','Elige tu estilo. La apariencia pertenece únicamente al perfil activo.'));
+  form.append(element('p','muted','Elige una paleta o combina tus propios colores. Los cambios se ven al instante y se guardan solos en este perfil.'));
   const modeSection=element('section','appearance-section');
   modeSection.append(element('h3','','Modo visual'));
   const modes=element('div','appearance-mode-options');
@@ -69,11 +81,15 @@ function renderAppearanceSettings(panel) {
     const choice=button('','appearance-palette','appearance-palette-button',{palette:palette.id});
     choice.setAttribute('aria-label','Paleta '+palette.name);
     choice.setAttribute('aria-pressed',String(saved.appearancePalette===palette.id));
-    const swatches=element('div','appearance-palette-swatches');
-    [palette.light,palette.base,palette.dark].forEach(color=>{
-      const span=element('span');span.style.backgroundColor=color;swatches.append(span);
-    });
-    choice.append(swatches,element('span','appearance-palette-name',palette.name));
+    const miniature=element('span','appearance-palette-scene');
+    const miniSidebar=element('span','appearance-palette-scene-nav');
+    miniSidebar.append(element('span','','O'),element('span','is-current',''),element('span','',''));
+    const miniContent=element('span','appearance-palette-scene-content');
+    miniContent.append(element('span','appearance-palette-scene-line',''),
+      element('span','appearance-palette-scene-card',''),
+      element('span','appearance-palette-scene-action',''));
+    miniature.append(miniSidebar,miniContent);
+    choice.append(miniature,element('span','appearance-palette-name',palette.name));
     paletteGrid.append(choice);
   });
   section.append(paletteGrid);form.append(section);
@@ -96,7 +112,7 @@ function renderAppearanceSettings(panel) {
   });
   custom.append(grid);form.append(custom);
   const display=element('section','appearance-section');
-  display.append(element('h3','','Vista previa'));
+  display.append(element('h3','','Así se ve O-Isym'),element('p','small-note','Este ejemplo cambia contigo, igual que el resto de la aplicación.'));
   const preview=element('div','appearance-preview');
   preview.setAttribute('role','img');
   preview.setAttribute('aria-label','Ejemplo visual de menú y tarjeta con la nueva paleta');
@@ -115,8 +131,11 @@ function renderAppearanceSettings(panel) {
   main.append(card);layout.append(sidebar,main);preview.append(layout);display.append(preview);
   const note=element('p','appearance-contrast-note');note.setAttribute('role','status');display.append(note);form.append(display);
   const actions=element('div','appearance-actions');
-  actions.append(button('Restablecer selección','appearance-reset','button secondary'),
-    actionIconButton('Guardar apariencia','submit-form','save.png','button primary'));
+  actions.append(button('Restablecer colores originales','appearance-reset','button secondary'));
+  const status=element('p','appearance-save-status','Todo guardado');
+  status.setAttribute('role','status');
+  status.setAttribute('aria-live','polite');
+  actions.append(status);
   form.append(actions);panel.append(form);updateAppearancePreview(form);
 }
 const { getItemsForDay, getCalendarRange, getUnscheduledTasks, detectScheduleConflicts,
