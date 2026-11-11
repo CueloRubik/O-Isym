@@ -457,3 +457,146 @@ html[data-scheme] .focus-music-settings .input,
 html[data-scheme] .notification-settings-form .input {
   background: var(--surface); color: var(--text); border-color: var(--line);
 }
+
+/* Precise thematic surfaces: no hardcoded white outer search box over a dark input. */
+html[data-scheme] .search-field,
+html[data-scheme] .ideas-library-toolbar .search-field,
+html[data-scheme] .task-toolbar .search-field,
+html[data-scheme] .ideas-search-field {
+  background:var(--ui-field);
+  border:1px solid var(--line);
+  color:var(--ui-field-text);
+  border-radius:var(--ui-radius-control,10px);
+  box-shadow:none;
+  min-height:40px;
+}
+html[data-scheme] .search-field:focus-within,
+html[data-scheme] .ideas-search-field:focus-within {
+  border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft);
+}
+html[data-scheme] .workspace-main .search-field .input,
+html[data-scheme] .ideas-library-toolbar .search-field input,
+html[data-scheme] .task-toolbar .search-field .input,
+html[data-scheme] .ideas-search-field input {
+  background:transparent;
+  color:var(--ui-field-text);
+  border:0;
+  box-shadow:none;
+  outline:none;
+  min-width:0;
+}
+html[data-scheme] input::placeholder,
+html[data-scheme] textarea::placeholder { color:var(--ui-input-placeholder); opacity:1; }
+html[data-scheme] .workspace-main input.input:not(.search-field input),
+html[data-scheme] .settings-panel select.input,
+html[data-scheme] .settings-panel input.input:not([type="color"]),
+html[data-scheme] .task-editor-section .input,
+html[data-scheme] .profile-modal .input,
+html[data-scheme] .entity-editor-panel .input,
+html[data-scheme] .ideas-library-toolbar select,
+html[data-scheme] .focus-music-settings .input,
+html[data-scheme] .notification-settings-form .input {
+  background:var(--ui-field); color:var(--ui-field-text);
+  border-color:var(--line);
+}
+html[data-scheme] .workspace-main .search-field input.input,
+html[data-scheme] .workspace-main .ideas-search-field input.input { background:transparent; border:0; }
+/* Genuine SVG strokes. Never filter the line art into a white rectangle. */
+html[data-scheme] svg.icon-glyph {
+  filter:none !important; display:inline-block; flex-shrink:0;
+  vertical-align:middle; overflow:visible;
+  color:inherit;
+}
+html[data-scheme] .nav-item .icon-glyph { width:20px; height:20px; }
+html[data-scheme] .button-with-icon .icon-glyph,
+html[data-scheme] .button .button-icon.icon-glyph { width:17px; height:17px; }
+html[data-scheme] .view-title-icon.icon-glyph,
+html[data-scheme] .section-heading-icon.icon-glyph { width:25px; height:25px; }
+html[data-scheme] .search-icon.icon-glyph {width:18px;height:18px;opacity:1; color:var(--ui-field-text);}
+html[data-scheme] .search-field .icon-glyph {color:var(--ui-field-text);}
+html[data-scheme] .button.primary .icon-glyph,
+html[data-scheme] .topbar-create .icon-glyph {color:var(--ui-accent-text);}
+html[data-scheme] .workspace-sidebar {
+  background:var(--ui-sidebar);color:var(--ui-sidebar-text);border-color:var(--line);
+}
+html[data-scheme] .workspace-sidebar .navigation-group-label,
+html[data-scheme] .workspace-sidebar .sidebar-note,
+html[data-scheme] .workspace-sidebar .eyebrow,
+html[data-scheme] .workspace-sidebar .nav-item:not(.active),
+html[data-scheme] .workspace-sidebar .brand-copy span {
+  color:var(--ui-sidebar-muted);
+}
+html[data-scheme] .workspace-sidebar .nav-item:hover {background:var(--ui-sidebar-hover);color:var(--ui-sidebar-text);}
+html[data-scheme] .workspace-sidebar .nav-item.active {
+  background:var(--ui-sidebar-active);color:var(--ui-sidebar-active-text);
+  border-color:transparent;
+}
+html[data-scheme] .workspace-sidebar .nav-item.active .nav-label {color:inherit;}
+html[data-scheme] .workspace-sidebar .profile-switcher {background:var(--ui-sidebar);border-color:var(--line);}
+html[data-scheme] .workspace-sidebar .profile-switcher select {
+  background:var(--ui-field);color:var(--ui-field-text);border-color:var(--line);
+}
+/* Keep board controls and canvas in the palette, but leave user-colored notes alone. */
+html[data-scheme] .ideas-canvas-viewport {
+  background-color:var(--page); border-color:var(--line);
+  background-image:radial-gradient(var(--line) 1px,transparent 1px);
+}
+html[data-scheme] .ideas-canvas-hint,
+html[data-scheme] .ideas-tool-group,
+html[data-scheme] .ideas-filter-summary {color:var(--muted);}
+html[data-scheme] .ideas-help-panel {
+  background:var(--surface-soft);color:var(--text);border:1px solid var(--line);
+}
+html[data-scheme] .task-editor-panel,
+html[data-scheme] .entity-editor-panel,
+html[data-scheme] .profile-modal,
+html[data-scheme] .text-dialog {background:var(--surface);color:var(--text);border-color:var(--line);}
+html[data-scheme] .form-card .field-label {color:var(--text);}
+/* The light mode is as customizable as dark, not a fixed white preset. */
+html[data-scheme] .appearance-edit-modes {display:flex;flex-wrap:wrap;gap:8px;}
+html[data-scheme] .appearance-edit-option {
+  min-height:39px;padding:8px 15px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);
+  color:var(--text);font-size:12px;font-weight:750;cursor:pointer;
+}
+html[data-scheme] .appearance-edit-option[aria-pressed="true"] {
+  background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark);
+}
+html[data-scheme] .appearance-preview-nav {
+  background:var(--preview-sidebar);
+  color:var(--preview-sidebar-text);
+  border-color:var(--preview-line);
+}
+html[data-scheme] .appearance-preview-brand,
+html[data-scheme] .appearance-preview-nav .appearance-preview-item:not(.is-selected) {
+  color:var(--preview-sidebar-text);
+}
+html[data-scheme] .appearance-preview-search {
+  padding:9px 12px;border:1px solid var(--preview-line);border-radius:8px;
+  background:var(--preview-field);color:var(--preview-field-text);font-size:11px;
+}
+html[data-radius="rounded"] {--ui-radius-control:15px;--ui-radius-card:22px;}
+html[data-radius="soft"] {--ui-radius-control:10px;--ui-radius-card:15px;}
+html[data-radius="square"] {--ui-radius-control:4px;--ui-radius-card:6px;}
+html[data-radius] .workspace-main .card,
+html[data-radius] .settings-panel,
+html[data-radius] .settings-navigation,
+html[data-radius] .appearance-preview,
+html[data-radius] .task-editor-panel,
+html[data-radius] .entity-editor-panel,
+html[data-radius] .profile-modal {border-radius:var(--ui-radius-card);}
+html[data-radius] .workspace-main .button,
+html[data-radius] .settings-panel .button,
+html[data-radius] .search-field,
+html[data-radius] .workspace-sidebar .nav-item,
+html[data-radius] input.input,
+html[data-radius] select.input {border-radius:var(--ui-radius-control);}
+html[data-density="compact"] .workspace-sidebar .nav-item {min-height:35px;padding-top:5px;padding-bottom:5px;}
+html[data-density="compact"] .workspace-main .card {padding:15px;}
+html[data-density="compact"] .settings-navigation .settings-nav-item {padding:7px 9px;}
+html[data-density="compact"] .workspace-topbar {min-height:55px;}
+html[data-density="compact"] .appearance-color-control {padding:9px;}
+@media (max-width:650px) {
+  html[data-scheme] .appearance-palette-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+  html[data-scheme] .appearance-edit-modes .appearance-edit-option {flex:1;}
+}
