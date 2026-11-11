@@ -321,3 +321,77 @@ test('activity and goal editors use the same side panel layout without changing 
   assert.equal(r.query('.entity-editor-panel'), null);
   assert.deepEqual(r.errors, []);
 });
+
+test('appearance gallery previews twelve palettes without changing the saved profile', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const picker=r.query('.appearance-form');
+  assert.ok(picker);
+  assert.equal(r.w.document.querySelectorAll('.appearance-palette-button').length,12);
+  const initialAccent=r.query('.appearance-preview').style.getPropertyValue('--preview-accent');
+  r.click('[data-action="appearance-palette"][data-palette="orchid"]');
+  const after=r.query('.appearance-preview').style.getPropertyValue('--preview-accent');
+  assert.notEqual(initialAccent,after);
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'forest');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.deepEqual(r.errors,[]);
+});
+test('dark appearance saves only after confirmation and survives rerender and reload', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const dark=r.query('input[name="appearanceMode"][value="dark"]');
+  dark.checked=true;dark.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
+  submit(r,'.appearance-form');await settle(r);
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'dark');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'midnight');
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.app.updateShell();
+  assert.equal(r.query('input[name="appearanceMode"][value="dark"]').checked,true);
+  assert.equal(r.query('.appearance-palette-button[data-palette="midnight"]').getAttribute('aria-pressed'),'true');
+  assert.deepEqual(r.errors,[]);
+});
+test('custom colors set their own toggles and low contrast text gets a warning', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const color=r.query('[name="appearance-text"]');
+  const surface=r.query('[name="appearance-surface"]');
+  surface.value='#101010';surface.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  color.value='#101010';color.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.query('[name="custom-surface"]').checked,true);
+  assert.equal(r.query('[name="custom-text"]').checked,true);
+  assert.ok(r.query('.appearance-contrast-note.warning'));
+  submit(r,'.appearance-form');await settle(r);
+  assert.equal(r.saved().profiles[0].preferences.appearanceColors.text,'#101010');
+  assert.equal(r.saved().profiles[0].preferences.appearanceColors.surface,'#101010');
+  assert.deepEqual(r.errors,[]);
+});
+test('failed appearance save rolls back colors and mode without affecting tasks', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const original=D.createTask({title:'Se conserva'});
+  r.app.state.profile.tasks.push(original);
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.query('input[name="appearanceMode"][value="dark"]').checked=true;
+  r.fail(true);submit(r,'.appearance-form');await settle(r);
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(r.saved().profiles[0].tasks[0].id,original.id);
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'light');
+  assert.deepEqual(r.errors,[]);
+});
+test('restoring suggested colors affects preview only until saved', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.profile.preferences.appearanceMode='dark';
+  r.app.state.profile.preferences.appearancePalette='orchid';
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-reset"]');
+  assert.equal(r.query('input[name="appearanceMode"][value="light"]').checked,true);
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'dark');
+  submit(r,'.appearance-form');await settle(r);
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.deepEqual(r.errors,[]);
+});
