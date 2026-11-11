@@ -432,3 +432,21 @@ test('appearance is isolated between profiles when switching spaces', async t =>
   assert.equal(r.saved().profiles.find(p=>p.id===first.id).preferences.appearanceMode,'dark');
   assert.deepEqual(r.errors,[]);
 });
+
+test('profile creation wizard transfers its selected legacy theme into the new palette', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.click('[data-action="new-profile"]');
+  const wizard=r.query('form[data-form="profile-create"]');
+  assert.ok(wizard);
+  wizard.querySelector('input[name="name"]').value='Segundo perfil';
+  r.click('[data-action="profile-wizard-next"]');
+  r.click('[data-action="profile-wizard-next"]');
+  wizard.querySelector('select[name="theme"]').value='sky';
+  wizard.querySelector('input[name="color"]').value='#225588';
+  submit(r,'form[data-form="profile-create"]');await settle(r);
+  assert.equal(r.app.state.profile.name,'Segundo perfil');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'ocean');
+  assert.equal(r.app.state.profile.preferences.appearanceColors.accent,'#225588');
+  assert.equal(r.saved().profiles.length,2);
+  assert.deepEqual(r.errors,[]);
+});
