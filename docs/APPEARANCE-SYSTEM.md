@@ -8,22 +8,24 @@
 La sección **Ajustes → Apariencia** permite seleccionar:
 
 - **Modo:** Claro, Oscuro o Automático. Automático sigue la preferencia de color de macOS mientras O-Isym permanece abierto.
-- **12 paletas:** Bosque, Océano, Medianoche, Aurora, Orquídea, Lavanda, Rosa, Cobre, Arena, Lima, Pizarra y Grafito. Todas disponen de alternativas claras y oscuras.
-- **4 colores configurables:** Acento, Fondo, Paneles y Texto. Cada campo se activa independientemente; los demás siguen los valores calculados de la paleta.
-- **Previsualización real y aplicación inmediata:** las doce opciones muestran miniaturas de una ventana de O-Isym. Al elegir una paleta o modificar un color, toda la aplicación cambia de inmediato y también se actualiza la vista de ejemplo.
+- **18 paletas:** Bosque, Océano, Medianoche, Aurora, Orquídea, Lavanda, Rosa, Cobre, Arena, Lima, Pizarra, Grafito, Cobalto, Salvia, Coral, Ámbar, Ciruela y Glaciar. Cada una puede elegirse por separado en Claro y Oscuro.
+- **8 canales de colores por modo:** Acento, Fondo, Tarjetas, Menú lateral, Campos, Texto, Bordes y Texto secundario. Cada campo se activa de forma independiente y conserva su elección tanto en Claro como en Oscuro. Los controles ajustan automáticamente el contraste de los textos sobre el menú y los campos.
+- **Previsualización y aplicación inmediata:** las dieciocho opciones muestran miniaturas y hay una vista previa de menú, tarjeta, botón y campo de búsqueda. El selector «Personalizar Claro / Oscuro» permite preparar incluso el modo que todavía no está activo. Los cambios del modo activo se reflejan inmediatamente.
 - **Guardado automático:** los cambios se agrupan durante unos 360 ms para evitar escrituras excesivas. La interfaz informa si se están guardando o ya se guardaron. No existe un botón de guardar apariencia. Al cambiar de sección o perfil, o al cerrar O-Isym, se fuerzan las escrituras pendientes. Si falla una escritura, solo se revierten las preferencias visuales al último estado guardado, sin revertir las tareas ni los pizarrones.
-- **Restablecer colores originales:** recupera al instante el esquema y la paleta sugeridos para ese perfil, también con guardado automático.
+- **Restablecer colores de este modo:** recupera la paleta y los colores sugeridos únicamente para Claro u Oscuro, sin sobrescribir el otro modo. El guardado sigue siendo automático.
+- **Distribución:** espaciado Cómodo o Compacto y esquinas Suaves, Redondeadas o Rectas, guardados por perfil.
 
 Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propia apariencia. Duplicar configuración copia las preferencias visuales. Los perfiles anteriores conservan el esquema actual y reciben valores seguros sin cambiar sus tareas.
 
 ## Arquitectura
 
-- `src/appearance.js`: paletas, resolución de esquema, mezcla de colores y contraste. Es un módulo puro; no importa Electron ni accede al almacenamiento.
+- `src/appearance.js`: resolución de colores para Claro y Oscuro, superficies, menú, campos, contraste y preferencias de distribución; sin dependencia de Electron.
 - `src/domain.js`: normaliza `preferences.appearanceMode`, `preferences.appearancePalette` y `preferences.appearanceColors`. Rechaza colores que no sean `#RRGGBB` al importar.
 - `src/app.js`: actualiza inmediatamente las variables CSS y gestiona los cambios con una cola de escritura aplazada y recuperación de apariencia. Las operaciones existentes de Focus, Pizarrones y perfiles se mantienen.
-- `src/styles/appearance.css`: utiliza variables comunes para ventanas, menús, paneles, formularios, tarjetas, Calendario y elementos de Focus. No recolorea las notas y conexiones del contenido de un pizarrón.
-- `index.html`: carga el módulo de apariencia antes de la aplicación y los estilos después de los estilos base.
-- `tests/appearance.test.js`: comprueba las doce paletas, ambos esquemas, contraste, migración, importación y aislamiento.
+- `src/styles/appearance.css`: estilos coherentes para cada superficie; los campos y su contenedor comparten el mismo color, incluida la búsqueda de pizarrones. Los nodos de ideas mantienen sus colores propios.
+- `src/icons.js`: iconos SVG vectoriales para navegación, acciones y búsqueda, con trazo adaptable a cada tema. Evita los filtros que hacían que los PNG aparecieran como cuadros blancos.
+- `index.html`: carga apariencia e iconos antes de la aplicación, y los estilos de apariencia después de los estilos base.
+- `tests/appearance.test.js`: comprueba las dieciocho paletas, ambas variantes por perfil, contraste en menú y buscadores, migración de perfiles antiguos e importación.
 - `tests/planning-ui.test.js`: comprueba aplicación inmediata en toda la ventana, guardado automático, vaciado pendiente en navegación, reversión segura, cambios de macOS y regresiones de Focus/Pizarrones.
 - `tests/icon-assets.test.js`: comprueba archivos de iconos y avatares PNG, así como referencias de recursos. Si falla un recurso de icono durante la ejecución se muestra un símbolo accesible en vez de eliminarlo.
 
@@ -34,12 +36,22 @@ Los cambios se aplican al **perfil activo**. Cambiar de perfil recupera su propi
   "preferences": {
     "appearanceMode": "system",
     "appearancePalette": "ocean",
-    "appearanceColors": {
-      "accent": "",
-      "page": "",
-      "surface": "",
-      "text": ""
-    }
+    "appearancePalettes": {
+      "light": "rose",
+      "dark": "midnight"
+    },
+    "appearanceColorsByMode": {
+      "light": {
+        "accent": "", "page": "", "surface": "", "text": "",
+        "sidebar": "", "field": "", "border": "", "muted": ""
+      },
+      "dark": {
+        "accent": "", "page": "", "surface": "", "text": "",
+        "sidebar": "", "field": "", "border": "", "muted": ""
+      }
+    },
+    "appearanceDensity": "comfortable",
+    "appearanceRadius": "soft"
   }
 }
 ```
