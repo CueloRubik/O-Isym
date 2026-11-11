@@ -422,3 +422,38 @@ html[data-scheme] .topbar-create .action-button-icon {
 }
 html[data-scheme] .profile-switcher .profile-add { color: var(--accent-dark); }
 html[data-scheme] .settings-panel > .section-heading .section-heading-icon { filter: var(--ui-content-icon-filter); }
+
+/* Finish surfaces outside the standard card container. */
+html[data-scheme] .focus-music-settings,
+html[data-scheme] .focus-alarm-settings,
+html[data-scheme] .profile-focus-note,
+html[data-scheme] .notification-system-card,
+html[data-scheme] .activity-ideas,
+html[data-scheme] .profiles-count-track,
+html[data-scheme] .task-menu-choices,
+html[data-scheme] .workspace-main .calendar-mode,
+html[data-scheme] .ideas-canvas-empty-mark {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .activity-idea,
+html[data-scheme] .ideas-canvas-toolbar .ideas-tool-group .button,
+html[data-scheme] .week-day {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .week-day.is-today,
+html[data-scheme] .ideas-canvas-toolbar .button.active,
+html[data-scheme] .ideas-activity-palette button.active {
+  background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent);
+}
+html[data-scheme] .profiles-count-fill,
+html[data-scheme] .chart-fill,
+html[data-scheme] .progress-fill {
+  background: var(--accent);
+}
+html[data-scheme] .task-menu-choice.danger:hover {
+  background: var(--surface-soft); color: var(--danger);
+}
+html[data-scheme] .focus-music-settings .input,
+html[data-scheme] .notification-settings-form .input {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
