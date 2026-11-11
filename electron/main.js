@@ -29,6 +29,13 @@ let isQuitting = false;
 let mainWindow = null;
 let tray = null;
 let pendingTaskReminder = null;
+let startupComplete = false;
+let openRequested = false;
+
+// Only one process may own the snapshot and its notification timers.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
+else app.on('second-instance', () => showMainWindow());
 
 function deliverPendingTaskReminder() {
   if (!pendingTaskReminder || !mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) return;
@@ -38,7 +45,12 @@ function deliverPendingTaskReminder() {
 }
 
 function showMainWindow(reminder) {
-  if (reminder && typeof reminder === 'object') pendingTaskReminder = reminder;
+  if (reminder && typeof reminder.taskId === 'string' && reminder.taskId &&
+      typeof reminder.scheduledDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(reminder.scheduledDate)) {
+    // Never forward native event/MenuItem objects through IPC.
+    pendingTaskReminder = { taskId: reminder.taskId, scheduledDate: reminder.scheduledDate };
+  }
+  if (!startupComplete) { openRequested = true; return; }
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow({ show: true });
     return;
@@ -58,13 +70,13 @@ function createTray() {
   tray = new Tray(image);
   tray.setToolTip('O-Isym');
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Abrir O-Isym', click: showMainWindow },
+    { label: 'Abrir O-Isym', click: () => showMainWindow() },
     { label: 'La app sigue activa al cerrar la ventana', enabled: false },
     { type: 'separator' },
     { label: 'Salir de O-Isym', click: () => app.quit() }
   ]));
-  tray.on('click', showMainWindow);
-  tray.on('double-click', showMainWindow);
+  tray.on('click', () => showMainWindow());
+  tray.on('double-click', () => showMainWindow());
 }
 
 function createWindow(options = {}) {
@@ -138,7 +150,7 @@ function createWindow(options = {}) {
 let focusNotifications = null;
 let taskNotifications = null;
 
-app.whenReady().then(async () => {
+if (hasSingleInstanceLock) app.whenReady().then(async () => {
   try {
     const storage = createStorage(app.getPath('userData'));
     focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor, hasWindow: () => BrowserWindow.getAllWindows().length > 0 });
@@ -153,12 +165,19 @@ app.whenReady().then(async () => {
     createTray();
     const supportsLoginItems = process.platform === 'darwin' || process.platform === 'win32';
     const loginSettings = supportsLoginItems ? app.getLoginItemSettings() : {};
-    const initialSnapshot = await storage.read();
-    taskNotifications.scheduleSnapshot(initialSnapshot);
-    const activeProfile = initialSnapshot.profiles.find(profile => profile.id === initialSnapshot.activeProfileId);
-    if (supportsLoginItems) app.setLoginItemSettings({ openAtLogin: activeProfile?.preferences?.launchAtLogin === true, openAsHidden: true });
+    let initialSnapshot = null;
+    try { initialSnapshot = await storage.read(); }
+    catch (error) {
+      if (!['OISYM_STORE_CORRUPT', 'OISYM_STORE_INVALID'].includes(error.code)) throw error;
+      // Open the recovery UI without replacing the unreadable file or scheduling stale tasks.
+      reportStartupError('Los datos necesitan recuperación', error);
+    }
+    if (initialSnapshot) taskNotifications.scheduleSnapshot(initialSnapshot);
+    const activeProfile = initialSnapshot?.profiles.find(profile => profile.id === initialSnapshot.activeProfileId);
+    if (supportsLoginItems && initialSnapshot) app.setLoginItemSettings({ openAtLogin: activeProfile?.preferences?.launchAtLogin === true, openAsHidden: true });
     const launchedAtLogin = process.platform === 'darwin' && loginSettings.wasOpenedAtLogin;
-    createWindow({ show: !launchedAtLogin });
+    startupComplete = true;
+    createWindow({ show: openRequested || !initialSnapshot || !launchedAtLogin });
 
     app.on('activate', () => showMainWindow());
   } catch (error) {

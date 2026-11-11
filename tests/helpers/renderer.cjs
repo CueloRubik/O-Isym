@@ -4,7 +4,7 @@ const { JSDOM } = require('jsdom');
 const D = require('../../src/domain');
 const clone = value => JSON.parse(JSON.stringify(value));
 const wait = () => new Promise(resolve => setTimeout(resolve, 15));
-async function renderer({ systemDark = false } = {}) {
+async function renderer({ systemDark = false, storage: storageOverride, startInBoard = true } = {}) {
   const errors = [];
   const dom = new JSDOM('<div id="app"></div>', { runScripts: 'outside-only', url: 'https://oisym.test', pretendToBeVisual: true });
   const w = dom.window;
@@ -39,12 +39,13 @@ async function renderer({ systemDark = false } = {}) {
     } },
     onSaveBeforeClose: cb => { close = cb; }
   };
+  if (storageOverride) w.oisym.storage = storageOverride;
   for (const file of ['domain.js','planning.js','appearance.js','icons.js','focus-audio.js','app.js']) {
-    w.eval(fs.readFileSync(path.join(__dirname,'../../src',file),'utf8') + (file==='app.js' ? '\nwindow.testApp={state,save,flushIdeaChanges,flushAppearanceChanges,restoreIdeaBoardHistory,updateShell,iconImage};' : ''));
+    w.eval(fs.readFileSync(path.join(__dirname,'../../src',file),'utf8') + (file==='app.js' ? '\nwindow.testApp={state,save,flushIdeaChanges,flushAppearanceChanges,restoreIdeaBoardHistory,updateShell,iconImage,finishFocus,refreshFocusClock};' : ''));
   }
   await wait();
   const app = w.testApp;
-  app.state.view='planner'; app.state.plannerSection='board'; app.state.selectedIdeaBoardId=board.id; app.updateShell();
+  if (startInBoard) { app.state.view='planner'; app.state.plannerSection='board'; app.state.selectedIdeaBoardId=board.id; app.updateShell(); }
   const query = selector => w.document.querySelector(selector);
   const click = selector => { const node=query(selector); if (!node) throw new Error('Missing '+selector); node.click(); };
   const pointer = (selector,type,opts={}) => { const e=new w.MouseEvent(type,{bubbles:true,cancelable:true,button:0,...opts}); Object.defineProperty(e,'pointerId',{value:1}); query(selector).dispatchEvent(e); };

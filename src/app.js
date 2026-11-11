@@ -370,6 +370,7 @@ const state = {
   taskFilter: 'active',
   focusTick: null,
   focusFinishing: false,
+  focusSaveFailures: new Map(),
   toastTimer: null,
   editingTaskId: null,
   editingActivityId: null,
@@ -2609,6 +2610,7 @@ function maybeShowMacLaunchPrompt() {
 function renderFocus(main) {
   main.append(heading('Focus', 'Prepara tu sesión y después olvídate del reloj.', 'focus/timer.png'));
   const focus = state.profile.activeFocus;
+  const saveBlocked = isFocusSaveBlocked();
   const focusCard = card('focus-panel');
   const selectedTask = focus ? taskById(focus.taskId) : null;
   const activity = activityById(focus ? focus.activityId : (selectedTask?.activityId || ''));
@@ -2642,11 +2644,15 @@ function renderFocus(main) {
     actions.append(button('Comenzar a concentrarme', 'focus-start', 'button primary large'));
     actions.append(button('Tomar descanso · ' + state.profile.preferences.breakMinutes + ' min', 'focus-break', 'button secondary'));
   }
-  else {
+  else if (saveBlocked) {
+    focusCard.append(element('p', 'small-note', 'El tiempo terminó, pero falta guardar la sesión. Tus datos siguen abiertos. Revisa el almacenamiento y vuelve a intentar.'));
+    actions.append(button('Reintentar guardar sesión', 'focus-retry-save', 'button primary large'));
+  } else {
     actions.append(button(focus.pausedAt ? 'Reanudar' : 'Pausar', 'focus-toggle', 'button primary large'));
     actions.append(button('Terminar sesión', 'focus-stop', 'button secondary'));
   }
-  if (focus) actions.append(button('Reiniciar', 'focus-reset', 'button ghost'));
+  if (focus && !saveBlocked) actions.append(button('Reiniciar', 'focus-reset', 'button ghost'));
+  if (state.focusFinishing) actions.querySelectorAll('button').forEach(control => { control.disabled = true; });
   focusCard.append(actions);
   if (focus) {
     const elapsed = getFocusElapsedSeconds(focus);
@@ -3523,19 +3529,24 @@ function updateFocusDurationSuggestion() {
   const hint = $('.focus-hint');
   if (hint) hint.textContent = activity ? 'Duración sugerida de «' + activity.name + '»: ' + activity.durationMinutes + ' min. Puedes ajustarla solo para esta sesión.' : 'Se usa tu duración habitual como sugerencia. Puedes cambiarla sin modificar tus preferencias.';
 }
-function syncFocusNotificationSchedule(){const focus=state.profile?.activeFocus,alarms=window.oisym?.focusAlarms;if(!alarms)return;if(!focus||focus.pausedAt){alarms.cancel().catch(()=>{});return;}const endAt=Date.parse(focus.startedAt)+(focus.durationSeconds-(Number(focus.elapsedBeforePause)||0))*1000;alarms.schedule({endsAt:new Date(Math.max(Date.now(),endAt)).toISOString(),isBreak:focus.isBreak===true,taskTitle:taskById(focus.taskId)?.title||focus.activityTitle||'',notificationsEnabled:state.profile.preferences.focusNotifications!==false,soundEnabled:false}).catch(()=>{});}
+function isFocusSaveBlocked(profile = state.profile) {
+  const focus = profile?.activeFocus;
+  return Boolean(focus && state.focusSaveFailures.get(profile.id) === (focus.sessionStartedAt || focus.startedAt));
+}
+function syncFocusNotificationSchedule(){const focus=state.profile?.activeFocus,alarms=window.oisym?.focusAlarms;if(!alarms)return;if(!focus||focus.pausedAt||isFocusSaveBlocked()){alarms.cancel().catch(()=>{});return;}const endAt=Date.parse(focus.startedAt)+(focus.durationSeconds-(Number(focus.elapsedBeforePause)||0))*1000;alarms.schedule({endsAt:new Date(Math.max(Date.now(),endAt)).toISOString(),isBreak:focus.isBreak===true,taskTitle:taskById(focus.taskId)?.title||focus.activityTitle||'',notificationsEnabled:state.profile.preferences.focusNotifications!==false,soundEnabled:false}).catch(()=>{});}
 function refreshFocusClock() {
   const focus = state.profile?.activeFocus;
   if (!focus || focus.pausedAt) return;
   const remaining = getFocusRemainingSeconds(focus);
   const display = $('#focus-clock');
   if (display) display.textContent = String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
-  if (remaining <= 0) finishFocus({ completed: true });
+  if (remaining <= 0 && !isFocusSaveBlocked()) void finishFocus({ completed: true });
 }
 function startFocusTicker() {
   stopFocusTicker();
+  if (isFocusSaveBlocked()) return;
   refreshFocusClock();
-  if (!state.profile.activeFocus || state.profile.activeFocus.pausedAt) return;
+  if (!state.profile.activeFocus || state.profile.activeFocus.pausedAt || state.focusFinishing || isFocusSaveBlocked()) return;
   state.focusTick = setInterval(refreshFocusClock, 500);
 }
 function stopFocusTicker() {
@@ -3545,11 +3556,12 @@ function stopFocusTicker() {
 async function finishFocus(options = {}) {
   const focus = state.profile?.activeFocus;
   if (!focus || state.focusFinishing) return;
-  const previousProfile = cloneActiveProfile();
+  const profileId = state.profile.id;
   state.focusFinishing = true;
   const now = new Date().toISOString();
   const task = taskById(focus.taskId);
-  if (!focus.isBreak) state.profile.focusSessions.push(createFocusSession(focus, task ? task.title : '', now));
+  const session = focus.isBreak ? null : createFocusSession(focus, task ? task.title : '', now);
+  if (session) state.profile.focusSessions.push(session);
   state.profile.activeFocus = null;
   stopFocusTicker();
   focusAudioController.stopAll();
@@ -3557,15 +3569,24 @@ async function finishFocus(options = {}) {
   const saved = await save();
   state.focusFinishing = false;
   if (!saved) {
-    restoreActiveProfile(previousProfile);
-    if (state.profile.activeFocus && !state.profile.activeFocus.pausedAt) startFocusTicker();
-    syncFocusNotificationSchedule();
-    startFocusMusic();
+    // Restore only this session, preserving edits and profile switches made during the write.
+    const profile = state.profile?.id === profileId ? state.profile : state.snapshot.profiles.find(item => item.id === profileId);
+    if (profile) {
+      if (session) profile.focusSessions = profile.focusSessions.filter(item => item.id !== session.id);
+      profile.activeFocus = focus;
+      if (getFocusRemainingSeconds(focus) <= 0) state.focusSaveFailures.set(profileId, focus.sessionStartedAt || focus.startedAt);
+    }
+    if (state.profile?.id === profileId) {
+      if (!isFocusSaveBlocked() && !focus.pausedAt) startFocusTicker();
+      syncFocusNotificationSchedule();
+      if (!isFocusSaveBlocked()) startFocusMusic();
+    }
     updateShell();
-    if (!options.silent) showToast('No se pudo guardar el final de Focus. La sesión sigue activa.', 'error');
+    if (!options.silent) showToast('No se pudo guardar el final de Focus. Conservamos la sesión para que puedas reintentar.', 'error');
     return false;
   }
-  if (options.completed && !options.silent) notifyFocusFinished(task ? task.title : '', Boolean(focus.isBreak));
+  state.focusSaveFailures.delete(profileId);
+  if (options.completed && !options.silent && state.profile?.id === profileId) notifyFocusFinished(task ? task.title : '', Boolean(focus.isBreak));
   if (!options.silent) showToast(saved ? (options.completed ? (focus.isBreak ? 'Descanso terminado. Cuando quieras, puedes volver a concentrarte.' : '¡Tiempo completado! Tu sesión quedó guardada. Es buen momento para descansar.') : (focus.isBreak ? 'Descanso finalizado.' : 'Sesión guardada.')) : 'La sesión terminó, pero no se pudo guardar. Revisa el almacenamiento.', saved ? 'success' : 'error');
   updateShell();
   return true;
@@ -3576,6 +3597,7 @@ root.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
+  if (state.focusFinishing && ['focus-start', 'focus-break', 'focus-toggle', 'focus-stop', 'focus-reset', 'focus-retry-save'].includes(action)) return;
   const id = target.dataset.id;
   if (/^ideas-(note|activity)-(create|duplicate|delete|color)$/.test(action) && state.ideaViewportSaveTimer && !await flushIdeaChanges()) return;
   if (action === 'retry-boot') { await boot(); return; }
@@ -4253,6 +4275,7 @@ root.addEventListener('click', async event => {
   if (action === 'preview-focus-music') previewFocusMusic();
   if (action === 'stop-focus-music-preview') stopFocusMusicPreview();
   if (action === 'focus-stop') await finishFocus();
+  if (action === 'focus-retry-save' && isFocusSaveBlocked()) await finishFocus({ completed: true });
   if (action === 'focus-reset') {
     if (state.profile.activeFocus && !confirm('¿Terminar y descartar la sesión actual?')) return;
     const previousProfile = cloneActiveProfile();

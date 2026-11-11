@@ -8,6 +8,7 @@ function setup(platform = 'darwin') {
   const ipcMain = new EventEmitter(); const app = new EventEmitter();
   app.disableHardwareAcceleration=()=>{};app.whenReady=()=>({then:()=>({catch:()=>{}})});
   app.quit=()=>{app.quits=(app.quits||0)+1};
+  app.requestSingleInstanceLock=()=>true;
   class BrowserWindow extends EventEmitter {
     constructor(){super();this.webContents=new EventEmitter();this.webContents.send=(name)=>{this.sent=name};this.webContents.setWindowOpenHandler=()=>{};}
     loadFile(){return Promise.resolve()} hide(){this.hidden=true} show(){this.hidden=false} close(){this.closed=true}

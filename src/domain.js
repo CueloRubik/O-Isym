@@ -607,16 +607,16 @@ function analyzeSchedule(profile, dateKey) {
     const dueB = b.dueDate || '9999-12-31';
     return dueA.localeCompare(dueB) ||
       (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1) ||
-      clampNumber(a.estimatedMinutes, 5, 600, 30) - clampNumber(b.estimatedMinutes, 5, 600, 30) ||
+      clampNumber(a.estimatedMinutes, 5, 1440, 30) - clampNumber(b.estimatedMinutes, 5, 1440, 30) ||
       String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
   });
   const proposals = [];
   for (const task of eligible) {
-    const duration = clampNumber(task.estimatedMinutes, 5, 600, 30);
+    const duration = clampNumber(task.estimatedMinutes, 5, 1440, 30);
     let cursor = fromMinutes;
     let chosenStart = null;
     for (const slot of occupied) {
-      if (cursor + duration <= slot[0]) {
+      if (cursor + duration <= Math.min(slot[0], untilMinutes)) {
         chosenStart = cursor;
         break;
       }

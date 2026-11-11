@@ -1,12 +1,20 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+async function storageRequest(channel, ...args) {
+  const result = await ipcRenderer.invoke(channel, ...args);
+  if (result?.ok === true) return result.value;
+  const error = new Error(result?.error?.message || 'No se pudo acceder a los datos de O-Isym.');
+  if (typeof result?.error?.code === 'string') error.code = result.error.code;
+  throw error;
+}
+
 const storage = Object.freeze({
-  read: () => ipcRenderer.invoke('oisym:storage:read'),
-  save: snapshot => ipcRenderer.invoke('oisym:storage:save', snapshot),
+  read: () => storageRequest('oisym:storage:read'),
+  save: snapshot => storageRequest('oisym:storage:save', snapshot),
   recovery: Object.freeze({
-    listBackups: () => ipcRenderer.invoke('oisym:storage:recovery:list'),
-    overwrite: () => ipcRenderer.invoke('oisym:storage:recovery:overwrite'),
-    restore: name => ipcRenderer.invoke('oisym:storage:recovery:restore', name)
+    listBackups: () => storageRequest('oisym:storage:recovery:list'),
+    overwrite: () => storageRequest('oisym:storage:recovery:overwrite'),
+    restore: name => storageRequest('oisym:storage:recovery:restore', name)
   })
 });
 
