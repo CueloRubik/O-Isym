@@ -100,6 +100,7 @@ const state = {
   showTaskForm: false,
   taskFormDefaults: {},
   selectedTemplateId: '',
+  editingTemplateId: null,
   templatePreview: null,
   showActivityForm: false,
   showGoalForm: false,
@@ -1898,11 +1899,49 @@ function renderPlannerAgenda(main, listMode = false) {
     info.append(element('strong', '', template.name),
       element('p', 'small-note', template.entries.length + ' bloques · ' +
         (applies ? 'Aplicable a esta fecha' : 'Fuera de los días configurados')));
+    const exception = (template.recurrence.exceptions || []).includes(date);
+    const exceptionButton = button(exception ? 'Quitar excepción' : 'Excluir este día',
+      'template-exception', 'button secondary small', { id: template.id });
+    exceptionButton.disabled = !exception && !applies;
     row.append(info,
       button('Previsualizar', 'template-preview', 'button secondary small', { id: template.id }),
-      button(applies ? 'Excluir este día' : 'Alternar excepción', 'template-exception', 'button secondary small', { id: template.id }),
+      button('Editar regla', 'template-edit', 'button secondary small', { id: template.id }),
+      exceptionButton,
       button('Eliminar', 'template-delete', 'button secondary small', { id: template.id }));
     templatesCard.append(row);
+    if (state.editingTemplateId === template.id) {
+      const edit = element('form', 'form-card template-edit-form');
+      edit.dataset.form = 'day-template-edit';
+      const hiddenId = input('templateId', '', 'hidden', template.id);
+      edit.append(hiddenId, element('h3', '', 'Editar plantilla · ' + template.name));
+      edit.append(field('Nombre', input('name', '', 'text', template.name)));
+      const days = element('fieldset', 'weekday-picker');
+      days.append(element('legend', '', 'Días de repetición'));
+      [['1','Lun'],['2','Mar'],['3','Mié'],['4','Jue'],['5','Vie'],['6','Sáb'],['0','Dom']].forEach(([value,label]) => {
+        const wrap = element('label', 'weekday-option');
+        const check = element('input'); check.type = 'checkbox'; check.name = 'weekday'; check.value = value;
+        check.checked = template.recurrence.weekdays.includes(Number(value));
+        wrap.append(check, document.createTextNode(label));
+        days.append(wrap);
+      });
+      edit.append(days);
+      const validity = element('div', 'form-grid');
+      validity.append(field('Desde', input('startDate','','date', template.recurrence.startDate || '')),
+        field('Hasta', input('endDate','','date', template.recurrence.endDate || '')));
+      edit.append(validity, element('h4', '', 'Bloques de la plantilla'));
+      template.entries.forEach(entry => {
+        const item = element('div', 'inbox-row');
+        item.append(element('span', '', entry.startTime + '–' + entry.endTime + ' · ' + entry.title));
+        const remove = button('Quitar bloque', 'template-entry-remove', 'button secondary small', { id: template.id, entry: entry.id });
+        remove.disabled = template.entries.length <= 1;
+        item.append(remove); edit.append(item);
+      });
+      const actions = element('div','form-actions');
+      actions.append(button('Guardar cambios','submit-form','button primary'),
+        button('Cancelar','template-edit-cancel','button secondary'));
+      edit.append(actions);
+      templatesCard.append(edit);
+    }
   });
   const preview = state.templatePreview;
   if (preview && preview.date === date && templates.some(item => item.id === preview.id)) {
@@ -2744,6 +2783,19 @@ async function handleSubmit(form) {
       state.selectedTemplateId = template.id;
       state.templatePreview = null;
       showToast('Plantilla guardada. No se han creado tareas hasta que la apliques.');
+    } else if (form.dataset.form === 'day-template-edit') {
+      const template = (state.profile.dayTemplates || []).find(item => item.id === data.templateId);
+      if (!template) throw new Error('La plantilla ya no existe.');
+      const weekdays = Array.from(form.querySelectorAll('input[name="weekday"]:checked'), item => Number(item.value));
+      const validated = createDayTemplate({ name: data.name, weekdays,
+        startDate: data.startDate, endDate: data.endDate, entries: template.entries });
+      state.profile.dayTemplates = state.profile.dayTemplates.map(item => item.id === template.id
+        ? { ...item, name: validated.name, recurrence: {
+            ...validated.recurrence, exceptions: [...(item.recurrence.exceptions || [])] }
+          } : item);
+      if (!await save()) { restoreProfile(); return; }
+      state.editingTemplateId = null; state.templatePreview = null;
+      showToast('Regla de la plantilla actualizada. Las tareas creadas se conservan.');
     } else if (form.dataset.form === 'day-template-entry') {
       const template = (state.profile.dayTemplates || []).find(item => item.id === data.templateId);
       if (!template) throw new Error('Selecciona una plantilla existente.');
@@ -3397,6 +3449,25 @@ root.addEventListener('click', async event => {
   if (action === 'template-preview-close') {
     state.templatePreview = null; updateShell(); return;
   }
+  if (action === 'template-edit') {
+    state.editingTemplateId = state.editingTemplateId === id ? null : id;
+    state.templatePreview = null; updateShell(); return;
+  }
+  if (action === 'template-edit-cancel') {
+    state.editingTemplateId = null; updateShell(); return;
+  }
+  if (action === 'template-entry-remove') {
+    const template = (state.profile.dayTemplates || []).find(item => item.id === id);
+    const entry = template?.entries?.find(item => item.id === target.dataset.entry);
+    if (!entry || template.entries.length <= 1) return showToast('Toda plantilla necesita al menos un bloque.', 'error');
+    if (!confirm('¿Quitar el bloque «' + entry.title + '»? Las tareas ya creadas se conservarán.')) return;
+    const previous = cloneActiveProfile();
+    state.profile.dayTemplates = state.profile.dayTemplates.map(item => item.id === id
+      ? { ...item, entries: item.entries.filter(item => item.id !== entry.id) } : item);
+    if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+    state.templatePreview = null; updateShell(); showToast('Bloque eliminado de la plantilla.');
+    return;
+  }
   if (action === 'template-exception') {
     const previous = cloneActiveProfile();
     try {
@@ -3419,7 +3490,7 @@ root.addEventListener('click', async event => {
     const previous = cloneActiveProfile();
     state.profile.dayTemplates = state.profile.dayTemplates.filter(item => item.id !== id);
     if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
-    state.templatePreview = null; updateShell(); showToast('Plantilla eliminada.');
+    state.templatePreview = null; state.editingTemplateId = null; updateShell(); showToast('Plantilla eliminada.');
     return;
   }
   if (action === 'template-apply') {
