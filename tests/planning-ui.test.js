@@ -161,3 +161,33 @@ test('keyboard Tab while a task dialog is open does not throw or break navigatio
   assert.equal(e.defaultPrevented, true);
   assert.deepEqual(r.errors, []);
 });
+
+test('a reminder for a deleted task opens its calendar date rather than Pizarrones', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  r.w.eval('openTaskFromReminder({ taskId: "deleted-task", scheduledDate: "2026-11-12" })');
+  assert.equal(r.app.state.view, 'calendar');
+  assert.equal(r.app.state.calendarMode, 'day');
+  assert.equal(r.app.state.selectedDate, '2026-11-12');
+  assert.ok(r.query('.day-timeline-card'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('a reminder with an invalid date safely falls back to the local day', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  r.w.eval('openTaskFromReminder({ taskId: "deleted-task", scheduledDate: "invalid-date" })');
+  assert.equal(r.app.state.view, 'calendar');
+  assert.equal(r.app.state.selectedDate, D.localDate());
+  assert.ok(r.query('.day-timeline-card'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('a reminder for an existing task still opens the shared task editor', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Tarea recordada', scheduledDate: '2026-11-12' });
+  r.app.state.profile.tasks.push(task);
+  r.w.eval('openTaskFromReminder(' + JSON.stringify({ taskId: task.id, scheduledDate: '2026-11-12' }) + ')');
+  assert.equal(r.app.state.view, 'tasks');
+  assert.equal(r.app.state.editingTaskId, task.id);
+  assert.ok(r.query('.task-form'));
+  assert.deepEqual(r.errors, []);
+});
