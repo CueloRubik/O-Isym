@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - development
-      - oisym-5-development
+      - main
   pull_request:
     branches:
       - development
-      - oisym-5-development
+      - main
 
 jobs:
   test:
@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
       - name: Install test dependencies
         run: npm ci --ignore-scripts
       - name: Run automated tests
