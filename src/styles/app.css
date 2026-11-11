@@ -885,3 +885,26 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .text-dialog form { display: grid; gap: 20px; }
 .text-dialog label { display: grid; gap: 12px; }
 .text-dialog input { width: 100%; box-sizing: border-box; }
+
+/* Pizarrones: predictable layers, selection and compact labelled tools. */
+.ideas-canvas-viewport { cursor: crosshair; }
+.ideas-tool-group { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:3px 0; }
+.ideas-tool-group + .ideas-tool-group { border-left:1px solid var(--line); padding-left:10px; }
+.ideas-canvas-toolbar .button, .ideas-board-actions .button, .ideas-library-header-actions .button, .ideas-group-small-action { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.ideas-note-icon-button .button-icon, .ideas-group-small-action .button-icon { width:18px; height:18px; object-fit:contain; flex-shrink:0; }
+.ideas-search-field { display:flex; align-items:center; flex:1 1 210px; gap:7px; min-width:0; }
+.ideas-search-field input { width:100%; min-width:0; }
+.ideas-help-panel { flex-basis:100%; margin:0; padding:10px; background:#eef5f0; border-radius:8px; font-size:12px; }
+.ideas-help-panel[hidden] { display:none; }
+.ideas-board-preview-icon { width:48px; height:48px; object-fit:contain; }
+.ideas-selection-box { position:absolute; z-index:10; border:1px solid #397b58; background:rgba(61,137,91,.16); pointer-events:none; }
+.ideas-selection-box[hidden] { display:none; }
+.is-selection-preview { outline:3px dashed #46835c !important; outline-offset:3px; }
+.ideas-group-frame.is-selected { border-color:#397b58; box-shadow:0 0 0 2px rgba(61,137,91,.3); }
+.ideas-connections-layer { z-index:3; }
+.ideas-group-header { z-index:4; }
+@media(max-width:700px) { .ideas-tool-group + .ideas-tool-group { border-left:0; padding-left:0; } .ideas-tool-group { width:100%; } }
+
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+.ideas-canvas-toolbar .button-icon, .ideas-library-header-actions .button-icon, .ideas-board-actions .button-icon, .ideas-note-icon-button .button-icon, .ideas-group-small-action .button-icon { margin:0; flex-shrink:0; }

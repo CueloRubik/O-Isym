@@ -13,7 +13,8 @@
   },
   "devDependencies": {
     "electron": "28.3.3",
-    "electron-builder": "24.13.3"
+    "electron-builder": "24.13.3",
+    "jsdom": "22.1.0"
   },
   "build": {
     "appId": "com.oisym.app",

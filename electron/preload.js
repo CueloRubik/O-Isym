@@ -29,6 +29,16 @@ const focusAlarms = Object.freeze({
 
 contextBridge.exposeInMainWorld('oisym', Object.freeze({
   storage,
+  onSaveBeforeClose: callback => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = async () => {
+      let saved = false;
+      try { saved = await callback() === true; } catch {}
+      ipcRenderer.send('oisym:window:saved-before-close', saved);
+    };
+    ipcRenderer.on('oisym:window:save-before-close', listener);
+    return () => ipcRenderer.removeListener('oisym:window:save-before-close', listener);
+  },
   focusAlarms,
   notifications
 }));

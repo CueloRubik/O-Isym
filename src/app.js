@@ -104,7 +104,9 @@ const state = {
   ideaBoardSort: 'modified',
   ideaViewportSaveTimer: null,
   ideaBoardHistories: {},
-  ideaHistoryRestoring: false
+  ideaHistoryRestoring: false,
+  ideaSelections: {},
+  ideaSaveFailed: false
 };
 
 const $ = (selector, parent = root) => parent.querySelector(selector);
@@ -126,10 +128,32 @@ const iconImage = (path, alt = '', className = 'ui-icon') => {
   image.onerror = () => image.remove();
   return image;
 };
+const IDEA_ACTION_ICONS = {
+  'ideas-create': 'ideas/board-add.png', 'ideas-import-trigger': 'actions/import.png',
+  'ideas-edit': 'actions/edit.png', 'ideas-rename': 'actions/edit.png', 'ideas-export': 'actions/export.png',
+  'ideas-duplicate': 'actions/duplicate.png', 'ideas-delete': 'actions/delete.png', 'ideas-library': 'actions/back.png',
+  'ideas-note-create': 'ideas/note-add.png', 'ideas-activity-create': 'ideas/activity-add.png',
+  'ideas-note-duplicate': 'actions/duplicate.png', 'ideas-activity-duplicate': 'actions/duplicate.png',
+  'ideas-note-delete': 'actions/delete.png', 'ideas-activity-delete': 'actions/delete.png',
+  'ideas-connect-arrow': 'ideas/connect-arrow.png', 'ideas-connect-line': 'ideas/connect-line.png',
+  'ideas-connection-edit': 'ideas/connection-label.png', 'ideas-connection-delete': 'actions/delete.png',
+  'ideas-group-create': 'ideas/group.png', 'ideas-group-remove': 'ideas/ungroup.png',
+  'ideas-history-undo': 'actions/undo.png', 'ideas-history-redo': 'actions/redo.png',
+  'ideas-canvas-zoom-in': 'ideas/zoom-in.png', 'ideas-canvas-zoom-out': 'ideas/zoom-out.png',
+  'ideas-canvas-center': 'ideas/center.png', 'ideas-canvas-fit': 'ideas/fit-view.png',
+  'ideas-node-filters-clear': 'tasks/filter.png', 'ideas-help': 'interface/help.png'
+};
 const button = (label, action, className = 'button secondary', data = {}) => {
   const node = element('button', className, label);
   node.type = 'button';
   node.dataset.action = action;
+  if (IDEA_ACTION_ICONS[action]) {
+    const compact = className.includes('ideas-note-icon-button') || action.includes('canvas-zoom-');
+    const cleanLabel = label.replace(/^[+＋×↶↷↗—←−]+\s*/, '') || label;
+    node.replaceChildren(iconImage(IDEA_ACTION_ICONS[action], '', 'button-icon'));
+    const caption = element('span', 'button-label' + (compact ? ' sr-only' : ''), cleanLabel);
+    node.append(caption); node.title = cleanLabel; node.setAttribute('aria-label', cleanLabel);
+  }
   Object.entries(data).forEach(([key, value]) => node.dataset[key] = String(value));
   return node;
 };
@@ -210,35 +234,76 @@ const restoreActiveProfile = profile => {
   state.snapshot.activeProfileId = profile.id;
 };
 const cloneIdeaBoard = board => JSON.parse(JSON.stringify(board));
+const ideaContent = board => {
+  const copy = cloneIdeaBoard(board);
+  delete copy.viewport; delete copy.modifiedAt;
+  copy.nodes.forEach(node => { delete node.modifiedAt; });
+  return JSON.stringify(copy);
+};
 const getIdeaBoardHistory = board => {
   if (!board) return null;
-  if (!state.ideaBoardHistories[board.id]) {
-    const snapshot = cloneIdeaBoard(board);
-    state.ideaBoardHistories[board.id] = { past: [], future: [], last: snapshot, lastChangeAt: 0 };
-  }
+  if (!state.ideaBoardHistories[board.id]) state.ideaBoardHistories[board.id] = { past: [], future: [], last: cloneIdeaBoard(board) };
   return state.ideaBoardHistories[board.id];
 };
-const recordIdeaBoardChange = () => {
-  if (state.ideaHistoryRestoring || state.plannerSection !== 'board' || !state.selectedIdeaBoardId) return;
+const syncIdeaHistoryButtons = () => {
   const board = state.profile?.ideaBoards?.find(item => item.id === state.selectedIdeaBoardId);
-  if (!board) return;
-  const history = getIdeaBoardHistory(board);
-  const current = cloneIdeaBoard(board);
-  if (JSON.stringify(current) === JSON.stringify(history.last)) return;
-  const now = Date.now();
-  if (!history.lastChangeAt || now - history.lastChangeAt > 900) {
-    history.past.push(history.last);
-    if (history.past.length > 50) history.past.shift();
-  }
-  history.last = current;
-  history.lastChangeAt = now;
-  history.future = [];
+  const history = board && getIdeaBoardHistory(board);
   const undo = root.querySelector('[data-action="ideas-history-undo"]');
   const redo = root.querySelector('[data-action="ideas-history-redo"]');
-  if (undo) undo.disabled = !history.past.length;
-  if (redo) redo.disabled = !history.future.length;
+  if (undo) undo.disabled = !history?.past.length || state.ideaHistoryRestoring;
+  if (redo) redo.disabled = !history?.future.length || state.ideaHistoryRestoring;
+};
+const recordIdeaBoardChange = board => {
+  if (!board || state.ideaHistoryRestoring) return;
+  const history = getIdeaBoardHistory(board);
+  if (ideaContent(board) === ideaContent(history.last)) return;
+  history.past.push(history.last);
+  if (history.past.length > 50) history.past.shift();
+  history.last = cloneIdeaBoard(board);
+  history.future = [];
+  syncIdeaHistoryButtons();
+};
+let saveQueue = Promise.resolve(true);
+let saveRevision = 0;
+const save = () => {
+  if (!state.profile) return Promise.resolve(false);
+  const revision = ++saveRevision;
+  state.profile.updatedAt = new Date().toISOString();
+  state.snapshot.profiles = state.snapshot.profiles.map(profile => profile.id === state.profile.id ? state.profile : profile);
+  state.snapshot.activeProfileId = state.profile.id;
+  state.snapshot.updatedAt = new Date().toISOString();
+  // Capture now; late IPC replies must never replace newer in-memory edits.
+  const snapshot = JSON.parse(JSON.stringify(state.snapshot));
+  const board = snapshot.profiles.find(p => p.id === snapshot.activeProfileId)?.ideaBoards?.find(b => b.id === state.selectedIdeaBoardId);
+  saveQueue = saveQueue.then(async () => {
+    try {
+      await window.oisym.storage.save(snapshot);
+      recordIdeaBoardChange(board);
+      if (revision === saveRevision) state.ideaSaveFailed = false;
+      return true;
+    } catch (error) {
+      state.ideaSaveFailed = true;
+      showToast('No se pudo guardar. Conservamos los cambios abiertos: ' + error.message, 'error');
+      return false;
+    }
+  });
+  return saveQueue;
+};
+const flushIdeaChanges = async () => {
+  if (!state.profile) return true;
+  while (true) {
+    clearTimeout(state.ideaViewportSaveTimer);
+    state.ideaViewportSaveTimer = null;
+    const pending = save();
+    const captured = JSON.stringify(state.snapshot);
+    if (!await pending) return false;
+    if (JSON.stringify(state.snapshot) === captured) return true;
+  }
 };
 const restoreIdeaBoardHistory = async direction => {
+  if (state.ideaHistoryRestoring) return false;
+  if (!await flushIdeaChanges()) return false;
+  if (state.ideaHistoryRestoring) return false;
   const boardIndex = state.profile?.ideaBoards?.findIndex(item => item.id === state.selectedIdeaBoardId) ?? -1;
   if (boardIndex < 0) return false;
   const board = state.profile.ideaBoards[boardIndex];
@@ -250,38 +315,23 @@ const restoreIdeaBoardHistory = async direction => {
   const target = source.pop();
   destination.push(current);
   const restored = cloneIdeaBoard(target);
+  restored.viewport = { ...board.viewport };
   restored.modifiedAt = new Date().toISOString();
   state.profile.ideaBoards[boardIndex] = restored;
-  history.last = cloneIdeaBoard(restored);
-  history.lastChangeAt = 0;
   state.ideaHistoryRestoring = true;
+  syncIdeaHistoryButtons();
   const saved = await save();
   state.ideaHistoryRestoring = false;
   if (!saved) {
-    source.push(target);
-    destination.pop();
+    source.push(target); destination.pop();
     state.profile.ideaBoards[boardIndex] = current;
-    history.last = cloneIdeaBoard(current);
+    syncIdeaHistoryButtons();
     return false;
   }
+  history.last = cloneIdeaBoard(restored);
   updateShell();
-  showToast(direction === 'undo' ? 'Cambio deshecho.' : 'Cambio restaurado.');
+  root.querySelector('.ideas-canvas-viewport')?.focus({ preventScroll: true });
   return true;
-};
-const save = async () => {
-  state.profile.updatedAt = new Date().toISOString();
-  state.snapshot.profiles = state.snapshot.profiles.map(profile => profile.id === state.profile.id ? state.profile : profile);
-  state.snapshot.activeProfileId = state.profile.id;
-  state.snapshot.updatedAt = new Date().toISOString();
-  try {
-    state.snapshot = await window.oisym.storage.save(state.snapshot);
-    state.profile = state.snapshot.profiles.find(profile => profile.id === state.snapshot.activeProfileId) || state.profile;
-    recordIdeaBoardChange();
-    return true;
-  } catch (error) {
-    showToast('No se pudo guardar: ' + error.message, 'error');
-    return false;
-  }
 };
 const showToast = (message, type = 'success') => {
   const existing = $('.toast');
@@ -762,7 +812,9 @@ function renderIdeaBoardCanvas(main, board) {
   const titleArea = element('div', 'ideas-canvas-title');
   titleArea.append(element('h1', '', board.title));
   titleArea.append(element('p', 'muted', board.description || 'Organiza tus ideas en un espacio visual.'));
-  header.append(titleArea, button('← Mis pizarrones', 'ideas-library', 'button secondary'));
+  const boardActions = element('div', 'ideas-library-header-actions');
+  boardActions.append(button('Renombrar', 'ideas-rename', 'button secondary', { id: board.id }), button('Exportar', 'ideas-export', 'button secondary', { id: board.id }), button('Mis pizarrones', 'ideas-library', 'button secondary'));
+  header.append(titleArea, boardActions);
   main.append(header);
 
   getIdeaBoardHistory(board);
@@ -798,8 +850,24 @@ function renderIdeaBoardCanvas(main, board) {
   const deleteConnection = button('Eliminar conexión', 'ideas-connection-delete', 'button secondary');
   deleteConnection.disabled = true;
   const filterTools = element('div', 'ideas-canvas-filter-tools');
-  filterTools.append(nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter, clearNodeFilters, filterSummary);
-  toolbar.append(undoButton, redoButton, addNote, addActivity, groupSelection, connectArrow, connectLine, editConnection, deleteConnection, element('span', 'ideas-canvas-toolbar-divider'), zoomOut, zoomValue, zoomIn, element('span', 'ideas-canvas-toolbar-divider'), center, fit, filterTools);
+  const searchLabel = element('label', 'ideas-search-field');
+  searchLabel.append(iconImage('interface/search.png', '', 'button-icon'), nodeSearch);
+  filterTools.append(searchLabel, nodeTypeFilter, activityStatusFilter, activityPriorityFilter, clearNodeFilters, filterSummary);
+  const editingTools = element('div', 'ideas-tool-group');
+  editingTools.setAttribute('aria-label', 'Edición');
+  editingTools.append(undoButton, redoButton, addNote, addActivity, groupSelection);
+  const connectionTools = element('div', 'ideas-tool-group');
+  connectionTools.setAttribute('aria-label', 'Conexiones');
+  connectionTools.append(connectArrow, connectLine, editConnection, deleteConnection);
+  const navigationTools = element('div', 'ideas-tool-group');
+  navigationTools.setAttribute('aria-label', 'Vista');
+  const help = button('Ayuda', 'ideas-help');
+  navigationTools.append(zoomOut, zoomValue, zoomIn, center, fit, help);
+  const helpText = element('p', 'ideas-help-panel', 'Arrastra el fondo para seleccionar. Shift conserva la selección y añade elementos. Option/Alt selecciona una tarjeta dentro de un grupo. Arrastra el encabezado para mover la selección. Mueve el lienzo con la rueda pulsada o dos dedos; pellizca o usa Ctrl + rueda para zoom. Cmd/Ctrl + Z deshace; Cmd/Ctrl + Shift + Z o Ctrl + Y rehace. La cámara no cambia al deshacer.');
+  helpText.hidden = true;
+  help.addEventListener('click', () => { helpText.hidden = !helpText.hidden; help.setAttribute('aria-expanded', String(!helpText.hidden)); });
+  help.setAttribute('aria-expanded', 'false');
+  toolbar.append(editingTools, connectionTools, navigationTools, filterTools, helpText);
   main.append(toolbar);
 
   const syncHistoryControls = () => {
@@ -811,18 +879,9 @@ function renderIdeaBoardCanvas(main, board) {
   };
   undoButton.addEventListener('click', () => restoreIdeaBoardHistory('undo'));
   redoButton.addEventListener('click', () => restoreIdeaBoardHistory('redo'));
-  main.addEventListener('keydown', event => {
-    if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
-    const key = event.key.toLowerCase();
-    if (key !== 'z' && key !== 'y') return;
-    if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-    event.preventDefault();
-    event.stopPropagation();
-    restoreIdeaBoardHistory(key === 'y' || event.shiftKey ? 'redo' : 'undo');
-  });
   const viewport = element('div', 'ideas-canvas-viewport');
   viewport.setAttribute('role', 'application');
-  viewport.setAttribute('aria-label', 'Lienzo del pizarrón. Arrastra el fondo para desplazarte y usa la rueda o los controles para cambiar el zoom.');
+  viewport.setAttribute('aria-label', 'Lienzo del pizarrón. Arrastra para seleccionar, Shift añade a la selección, rueda pulsada o dos dedos para mover y pellizco para zoom.');
   viewport.tabIndex = 0;
   const world = element('div', 'ideas-canvas-world');
   const emptyState = element('div', 'ideas-canvas-empty');
@@ -839,7 +898,8 @@ function renderIdeaBoardCanvas(main, board) {
   let moved = false;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const currentBoard = () => state.profile?.ideaBoards?.find(item => item.id === board.id);
-  const selectedNodeIds = new Set();
+  const selectedNodeIds = state.ideaSelections[board.id] || (state.ideaSelections[board.id] = new Set());
+  for (const id of selectedNodeIds) if (!board.nodes.some(node => node.id === id)) selectedNodeIds.delete(id);
   const applyNodeFilters = () => {
     const activeBoard = currentBoard(); if (!activeBoard) return;
     const query = nodeSearch.value.trim().toLocaleLowerCase('es');
@@ -866,14 +926,25 @@ function renderIdeaBoardCanvas(main, board) {
   clearNodeFilters.addEventListener('click', () => { nodeSearch.value = ''; nodeTypeFilter.value = 'all'; activityStatusFilter.value = 'all'; activityPriorityFilter.value = 'all'; applyNodeFilters(); });
   [nodeSearch, nodeTypeFilter, activityStatusFilter, activityPriorityFilter].forEach(control => control.addEventListener('input', applyNodeFilters));
   [nodeTypeFilter, activityStatusFilter, activityPriorityFilter].forEach(control => control.addEventListener('change', applyNodeFilters));
-  const syncSelection = () => {
-    world.querySelectorAll('.ideas-note-card, .ideas-activity-card').forEach(card => card.classList.toggle('is-selected', selectedNodeIds.has(card.dataset.nodeId)));
-    groupSelection.disabled = selectedNodeIds.size < 2;
-    groupSelection.textContent = selectedNodeIds.size > 1 ? 'Agrupar selección (' + selectedNodeIds.size + ')' : 'Agrupar selección';
+  const selectionIds = (id, individual = false) => {
+    const nodes = currentBoard()?.nodes || [];
+    const node = nodes.find(n => n.id === id);
+    if (!node) return [];
+    if (node.type === 'group') return [id, ...node.childrenIds];
+    const group = !individual && nodes.find(n => n.type === 'group' && n.childrenIds.includes(id));
+    return group ? [group.id, ...group.childrenIds] : [id];
   };
-  const selectNode = (id, additive = false) => {
+  const syncSelection = () => {
+    world.querySelectorAll('[data-node-id]').forEach(card => card.classList.toggle('is-selected', selectedNodeIds.has(card.dataset.nodeId)));
+    world.querySelectorAll('[data-group-id]').forEach(frame => frame.classList.toggle('is-selected', selectedNodeIds.has(frame.dataset.groupId)));
+    const count = (currentBoard()?.nodes || []).filter(n => n.type !== 'group' && selectedNodeIds.has(n.id)).length;
+    groupSelection.disabled = count < 2;
+    const label = groupSelection.querySelector('.button-label');
+    if (label) label.textContent = count > 1 ? 'Agrupar (' + count + ')' : 'Agrupar selección';
+  };
+  const selectNode = (id, additive = false, individual = false) => {
     if (!additive) selectedNodeIds.clear();
-    if (additive && selectedNodeIds.has(id)) selectedNodeIds.delete(id); else selectedNodeIds.add(id);
+    selectionIds(id, individual).forEach(id => selectedNodeIds.add(id));
     syncSelection();
   };
   const paint = () => {
@@ -889,6 +960,7 @@ function renderIdeaBoardCanvas(main, board) {
   const updateViewport = () => {
     const activeBoard = currentBoard();
     if (!activeBoard) return;
+    camera.x = clamp(camera.x, -1000000, 1000000); camera.y = clamp(camera.y, -1000000, 1000000);
     activeBoard.viewport = { x: camera.x, y: camera.y, zoom: camera.zoom };
     activeBoard.modifiedAt = new Date().toISOString();
     clearTimeout(state.ideaViewportSaveTimer);
@@ -942,35 +1014,71 @@ function renderIdeaBoardCanvas(main, board) {
   center.addEventListener('click', () => centerContent(false));
   fit.addEventListener('click', () => centerContent(true));
   viewport.addEventListener('wheel', event => {
-    if (event.target.closest('.ideas-note-editor')) return;
     event.preventDefault();
-    zoomAt(camera.zoom * Math.exp(-event.deltaY * 0.0015), event.clientX, event.clientY);
+    if (event.ctrlKey || event.metaKey) zoomAt(camera.zoom * Math.exp(-event.deltaY * 0.01), event.clientX, event.clientY);
+    else {
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1;
+      camera.x -= event.deltaX * unit; camera.y -= event.deltaY * unit;
+      paint(); updateViewport();
+    }
   }, { passive: false });
-  viewport.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || event.target.closest('.ideas-note-card, .ideas-activity-card, .ideas-connection-hit, button, input, textarea, select, a')) return;
-    pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, cameraX: camera.x, cameraY: camera.y };
-    moved = false;
-    viewport.setPointerCapture(event.pointerId);
-    viewport.classList.add('is-panning');
-  });
-  viewport.addEventListener('pointermove', event => {
-    if (!pointer || event.pointerId !== pointer.id) return;
-    const dx = event.clientX - pointer.x;
-    const dy = event.clientY - pointer.y;
-    if (Math.abs(dx) + Math.abs(dy) > 2) moved = true;
-    camera.x = pointer.cameraX + dx;
-    camera.y = pointer.cameraY + dy;
-    paint();
-  });
-  const finishPan = event => {
-    if (!pointer || (event && event.pointerId !== pointer.id)) return;
-    if (moved) updateViewport();
-    pointer = null;
-    viewport.classList.remove('is-panning');
+  const marquee = element('div', 'ideas-selection-box');
+  marquee.hidden = true; viewport.append(marquee);
+  let rectangle = null;
+  const worldPoint = event => {
+    const rect = viewport.getBoundingClientRect();
+    return { x: (event.clientX - rect.left - rect.width / 2 - camera.x) / camera.zoom,
+      y: (event.clientY - rect.top - rect.height / 2 - camera.y) / camera.zoom };
   };
-  viewport.addEventListener('pointerup', finishPan);
-  viewport.addEventListener('pointercancel', finishPan);
-  viewport.addEventListener('lostpointercapture', finishPan);
+  viewport.addEventListener('pointerdown', event => {
+    if (event.button === 1) {
+      event.preventDefault(); event.stopPropagation();
+      pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, cameraX: camera.x, cameraY: camera.y };
+      moved = false; viewport.setPointerCapture(event.pointerId); viewport.classList.add('is-panning'); return;
+    }
+    if (event.button !== 0 || event.target.closest('.ideas-note-card, .ideas-activity-card, .ideas-group-header, .ideas-connection-hit, button, input, textarea, select, a')) return;
+    event.preventDefault(); viewport.focus({ preventScroll: true });
+    rectangle = { id: event.pointerId, start: worldPoint(event), clientX: event.clientX, clientY: event.clientY,
+      base: new Set(event.shiftKey ? selectedNodeIds : []), individual: event.altKey, hits: new Set() };
+    if (!event.shiftKey) selectedNodeIds.clear();
+    syncSelection(); viewport.setPointerCapture(event.pointerId);
+  }, true);
+  viewport.addEventListener('pointermove', event => {
+    if (pointer && event.pointerId === pointer.id) {
+      const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
+      moved = moved || Math.abs(dx) + Math.abs(dy) > 2;
+      camera.x = pointer.cameraX + dx; camera.y = pointer.cameraY + dy; paint(); return;
+    }
+    if (!rectangle || event.pointerId !== rectangle.id) return;
+    const point = worldPoint(event), rect = viewport.getBoundingClientRect();
+    const area = { left: Math.min(point.x, rectangle.start.x), right: Math.max(point.x, rectangle.start.x), top: Math.min(point.y, rectangle.start.y), bottom: Math.max(point.y, rectangle.start.y) };
+    marquee.hidden = false;
+    Object.assign(marquee.style, { left: Math.min(event.clientX, rectangle.clientX) - rect.left + 'px', top: Math.min(event.clientY, rectangle.clientY) - rect.top + 'px', width: Math.abs(event.clientX - rectangle.clientX) + 'px', height: Math.abs(event.clientY - rectangle.clientY) + 'px' });
+    rectangle.hits.clear();
+    for (const node of currentBoard()?.nodes || []) {
+      if (node.type === 'group') continue;
+      const card = world.querySelector('[data-node-id="' + node.id + '"]');
+      if (card?.classList.contains('is-filtered-out')) continue;
+      if (node.x < area.right && node.x + (card?.offsetWidth || node.width) > area.left && node.y < area.bottom && node.y + (card?.offsetHeight || node.height) > area.top)
+        selectionIds(node.id, rectangle.individual).forEach(id => rectangle.hits.add(id));
+    }
+    world.querySelectorAll('[data-node-id], [data-group-id]').forEach(card => card.classList.toggle('is-selection-preview', rectangle.hits.has(card.dataset.nodeId || card.dataset.groupId)));
+  });
+  const finishPointer = event => {
+    if (pointer && event.pointerId === pointer.id) { if (moved) updateViewport(); pointer = null; viewport.classList.remove('is-panning'); }
+    if (rectangle && event.pointerId === rectangle.id) {
+      selectedNodeIds.clear();
+      for (const id of rectangle.base) selectedNodeIds.add(id);
+      if (event.type !== 'pointercancel') for (const id of rectangle.hits) selectedNodeIds.add(id);
+      rectangle = null; marquee.hidden = true;
+      world.querySelectorAll('.is-selection-preview').forEach(card => card.classList.remove('is-selection-preview'));
+      syncSelection();
+    }
+  };
+  viewport.addEventListener('pointerup', finishPointer);
+  viewport.addEventListener('pointercancel', finishPointer);
+  viewport.addEventListener('lostpointercapture', finishPointer);
+  viewport.addEventListener('auxclick', event => { if (event.button === 1) event.preventDefault(); });
   viewport.addEventListener('keydown', event => {
     if (event.target !== viewport) return;
     const step = event.shiftKey ? 120 : 48;
@@ -991,7 +1099,7 @@ function renderIdeaBoardCanvas(main, board) {
   connectionLayer.classList.add('ideas-connections-layer');
   connectionLayer.setAttribute('aria-hidden', 'true');
   connectionLayer.style.overflow = 'visible';
-  const connectionHint = element('p', 'ideas-canvas-hint', 'Arrastra el fondo para moverte · Rueda o trackpad para zoom · Centrar y Ajustar todo para recuperar la vista');
+  const connectionHint = element('p', 'ideas-canvas-hint', 'Arrastra para seleccionar · Shift añade · Option/Alt selecciona una nota del grupo · Rueda pulsada o dos dedos para mover · Pellizco o Ctrl + rueda para zoom');
   main.append(viewport, connectionHint);
   let connectMode = null;
   let connectionStartId = null;
@@ -1005,7 +1113,7 @@ function renderIdeaBoardCanvas(main, board) {
     deleteConnection.disabled = !selectedConnectionId;
     connectionHint.textContent = connectMode
       ? (connectionStartId ? 'Ahora selecciona el segundo elemento · Esc para cancelar' : 'Selecciona el primer elemento · Esc para cancelar')
-      : 'Arrastra el fondo para moverte · Rueda o trackpad para zoom · Centrar y Ajustar todo para recuperar la vista';
+      : 'Arrastra para seleccionar · Shift añade · Option/Alt selecciona una nota del grupo · Rueda pulsada o dos dedos para mover · Pellizco o Ctrl + rueda para zoom';
   };
   const drawConnections = () => {
     connectionLayer.replaceChildren();
@@ -1112,9 +1220,9 @@ function renderIdeaBoardCanvas(main, board) {
       const top = Math.min(...children.map(node => node.y)) - 48;
       const right = Math.max(...children.map(node => node.x + node.width)) + 14;
       const bottom = Math.max(...children.map(node => node.y + node.height)) + 14;
-      group.x = left; group.y = top; group.width = Math.max(160, right - left); group.height = Math.max(100, bottom - top);
+
       frame.style.left = left + 'px'; frame.style.top = top + 'px';
-      frame.style.width = group.width + 'px'; frame.style.height = group.height + 'px';
+      frame.style.width = Math.max(160, right - left) + 'px'; frame.style.height = Math.max(100, bottom - top) + 'px';
     });
   };
   const saveConnection = async (from, to, directed) => {
@@ -1232,6 +1340,34 @@ function renderIdeaBoardCanvas(main, board) {
       await save();
     }, 550);
   };
+  const bindNodeDrag = (handle, id) => {
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || connectMode || event.target.closest('input, button, textarea, select')) return;
+      event.preventDefault(); event.stopPropagation();
+      viewport.focus({ preventScroll: true });
+      if (event.altKey || !selectedNodeIds.has(id)) selectNode(id, event.shiftKey, event.altKey);
+      const starts = new Map((currentBoard()?.nodes || []).filter(n => n.type !== 'group' && selectedNodeIds.has(n.id)).map(n => [n.id, { x: n.x, y: n.y }]));
+      const startX = event.clientX, startY = event.clientY;
+      let changed = false;
+      handle.setPointerCapture(event.pointerId);
+      const move = e => {
+        if (e.pointerId !== event.pointerId) return;
+        const dx = (e.clientX - startX) / camera.zoom, dy = (e.clientY - startY) / camera.zoom;
+        if (!changed && Math.abs(dx) + Math.abs(dy) < 2) return;
+        changed = true;
+        const active = currentBoard();
+        active.nodes = active.nodes.map(n => starts.has(n.id) ? updateIdeaNode(n, { x: clamp(starts.get(n.id).x + dx, -1000000, 1000000), y: clamp(starts.get(n.id).y + dy, -1000000, 1000000) }) : n);
+        active.nodes.forEach(n => { const card = world.querySelector('[data-node-id="' + n.id + '"]'); if (card) { card.style.left = n.x + 'px'; card.style.top = n.y + 'px'; } });
+        drawConnections();
+      };
+      const finish = e => {
+        if (e.pointerId !== event.pointerId) return;
+        handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', finish); handle.removeEventListener('pointercancel', finish);
+        if (changed) { currentBoard().modifiedAt = new Date().toISOString(); flushIdeaChanges(); }
+      };
+      handle.addEventListener('pointermove', move); handle.addEventListener('pointerup', finish); handle.addEventListener('pointercancel', finish);
+    });
+  };
   const renderNote = node => {
     const note = element('article', 'ideas-note-card');
     note.dataset.nodeId = node.id;
@@ -1283,10 +1419,10 @@ function renderIdeaBoardCanvas(main, board) {
     resize.tabIndex = 0;
     note.append(noteHeader, body, footer, resize);
 
-    note.addEventListener('click', event => {
-      if (event.target.closest('button, input, textarea, select')) return;
-      selectNode(node.id, event.shiftKey);
-    });
+    note.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || connectMode || event.target.closest('button, .ideas-note-resize')) return;
+      if (!selectedNodeIds.has(node.id) || event.altKey) selectNode(node.id, event.shiftKey, event.altKey);
+    }, true);
     const updateText = (patch, inputElement) => {
       try {
         const activeBoard = currentBoard();
@@ -1308,37 +1444,7 @@ function renderIdeaBoardCanvas(main, board) {
     });
     body.addEventListener('input', () => updateText({ body: body.value }, body));
 
-    noteHeader.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.shiftKey || event.target.closest('input, button')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      noteHeader.setPointerCapture(event.pointerId);
-      const startX = event.clientX, startY = event.clientY;
-      if (!selectedNodeIds.has(node.id)) selectNode(node.id, false);
-      const dragIds = [...selectedNodeIds];
-      const starts = new Map((currentBoard()?.nodes || []).filter(item => dragIds.includes(item.id)).map(item => [item.id, { x: item.x, y: item.y }]));
-      const move = moveEvent => {
-        if (moveEvent.pointerId !== event.pointerId) return;
-        const dx = (moveEvent.clientX - startX) / camera.zoom, dy = (moveEvent.clientY - startY) / camera.zoom;
-        const activeBoard = currentBoard(); if (!activeBoard) return;
-        activeBoard.nodes = activeBoard.nodes.map(item => {
-          const start = starts.get(item.id); return start ? updateIdeaNode(item, { x: Math.max(-1000000, Math.min(1000000, start.x + dx)), y: Math.max(-1000000, Math.min(1000000, start.y + dy)) }) : item;
-        });
-        activeBoard.nodes.filter(item => starts.has(item.id)).forEach(item => { const card = world.querySelector('[data-node-id="' + item.id + '"]'); if (card) { card.style.left = item.x + 'px'; card.style.top = item.y + 'px'; } });
-        node = activeBoard.nodes.find(item => item.id === node.id) || node;
-        drawConnections();
-      };
-      const finish = finishEvent => {
-        if (finishEvent.pointerId !== event.pointerId) return;
-        noteHeader.removeEventListener('pointermove', move);
-        noteHeader.removeEventListener('pointerup', finish);
-        noteHeader.removeEventListener('pointercancel', finish);
-        scheduleBoardSave();
-      };
-      noteHeader.addEventListener('pointermove', move);
-      noteHeader.addEventListener('pointerup', finish);
-      noteHeader.addEventListener('pointercancel', finish);
-    });
+    bindNodeDrag(noteHeader, node.id);
     resize.addEventListener('pointerdown', event => {
       if (event.button !== 0) return;
       event.preventDefault();
@@ -1477,47 +1583,17 @@ function renderIdeaBoardCanvas(main, board) {
     titleInput.addEventListener('input', () => update({ title: titleInput.value }, titleInput));
     titleInput.addEventListener('blur', () => { if (!titleInput.value.trim()) titleInput.value = node.title; });
     description.addEventListener('input', () => update({ body: description.value }));
-    category.addEventListener('change', () => update({ category: category.value }));
+    category.addEventListener('input', () => update({ category: category.value }));
     startDate.addEventListener('change', () => update({ startDate: startDate.value }, startDate));
     dueDate.addEventListener('change', () => update({ dueDate: dueDate.value }, dueDate));
     status.addEventListener('change', () => update({ status: status.value }));
     priority.addEventListener('change', () => update({ priority: priority.value }));
-    duration.addEventListener('change', () => update({ estimatedMinutes: duration.value }, duration));
-    activity.addEventListener('click', event => {
-      if (event.target.closest('button, input, textarea, select')) return;
-      selectNode(node.id, event.shiftKey);
-    });
-    header.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.shiftKey || event.target.closest('input, button')) return;
-      event.preventDefault();
-      event.stopPropagation();
-      header.setPointerCapture(event.pointerId);
-      const startX = event.clientX, startY = event.clientY;
-      if (!selectedNodeIds.has(node.id)) selectNode(node.id, false);
-      const dragIds = [...selectedNodeIds];
-      const starts = new Map((currentBoard()?.nodes || []).filter(item => dragIds.includes(item.id)).map(item => [item.id, { x: item.x, y: item.y }]));
-      const move = moveEvent => {
-        if (moveEvent.pointerId !== event.pointerId) return;
-        const dx = (moveEvent.clientX - startX) / camera.zoom, dy = (moveEvent.clientY - startY) / camera.zoom;
-        const activeBoard = currentBoard(); if (!activeBoard) return;
-        activeBoard.nodes = activeBoard.nodes.map(item => {
-          const start = starts.get(item.id); return start ? updateIdeaNode(item, { x: Math.max(-1000000, Math.min(1000000, start.x + dx)), y: Math.max(-1000000, Math.min(1000000, start.y + dy)) }) : item;
-        });
-        activeBoard.nodes.filter(item => starts.has(item.id)).forEach(item => { const card = world.querySelector('[data-node-id="' + item.id + '"]'); if (card) { card.style.left = item.x + 'px'; card.style.top = item.y + 'px'; } });
-        node = activeBoard.nodes.find(item => item.id === node.id) || node;
-        drawConnections();
-      };
-      const finish = finishEvent => {
-        if (finishEvent.pointerId !== event.pointerId) return;
-        header.removeEventListener('pointermove', move);
-        header.removeEventListener('pointerup', finish);
-        header.removeEventListener('pointercancel', finish);
-        scheduleBoardSave();
-      };
-      header.addEventListener('pointermove', move);
-      header.addEventListener('pointerup', finish);
-      header.addEventListener('pointercancel', finish);
-    });
+    duration.addEventListener('input', () => update({ estimatedMinutes: duration.value }, duration));
+    activity.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || connectMode || event.target.closest('button, .ideas-note-resize')) return;
+      if (!selectedNodeIds.has(node.id) || event.altKey) selectNode(node.id, event.shiftKey, event.altKey);
+    }, true);
+    bindNodeDrag(header, node.id);
     world.append(activity);
   };
   const renderGroup = group => {
@@ -1530,16 +1606,7 @@ function renderIdeaBoardCanvas(main, board) {
     const title=input('group-title','Nombre del grupo','text',group.title); title.maxLength=160; title.classList.add('ideas-group-title'); title.setAttribute('aria-label','Nombre del grupo');
     title.addEventListener('change',()=>{ if(!title.value.trim()){title.value=group.title;return;} const activeBoard=currentBoard(); const current=activeBoard?.nodes.find(item=>item.id===group.id); if(!current)return; try{const updated=updateIdeaNode(current,{title:title.value});activeBoard.nodes=activeBoard.nodes.map(item=>item.id===group.id?updated:item);group.title=updated.title;scheduleBoardSave();}catch(error){showToast(error.message,'error');title.value=group.title;}});
     const ungroup=button('Desagrupar','ideas-group-remove','ideas-group-small-action',{id:group.id}); ungroup.title='Quitar el grupo sin eliminar sus elementos'; bar.append(handle,title,ungroup); frame.append(bar);
-    bar.addEventListener('pointerdown',event=>{
-      if(event.button!==0||event.target.closest('input,button'))return; event.preventDefault();event.stopPropagation();bar.setPointerCapture(event.pointerId);
-      const startX=event.clientX,startY=event.clientY;const starts=new Map(children.map(node=>[node.id,{x:node.x,y:node.y}]));
-      const move=moveEvent=>{if(moveEvent.pointerId!==event.pointerId)return;const dx=(moveEvent.clientX-startX)/camera.zoom,dy=(moveEvent.clientY-startY)/camera.zoom;const activeBoard=currentBoard();if(!activeBoard)return;
-        activeBoard.nodes=activeBoard.nodes.map(item=>{const start=starts.get(item.id);return start?updateIdeaNode(item,{x:Math.max(-1000000,Math.min(1000000,start.x+dx)),y:Math.max(-1000000,Math.min(1000000,start.y+dy))}):item;});
-        activeBoard.nodes.filter(item=>starts.has(item.id)).forEach(item=>{const card=world.querySelector('[data-node-id="'+item.id+'"]');if(card){card.style.left=item.x+'px';card.style.top=item.y+'px';}});
-        frame.style.left=(bounds.left+dx)+'px';frame.style.top=(bounds.top+dy)+'px';drawConnections();};
-      const finish=finishEvent=>{if(finishEvent.pointerId!==event.pointerId)return;bar.removeEventListener('pointermove',move);bar.removeEventListener('pointerup',finish);bar.removeEventListener('pointercancel',finish);scheduleBoardSave();};
-      bar.addEventListener('pointermove',move);bar.addEventListener('pointerup',finish);bar.addEventListener('pointercancel',finish);
-    });
+    bindNodeDrag(bar, group.id);
     world.append(frame);
   };
   const renderNotes = () => {
@@ -1548,22 +1615,38 @@ function renderIdeaBoardCanvas(main, board) {
     (currentBoard()?.nodes||[]).forEach(node=>{if(node.type==='note')renderNote(node);else if(node.type==='activity')renderActivity(node);});
     drawConnections(); syncSelection(); applyNodeFilters();
   };
-  viewport.addEventListener('click', event => {
-    if (!event.target.closest('.ideas-note-card, .ideas-activity-card') && !event.shiftKey) { selectedNodeIds.clear(); syncSelection(); }
-  });
   groupSelection.addEventListener('click', async () => {
     const activeBoard=currentBoard(); const ids=[...selectedNodeIds].filter(id=>activeBoard?.nodes.some(node=>node.id===id&&(node.type==='note'||node.type==='activity')));
     if(!activeBoard||ids.length<2)return; const title=await requestText('Nombre del grupo:','Nuevo grupo'); if(title===null)return; if(!title.trim())return showToast('El grupo necesita un nombre.','error');
     const children=activeBoard.nodes.filter(node=>ids.includes(node.id)); const left=Math.min(...children.map(node=>node.x)),top=Math.min(...children.map(node=>node.y)),right=Math.max(...children.map(node=>node.x+node.width)),bottom=Math.max(...children.map(node=>node.y+node.height));
-    const group=createIdeaNode('group',{title,x:left-14,y:top-48,width:Math.max(160,right-left+28),height:Math.max(100,bottom-top+62),childrenIds:ids,color:'#e4efe7'});
-    activeBoard.nodes.push(group);activeBoard.modifiedAt=new Date().toISOString();
-    try{validateIdeaBoard(activeBoard);if(!await save()){activeBoard.nodes=activeBoard.nodes.filter(node=>node.id!==group.id);return;}selectedNodeIds.clear();renderNotes();showToast('Grupo creado. Arrastra su encabezado para mover todos sus elementos.');}
-    catch(error){activeBoard.nodes=activeBoard.nodes.filter(node=>node.id!==group.id);showToast(error.message,'error');}
+    const previous = cloneIdeaBoard(activeBoard);
+    const group=createIdeaNode('group',{title,x:left-14,y:top-48,width:Math.min(2000,Math.max(160,right-left+28)),height:Math.min(2000,Math.max(100,bottom-top+62)),childrenIds:ids,color:'#e4efe7'});
+    // Transfer membership instead of creating overlapping combinations of groups.
+    activeBoard.nodes = activeBoard.nodes.map(n => n.type === 'group' ? { ...n, childrenIds: n.childrenIds.filter(id => !ids.includes(id)) } : n)
+      .filter(n => n.type !== 'group' || n.childrenIds.length > 0);
+    const remaining = new Set(activeBoard.nodes.map(n => n.id));
+    activeBoard.connections = activeBoard.connections.filter(c => remaining.has(c.from) && remaining.has(c.to));
+    activeBoard.nodes.push(group); activeBoard.modifiedAt=new Date().toISOString();
+    try {
+      validateIdeaBoard(activeBoard);
+      if (!await flushIdeaChanges()) { Object.assign(activeBoard, previous); renderNotes(); return; }
+      selectNode(group.id); renderNotes(); showToast('Grupo creado.');
+    } catch(error) { Object.assign(activeBoard, previous); showToast(error.message,'error'); }
   });
-  world.addEventListener('click',async event=>{const target=event.target.closest('[data-action="ideas-group-remove"]');if(!target)return;const activeBoard=currentBoard();const group=activeBoard?.nodes.find(node=>node.id===target.dataset.id&&node.type==='group');if(!group)return;activeBoard.nodes=activeBoard.nodes.filter(node=>node.id!==group.id);activeBoard.modifiedAt=new Date().toISOString();if(!await save())return;renderNotes();showToast('Grupo eliminado; sus elementos se conservaron.');});
+  world.addEventListener('click', async event => {
+    const target=event.target.closest('[data-action="ideas-group-remove"]'); if(!target)return;
+    const activeBoard=currentBoard(); const group=activeBoard?.nodes.find(n=>n.id===target.dataset.id&&n.type==='group'); if(!group)return;
+    const previous=cloneIdeaBoard(activeBoard);
+    activeBoard.nodes=activeBoard.nodes.filter(n=>n.id!==group.id);
+    activeBoard.connections=activeBoard.connections.filter(c=>c.from!==group.id&&c.to!==group.id);
+    activeBoard.modifiedAt=new Date().toISOString();
+    if(!await flushIdeaChanges()) { Object.assign(activeBoard,previous); renderNotes(); return; }
+    selectedNodeIds.delete(group.id); renderNotes(); showToast('Grupo eliminado; sus elementos se conservaron.');
+  });
   updateConnectionControls();
   renderNotes();
   paint();
+  requestAnimationFrame(() => { if (viewport.isConnected) drawConnections(); });
   syncHistoryControls();
 }
 
@@ -1614,7 +1697,7 @@ function renderIdeaBoardLibrary(main) {
     const item = card('ideas-board-card');
     const open = button('', 'ideas-open', 'ideas-board-open', { id: board.id });
     open.setAttribute('aria-label', 'Abrir pizarrón ' + board.title);
-    open.append(element('span', 'ideas-board-preview-mark', 'O'), element('span', 'ideas-board-open-label', 'Abrir pizarrón'));
+    open.append(iconImage('navigation/dashboard.png', '', 'ideas-board-preview-icon'), element('span', 'ideas-board-open-label', 'Abrir pizarrón'));
     const title = element('div', 'ideas-board-card-title');
     title.append(element('h3', '', board.title), element('span', 'muted', board.nodes.length + ' elementos'));
     item.append(open, title);
@@ -2661,6 +2744,7 @@ root.addEventListener('click', async event => {
   if (!target) return;
   const action = target.dataset.action;
   const id = target.dataset.id;
+  if (/^ideas-(note|activity)-(create|duplicate|delete|color)$/.test(action) && state.ideaViewportSaveTimer && !await flushIdeaChanges()) return;
   if (action === 'retry-boot') { await boot(); return; }
   if (action === 'recovery-overwrite') {
     if (!confirm('O-Isym guardará una copia exacta del archivo actual y después creará un espacio nuevo vacío. ¿Quieres continuar?')) return;
@@ -2686,7 +2770,7 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { if (state.ideaViewportSaveTimer) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'navigate') { if (state.ideaViewportSaveTimer || state.ideaSaveFailed) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
   if (action === 'ideas-activity-create') {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
@@ -2734,8 +2818,8 @@ root.addEventListener('click', async event => {
     if (!confirm('¿Eliminar esta actividad del pizarrón?')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
-    board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item);
-    board.connections = board.connections.filter(connection => connection.from !== id && connection.to !== id);
+    board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item).filter(item => item.type !== 'group' || item.childrenIds.length);
+    board.connections = board.connections.filter(connection => board.nodes.some(n => n.id === connection.from) && board.nodes.some(n => n.id === connection.to));
     if (!await save()) { board.nodes = previous; board.connections = previousConnections; return; }
     updateShell();
     showToast('Actividad eliminada junto con sus conexiones.');
@@ -2791,8 +2875,8 @@ root.addEventListener('click', async event => {
     if (!confirm('¿Eliminar esta nota? Puedes recuperarla con Deshacer.')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
-    board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item);
-    board.connections = board.connections.filter(connection => connection.from !== id && connection.to !== id);
+    board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item).filter(item => item.type !== 'group' || item.childrenIds.length);
+    board.connections = board.connections.filter(connection => board.nodes.some(n => n.id === connection.from) && board.nodes.some(n => n.id === connection.to));
     board.modifiedAt = new Date().toISOString();
     if (!await save()) { board.nodes = previous; board.connections = previousConnections; return; }
     updateShell();
@@ -2800,7 +2884,7 @@ root.addEventListener('click', async event => {
     return;
   }
   if (action === 'ideas-library') {
-    if (state.ideaViewportSaveTimer) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; }
+    if (state.ideaViewportSaveTimer || state.ideaSaveFailed) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; }
     state.plannerSection = 'library'; state.selectedIdeaBoardId = null; updateShell(); return;
   }
   if (action === 'ideas-open') { state.selectedIdeaBoardId = id; state.plannerSection = 'board'; updateShell(); return; }
@@ -3383,6 +3467,11 @@ root.addEventListener('click', async event => {
 });
 
 document.addEventListener('keydown', event => {
+  if (state.view === 'planner' && state.plannerSection === 'board' && !document.querySelector('dialog[open]') && (event.metaKey || event.ctrlKey) && !event.altKey && ['z', 'y'].includes(event.key.toLowerCase())) {
+    event.preventDefault(); event.stopPropagation();
+    if (!event.repeat) restoreIdeaBoardHistory(event.key.toLowerCase() === 'y' || event.shiftKey ? 'redo' : 'undo');
+    return;
+  }
   const profileModal = $('[data-profile-modal]');
   if (profileModal && event.key === 'Escape') {
     event.preventDefault();
@@ -3549,6 +3638,7 @@ root.addEventListener('change', async event => {
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
     const profileId = event.target.value;
+    if (!await flushIdeaChanges()) { event.target.value = state.profile.id; return; }
     const profile = state.snapshot.profiles.find(item => item.id === profileId);
     if (profile && profile.id !== state.profile.id) {
       const previousProfile = cloneActiveProfile();
@@ -3721,6 +3811,7 @@ async function boot() {
 }
 
 window.oisym?.notifications?.onOpenTask?.(openTaskFromReminder);
+window.oisym?.onSaveBeforeClose?.(flushIdeaChanges);
 boot();
 
 

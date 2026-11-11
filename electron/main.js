@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Notification, powerMonitor } = requ
 const path = require('node:path');
 
 const { createStorage } = require('./storage');
-const { registerIpcHandlers } = require('./ipc-handlers');
+const { registerIpcHandlers, isTrustedMainFrame } = require('./ipc-handlers');
 const { createFocusNotificationScheduler } = require('./focus-notifications');
 const { createTaskNotificationScheduler } = require('./task-notifications');
 const { Menu, Tray, nativeImage } = require('electron');
@@ -89,12 +89,29 @@ function createWindow(options = {}) {
   mainWindow = win;
   win.once('ready-to-show', () => { if (options.show !== false) win.show(); });
   win.webContents.on('did-finish-load', deliverPendingTaskReminder);
+  let closePending = false;
+  let closeApproved = false;
+  let closeTimer = null;
+  const onSaveBeforeClose = (event, success) => {
+    if (event.sender !== win.webContents || !isTrustedMainFrame(event, BrowserWindow, indexPath) || !closePending) return;
+    clearTimeout(closeTimer); closePending = false;
+    if (success !== true) { isQuitting = false; win.show(); return; }
+    if (process.platform === 'darwin' && !isQuitting) win.hide();
+    else { closeApproved = true; if (isQuitting) app.quit(); else win.close(); }
+  };
+  ipcMain.on('oisym:window:saved-before-close', onSaveBeforeClose);
   win.on('close', event => {
-    if (process.platform === 'darwin' && !isQuitting) {
-      event.preventDefault();
-      win.hide();
-    }
+    if (closeApproved) return;
+    event.preventDefault();
+    if (closePending) return;
+    closePending = true;
+    win.webContents.send('oisym:window:save-before-close');
+    closeTimer = setTimeout(() => {
+      closePending = false; isQuitting = false; win.show();
+      dialog.showErrorBox('No se cerró O-Isym', 'No se pudo confirmar el guardado. La ventana seguirá abierta para que puedas revisar tus cambios y volver a intentar.');
+    }, 15000);
   });
+  win.on('closed', () => { clearTimeout(closeTimer); ipcMain.removeListener('oisym:window:saved-before-close', onSaveBeforeClose); });
   win.on('closed', () => { if (mainWindow === win) mainWindow = null; });
   win.webContents.on('render-process-gone', (_event, details) => {
     reportStartupError('El proceso visual se cerró', new Error(JSON.stringify(details)));
@@ -153,8 +170,8 @@ app.whenReady().then(async () => {
   dialog.showErrorBox('O-Isym no pudo iniciarse', (error.stack || error.message) + '\n\nTus archivos de datos no se han borrado.');
 });
 
-app.on('before-quit', () => {
-  isQuitting = true;
+app.on('before-quit', () => { isQuitting = true; });
+app.on('will-quit', () => {
   if (focusNotifications) focusNotifications.dispose();
   if (taskNotifications) taskNotifications.dispose();
   if (tray) { tray.destroy(); tray = null; }

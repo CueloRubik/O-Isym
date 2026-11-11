@@ -74,3 +74,30 @@ Los PNG se organizan por función para evitar una carpeta de recursos desordenad
 - Si una imagen falla al cargar, se elimina el elemento visual y permanece el texto del control.
 - No se usa un icono solo por llenar espacio: los recursos de recordatorio, repetición y proyectos esperan a que existan funciones reales.
 - La clasificación actual se basa en los nombres de archivo y su relación con las vistas existentes. Queda pendiente una revisión visual individual de los PNG a resolución completa para ajustar recortes, transparencias o proporciones si hiciera falta.
+
+## Pizarrones: iconos incorporados
+
+Se reutilizan `actions/edit.png`, `actions/export.png`, `tasks/filter.png` y `navigation/dashboard.png`. Buscar y duplicar usan la misma imagen en toda la aplicación.
+
+- `actions/back.png`
+- `actions/delete.png`
+- `actions/duplicate.png`
+- `actions/import.png`
+- `actions/redo.png`
+- `actions/undo.png`
+- `ideas/activity-add.png`
+- `ideas/board-add.png`
+- `ideas/center.png`
+- `ideas/connect-arrow.png`
+- `ideas/connect-line.png`
+- `ideas/connection-label.png`
+- `ideas/fit-view.png`
+- `ideas/group.png`
+- `ideas/note-add.png`
+- `ideas/ungroup.png`
+- `ideas/zoom-in.png`
+- `ideas/zoom-out.png`
+- `interface/help.png`
+- `interface/search.png`
+
+Abrir se representa con el propio icono del pizarrón y el texto «Abrir pizarrón»; no requiere otro archivo.
