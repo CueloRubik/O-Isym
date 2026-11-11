@@ -74,6 +74,7 @@
         '--workspace-border': line, '--workspace-backdrop': page,
         '--workspace-shadow': dark ? '0 5px 20px rgba(0,0,0,.17)' : '0 4px 22px rgba(35,68,97,.045)',
         '--ui-accent-text': accentText, '--ui-icon-filter': accentText === '#ffffff' ? 'brightness(0) invert(1)' : 'brightness(0)',
+        '--ui-content-icon-filter': chooseText(surface) === '#ffffff' ? 'brightness(0) invert(.88)' : 'brightness(0) opacity(.75)',
         '--ui-navigation': nav, '--ui-field': surface,
         '--ui-hover': hover, '--ui-tile': alt,
         '--ui-accent-contrast': emphasis, '--ui-contrast-border': line
