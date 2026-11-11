@@ -142,3 +142,56 @@ test('new mode data rejects invalid imported colors or palette keys', () => {
   p.preferences.appearanceDensity='unsafe';
   assert.throws(()=>D.validateImportedProfile(p),/Densidad/i);
 });
+
+test('icon configuration uses compatible defaults and survives profile normalization',()=>{
+  const older=D.normalizeProfile({name:'Versión previa',preferences:{appearanceMode:'dark'}});
+  assert.equal(older.preferences.appearanceIconMode,'vector');
+  assert.equal(older.preferences.appearanceIconVariant,'outline');
+  assert.equal(older.preferences.appearanceIconBackground,'none');
+  assert.equal(older.preferences.appearanceCardStyle,'elevated');
+  const decorated=D.createProfile('Personalizado');
+  decorated.preferences.appearanceIconMode='image';
+  decorated.preferences.appearanceIconVariant='duotone';
+  decorated.preferences.appearanceIconTone='custom';
+  decorated.preferences.appearanceIconBackground='filled';
+  decorated.preferences.appearanceIconColorsByMode={light:'#146c84',dark:'#add8e6'};
+  decorated.preferences.appearanceIconBackgroundColorsByMode={light:'#eef4f7',dark:'#123456'};
+  decorated.preferences.appearanceCardStyle='soft';
+  const normalized=D.normalizeProfile(decorated);
+  assert.equal(normalized.preferences.appearanceIconMode,'image');
+  assert.equal(normalized.preferences.appearanceIconVariant,'duotone');
+  assert.equal(normalized.preferences.appearanceIconTone,'custom');
+  assert.equal(normalized.preferences.appearanceIconColorsByMode.dark,'#add8e6');
+  assert.equal(normalized.preferences.appearanceIconBackgroundColorsByMode.light,'#eef4f7');
+  assert.equal(normalized.preferences.appearanceCardStyle,'soft');
+  assert.doesNotThrow(()=>D.validateImportedProfile(normalized));
+});
+test('icon colors and icon tile backgrounds are readable in both schemes',()=>{
+  const profile={
+    appearanceIconTone:'custom', appearanceIconBackground:'filled',
+    appearanceMode:'system',
+    appearancePalettes:{light:'sage',dark:'midnight'},
+    appearanceIconColorsByMode:{light:'#147f7b',dark:'#92b8ec'},
+    appearanceIconBackgroundColorsByMode:{light:'#e9eff1',dark:'#1b2c42'}
+  };
+  for(const isDark of [false,true]){
+    const {vars}=A.makeTokens(profile,isDark);
+    assert.ok(A.contrast(vars['--ui-icon-color'],vars['--surface'])>=4.5);
+    assert.ok(A.contrast(vars['--ui-nav-icon-color'],vars['--ui-sidebar'])>=4.5);
+    assert.ok(A.contrast(vars['--ui-icon-tile-ink'],vars['--ui-icon-tile'])>=4.5);
+    assert.ok(A.contrast(vars['--ui-nav-icon-tile-ink'],vars['--ui-nav-icon-tile'])>=4.5);
+  }
+});
+test('invalid imported icon settings are rejected rather than accepted as CSS',()=>{
+  const profile=D.createProfile('Seguridad');
+  profile.preferences.appearanceIconMode='image';
+  assert.doesNotThrow(()=>D.validateImportedProfile(profile));
+  profile.preferences.appearanceIconMode='remote-url';
+  assert.throws(()=>D.validateImportedProfile(profile),/visual/i);
+  profile.preferences.appearanceIconMode='image';
+  profile.preferences.appearanceIconColorsByMode.dark='url(data:text/plain,test)';
+  assert.throws(()=>D.validateImportedProfile(profile),/colores de iconos/i);
+  profile.preferences.appearanceIconColorsByMode.dark='';
+  profile.preferences.appearanceCardStyle='unsafe';
+  assert.throws(()=>D.validateImportedProfile(profile),/visual/i);
+});
