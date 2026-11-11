@@ -269,3 +269,55 @@ test('locked scheduled task asks for explicit permission before moving in shared
   assert.equal(r.saved().profiles[0].tasks[0].startTime, '10:00');
   assert.deepEqual(r.errors, []);
 });
+
+test('task options use explicit controls and safely move the same task to the next day', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Estudiar', scheduledDate: '2026-11-11',
+    startTime: '09:00', endTime: '10:00' });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.state.view = 'tasks'; r.app.updateShell();
+  const details = r.query('.task-action-menu');
+  assert.ok(details);
+  details.open = true;
+  assert.ok(r.query('[data-action="task-action-lock"]'));
+  assert.ok(r.query('[data-action="task-action-postpone"]'));
+  assert.ok(r.query('[data-action="task-action-delete"]'));
+  r.click('[data-action="task-action-postpone"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  assert.equal(r.app.state.profile.tasks[0].id, task.id);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '2026-11-12');
+  assert.equal(r.app.state.profile.tasks[0].startTime, '09:00');
+  assert.equal(r.saved().profiles[0].tasks[0].scheduledDate, '2026-11-12');
+  assert.deepEqual(r.errors, []);
+});
+
+test('task action menu requires confirmation before deleting a protected task', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Cita importante', locked: true });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.state.view = 'tasks'; r.app.updateShell();
+  r.w.confirm = () => false;
+  r.click('[data-action="task-action-delete"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  r.w.confirm = () => true;
+  r.click('[data-action="task-action-delete"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 0);
+  assert.equal(r.saved().profiles[0].tasks.length, 0);
+  assert.deepEqual(r.errors, []);
+});
+
+test('activity and goal editors use the same side panel layout without changing data flows', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  r.app.state.view = 'activities'; r.app.updateShell();
+  r.click('[data-action="new-activity"]');
+  assert.ok(r.query('.entity-editor-backdrop .entity-editor-panel'));
+  r.click('[data-action="close-activity-form"]');
+  r.app.state.view = 'goals'; r.app.updateShell();
+  r.click('[data-action="new-goal"]');
+  assert.ok(r.query('.entity-editor-backdrop .entity-editor-panel'));
+  r.click('[data-action="close-goal-form"]');
+  assert.equal(r.query('.entity-editor-panel'), null);
+  assert.deepEqual(r.errors, []);
+});
