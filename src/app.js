@@ -3829,7 +3829,7 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (profileModal && event.key === 'Tab') {
-    const focusable = $('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])', profileModal)
+    const focusable = $$('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])', profileModal)
       .filter(node => !node.hidden && node.getClientRects().length > 0);
     if (focusable.length) {
       const first = focusable[0], last = focusable[focusable.length - 1];
