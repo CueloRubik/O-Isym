@@ -94,6 +94,46 @@
       free, availableMinutes, occupiedMinutes: end - start - availableMinutes,
       conflicts: detectScheduleConflicts(profile, date) };
   }
+  // Deterministic interval layout for the visual day view; never persists display data.
+  // Overlapping entries share horizontal space, while adjacent ones use full width.
+  function getTimelineLayout(profile, date) {
+    if (!validDate(date)) return { startMinute: 540, endMinute: 1020, hours: [], blocks: [] };
+    const slots = scheduledIntervals(profile, date);
+    const prefs = profile && profile.preferences || {};
+    const preferredStart = minute(prefs.workingDayStart);
+    const preferredEnd = minute(prefs.workingDayEnd);
+    const initialStart = preferredStart === null ? 540 : preferredStart;
+    const initialEnd = preferredEnd === null || preferredEnd <= initialStart ? 1020 : preferredEnd;
+    const startMinute = Math.floor(Math.min(initialStart, ...(slots.map(slot => slot.start))) / 60) * 60;
+    const endMinute = Math.min(1440, Math.ceil(Math.max(initialEnd, ...(slots.map(slot => slot.end))) / 60) * 60);
+    const blocks = [];
+    let cluster = [], clusterEnd = -1;
+    const flush = () => {
+      if (!cluster.length) return;
+      const ends = [];
+      const grouped = cluster.map(slot => {
+        let column = ends.findIndex(end => end <= slot.start);
+        if (column < 0) { column = ends.length; ends.push(slot.end); }
+        else ends[column] = slot.end;
+        return { id: slot.task.id, task: slot.task, startMinute: slot.start, endMinute: slot.end,
+          column, columns: 1 };
+      });
+      grouped.forEach(block => { block.columns = ends.length; blocks.push(block); });
+      cluster = []; clusterEnd = -1;
+    };
+    for (const slot of slots) {
+      if (cluster.length && slot.start >= clusterEnd) flush();
+      cluster.push(slot);
+      clusterEnd = Math.max(clusterEnd, slot.end);
+    }
+    flush();
+    const hours = [];
+    for (let hour = startMinute; hour <= endMinute; hour += 60) {
+      hours.push({ minute: hour, label: formattedTime(hour) });
+    }
+    return { startMinute, endMinute, hours, blocks };
+  }
+
   function taskMutation(profile, change) {
     if (!profile || !Array.isArray(profile.tasks)) throw new Error('El perfil no tiene tareas válidas.');
     if (!change || !['create', 'edit', 'delete', 'toggle'].includes(change.type)) throw new Error('Operación de tarea no válida.');
@@ -184,6 +224,6 @@
     return { profile: updated, added: preview.proposals.length, skipped: preview.skipped.length };
   }
   return { validDate, minute, getItemsForDay, getCalendarRange, getUnscheduledTasks,
-    detectScheduleConflicts, getFreeTimeSlots, taskMutation, createDayTemplate,
+    detectScheduleConflicts, getFreeTimeSlots, getTimelineLayout, taskMutation, createDayTemplate,
     templateAppliesOn, previewDayTemplate, applyDayTemplate };
 });
