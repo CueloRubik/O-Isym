@@ -408,3 +408,17 @@ html[data-scheme] .avatar-fallback {
   background: var(--accent-soft); color: var(--accent-dark);
   font-weight: 800; font-size: 14px; border-radius: inherit;
 }
+
+/* Primary controls can be bright or dark, so icon and label foregrounds must agree. */
+html[data-scheme] .brand-mark,
+html[data-scheme] .boot-mark {
+  background: var(--accent); color: var(--ui-accent-text);
+}
+html[data-scheme] .button.primary .action-button-icon,
+html[data-scheme] .button.primary .button-icon,
+html[data-scheme] .topbar-create .button-icon,
+html[data-scheme] .topbar-create .action-button-icon {
+  filter: var(--ui-icon-filter);
+}
+html[data-scheme] .profile-switcher .profile-add { color: var(--accent-dark); }
+html[data-scheme] .settings-panel > .section-heading .section-heading-icon { filter: var(--ui-content-icon-filter); }
