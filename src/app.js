@@ -582,7 +582,17 @@ const priorityLabel = value => ({ high: 'Alta', medium: 'Media', low: 'Baja' }[v
 const priorityClass = value => 'priority-' + (value || 'medium');
 const avatarMark = profile => ({ leaf: '❧', book: '▤', compass: '⌖', spark: '✳', wave: '≈' }[profile.avatarId] || String(profile.name || 'O').trim().charAt(0).toUpperCase() || 'O');
 const isImageAvatar = id => /^profile-(?:[1-9]|1[0-8])$/.test(String(id || ''));
-const makeAvatarImage = id => { const image=element('img','avatar-image'); image.src='assets/avatars/profile-'+String(id).replace('profile-','')+'.png'; image.alt=''; image.draggable=false; image.onerror=()=>image.remove(); return image; };
+const makeAvatarImage = id => {
+  const image=element('img','avatar-image');
+  image.src='assets/avatars/profile-'+String(id).replace('profile-','')+'.png';
+  image.alt='';image.draggable=false;
+  image.onerror=()=>{
+    const fallback=element('span','avatar-image avatar-fallback','P');
+    fallback.setAttribute('aria-hidden','true');
+    image.replaceWith(fallback);
+  };
+  return image;
+};
 const updateProfilePreview = form => {
   const avatarId=$('input[name="avatarId"]',form)?.value||'profile-1';
   $$('.avatar-choice',form).forEach(choice=>{const selected=choice.dataset.avatar===avatarId;choice.classList.toggle('selected',selected);choice.setAttribute('aria-pressed',String(selected));});
@@ -2674,7 +2684,7 @@ function renderProfiles(main) {
   const header = element('div', 'profiles-page-heading');
   const headingCopy = element('div', 'section-heading');
   const profileTitle=element('div','profiles-heading-title');
-  const profileTitleIcon=element('img','profiles-heading-icon');profileTitleIcon.src='assets/icons/actions/profiles.png';profileTitleIcon.alt='';profileTitleIcon.setAttribute('aria-hidden','true');profileTitleIcon.draggable=false;
+  const profileTitleIcon=iconImage('actions/profiles.png','','profiles-heading-icon');
   profileTitle.append(profileTitleIcon,element('h1','','Perfiles'));
   headingCopy.append(profileTitle, element('p', 'muted', 'Administra tus espacios y mantén cada organización independiente.'));
   const headerActions=element('div','profiles-header-actions');
