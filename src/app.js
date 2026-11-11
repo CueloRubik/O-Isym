@@ -620,7 +620,17 @@ function renderTaskList(parent, tasks, options = {}) {
     if (task.status === 'pending') actions.append(button(task.scheduledDate ? 'Mover' : 'Programar',
       'plan-task', 'button secondary small task-plan-action', { id: task.id }));
     actions.append(actionIconButton('Editar', 'edit-task', 'edit.png', 'button secondary small', { id: task.id }));
-    actions.append(button('⋯', 'task-menu', 'icon-button', { id: task.id }));
+    const menu = element('details', 'task-action-menu');
+    const trigger = element('summary', 'task-menu-trigger', 'Opciones');
+    trigger.setAttribute('aria-label', 'Opciones de ' + task.title);
+    const choices = element('div', 'task-menu-choices');
+    choices.append(button(task.locked ? 'Desbloquear' : 'Bloquear',
+      'task-action-lock', 'task-menu-choice', { id: task.id }));
+    if (task.status === 'pending') choices.append(button('Mover al día siguiente',
+      'task-action-postpone', 'task-menu-choice', { id: task.id }));
+    choices.append(button('Eliminar tarea', 'task-action-delete', 'task-menu-choice danger', { id: task.id }));
+    menu.append(trigger, choices);
+    actions.append(menu);
     row.append(check, content, actions);
     list.append(row);
   });
@@ -849,8 +859,8 @@ function renderActivities(main) {
   main.append(list);
   const editing=state.editingActivityId?activityById(state.editingActivityId):null;
   if(state.showActivityForm||editing){
-    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='activity-create-button';
-    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','activity-modal-title');
+    const overlay=element('div','profile-modal-backdrop entity-editor-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='activity-create-button';
+    const dialog=element('section','profile-modal entity-editor-panel');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','activity-modal-title');
     const form=element('form','form-card profile-modal-form activity-modal-form');form.dataset.form=editing?'activity-edit':'activity';
     const title=element('h2','',editing?'Editar actividad':'Nueva actividad');title.id='activity-modal-title';form.append(title);
     const grid=element('div','form-grid');
@@ -2324,8 +2334,8 @@ function renderGoals(main) {
   main.append(list);
   const editing=state.editingGoalId?goalById(state.editingGoalId):null;
   if(state.showGoalForm||editing){
-    const overlay=element('div','profile-modal-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='goal-create-button';
-    const dialog=element('section','profile-modal');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','goal-modal-title');
+    const overlay=element('div','profile-modal-backdrop entity-editor-backdrop');overlay.dataset.profileModal='true';overlay.dataset.returnFocus='goal-create-button';
+    const dialog=element('section','profile-modal entity-editor-panel');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','goal-modal-title');
     const form=element('form','form-card profile-modal-form');form.dataset.form=editing?'goal-edit':'goal';
     const title=element('h2','',editing?'Editar objetivo':'Nuevo objetivo');title.id='goal-modal-title';form.append(title);
     form.append(field('Nombre',input('title','Ej. Practicar guitarra','text',editing?.title||'')));
@@ -3502,23 +3512,32 @@ root.addEventListener('click', async event => {
     if (titleInput) { titleInput.focus(); titleInput.select(); }
   }
   if (action === 'cancel-edit-task') { closeTaskEditor(); return; }
-  if (action === 'task-menu') {
+  if (['task-action-lock', 'task-action-postpone', 'task-action-delete'].includes(action)) {
     const task = taskById(id);
-    if (!task) return;
-    const previousProfile = cloneActiveProfile();
-    const choice = await requestText('Escribe: bloquear, desbloquear, eliminar o posponer', task.locked ? 'desbloquear' : 'bloquear');
-    if (choice === 'eliminar') {
-      if (!confirm('¿Eliminar esta tarea?')) return;
+    if (!task) return showToast('La tarea ya no existe.', 'error');
+    const previous = cloneActiveProfile();
+    if (action === 'task-action-delete') {
+      if (!confirm(task.locked ? 'Este compromiso está bloqueado. ¿Eliminarlo de todas las vistas?'
+        : '¿Eliminar esta tarea de todas las vistas?')) return;
       state.profile = taskMutation(state.profile, { type: 'delete', id, allowLocked: true });
-    } else if (choice === 'bloquear' || choice === 'desbloquear') {
-      state.profile = taskMutation(state.profile, { type: 'edit', id, data: { locked: choice === 'bloquear' } });
-    } else if (choice === 'posponer') {
-      if (task.locked) return showToast('Primero desbloquea el compromiso.', 'error');
-      state.profile = taskMutation(state.profile, { type: 'edit', id,
-        data: { scheduledDate: shiftDate(localDate(), 1), startTime: '', endTime: '' } });
-    } else return;
-    if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
+    } else if (action === 'task-action-lock') {
+      state.profile = taskMutation(state.profile, { type: 'edit', id, data: { locked: !task.locked } });
+    } else {
+      if (task.locked) return showToast('Desbloquea primero este compromiso.', 'error');
+      const nextDate = shiftDate(task.scheduledDate || localDate(), 1);
+      const candidate = taskMutation(state.profile, { type: 'edit', id,
+        data: { scheduledDate: nextDate } });
+      if (task.startTime && task.endTime) {
+        const conflicts = detectScheduleConflicts(candidate, nextDate)
+          .filter(item => item.firstId === id || item.secondId === id);
+        if (conflicts.length && !confirm('Hay ' + conflicts.length +
+          ' superposición(es) en el nuevo día. ¿Mover de todos modos?')) return;
+      }
+      state.profile = candidate;
+    }
+    if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
     updateShell();
+    return;
   }
   if (action === 'task-from-activity') {
     const activity = activityById(id);
