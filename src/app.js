@@ -2710,6 +2710,34 @@ async function handleSubmit(form) {
       state.editingTaskId=null;state.showTaskForm=false;state.taskFormDefaults={};state.plannerAnalysis=null;
       showToast(form.dataset.form==='task-edit'?'Cambios guardados.':'Tarea guardada.');
       state.view = form.dataset.form === 'planner-task' ? 'planner' : state.view;
+    } else if (form.dataset.form === 'day-template-create') {
+      if ((state.profile.dayTemplates || []).length >= 100) throw new Error('Máximo de 100 plantillas por perfil.');
+      const activity = activityById(data.activityId);
+      const entryTitle = String(data.title || '').trim() || activity?.name || '';
+      const weekdays = Array.from(form.querySelectorAll('input[name="weekday"]:checked'), item => Number(item.value));
+      const template = createDayTemplate({
+        name: data.name, weekdays, startDate: data.startDate, endDate: data.endDate,
+        entries: [{ title: entryTitle, startTime: data.startTime, endTime: data.endTime,
+          activityId: activity?.id || null }]
+      });
+      state.profile.dayTemplates = [...(state.profile.dayTemplates || []), template];
+      if (!await save()) { restoreProfile(); return; }
+      state.selectedTemplateId = template.id;
+      state.templatePreview = null;
+      showToast('Plantilla guardada. No se han creado tareas hasta que la apliques.');
+    } else if (form.dataset.form === 'day-template-entry') {
+      const template = (state.profile.dayTemplates || []).find(item => item.id === data.templateId);
+      if (!template) throw new Error('Selecciona una plantilla existente.');
+      if (template.entries.length >= 30) throw new Error('Máximo de 30 bloques por plantilla.');
+      const draft = createDayTemplate({
+        name: 'Bloque temporal', weekdays: [0, 1, 2, 3, 4, 5, 6],
+        entries: [{ title: data.title, startTime: data.startTime, endTime: data.endTime }]
+      }).entries[0];
+      state.profile.dayTemplates = state.profile.dayTemplates.map(item => item.id === template.id
+        ? { ...item, entries: [...item.entries, draft] } : item);
+      if (!await save()) { restoreProfile(); return; }
+      state.templatePreview = null;
+      showToast('Bloque añadido a la plantilla.');
     } else if (form.dataset.form === 'activity-edit') {
       const editingId=state.editingActivityId;
       const current = activityById(editingId);
