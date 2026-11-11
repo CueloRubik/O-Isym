@@ -4,6 +4,47 @@ const {
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
 } = window.OIsymDomain;
 
+// Electron does not implement window.prompt. Keep text entry inside the app.
+function requestText(message, initialValue = '') {
+  if (document.querySelector('[data-text-dialog]')) return Promise.resolve(null);
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const dialog = element('dialog', 'profile-modal text-dialog');
+    dialog.dataset.textDialog = 'true';
+    const form = element('form', 'profile-modal-form');
+    const label = element('label', '', message);
+    const input = element('input');
+    input.type = 'text';
+    input.value = initialValue;
+    label.append(input);
+    const actions = element('div', 'form-actions');
+    const cancel = element('button', 'button secondary', 'Cancelar');
+    cancel.type = 'button';
+    const accept = element('button', 'button primary', 'Aceptar');
+    accept.type = 'submit';
+    actions.append(cancel, accept);
+    form.append(label, actions);
+    dialog.append(form);
+    dialog.setAttribute('aria-label', message);
+    const finish = value => {
+      dialog.close();
+      dialog.remove();
+      if (previousFocus?.isConnected) previousFocus.focus();
+      resolve(value);
+    };
+    cancel.addEventListener('click', () => finish(null));
+    dialog.addEventListener('cancel', event => { event.preventDefault(); finish(null); });
+    // Do not let Enter reach the app's delegated form handler or global shortcuts.
+    form.addEventListener('submit', event => {
+      event.preventDefault(); event.stopPropagation(); finish(input.value);
+    });
+    dialog.addEventListener('keydown', event => event.stopPropagation());
+    document.body.append(dialog);
+    dialog.showModal();
+    input.focus(); input.select();
+  });
+}
+
 const root = document.getElementById('app');
 const FOCUS_MUSIC_CATALOG = [
   { id: 'focus1', name: 'Circuito de calma', category: 'Electrónica', description: 'Sintetizadores suaves y un pulso constante para entrar en ritmo.' },
@@ -303,7 +344,7 @@ function buildShell() {
   const items = [
     ['today', 'Hoy', 'navigation/today.png'], ['tasks', 'Tareas', 'navigation/tasks.png'],
     ['activities', 'Actividades', 'navigation/activities.png'], ['calendar', 'Calendario', 'navigation/calendar.png'],
-    ['planner', 'Planificador', 'navigation/planner.png'], ['focus', 'Enfoque', 'focus/timer.png'],
+    ['planner', 'Pizarrones', 'navigation/dashboard.png'], ['focus', 'Enfoque', 'focus/timer.png'],
     ['goals', 'Objetivos', 'navigation/goals.png'], ['insights', 'Insights', 'navigation/insights.png']
   ];
   items.forEach(([id, label, iconPath]) => {
@@ -1082,7 +1123,7 @@ function renderIdeaBoardCanvas(main, board) {
       showToast('Has alcanzado el máximo de conexiones del pizarrón.', 'error');
       return;
     }
-    const label = prompt('Etiqueta de la conexión (opcional):', '');
+    const label = await requestText('Etiqueta de la conexión (opcional):', '');
     if (label === null) return;
     const connection = { id: makeId('connection'), from, to, label: label.trim().slice(0, 100), style: 'straight', directed };
     activeBoard.connections.push(connection);
@@ -1119,7 +1160,7 @@ function renderIdeaBoardCanvas(main, board) {
     const activeBoard = currentBoard();
     const connection = activeBoard?.connections.find(item => item.id === selectedConnectionId);
     if (!connection) return;
-    const label = prompt('Editar etiqueta de la conexión:', connection.label);
+    const label = await requestText('Editar etiqueta de la conexión:', connection.label);
     if (label === null) return;
     const previous = connection.label;
     connection.label = label.trim().slice(0, 100);
@@ -1512,7 +1553,7 @@ function renderIdeaBoardCanvas(main, board) {
   });
   groupSelection.addEventListener('click', async () => {
     const activeBoard=currentBoard(); const ids=[...selectedNodeIds].filter(id=>activeBoard?.nodes.some(node=>node.id===id&&(node.type==='note'||node.type==='activity')));
-    if(!activeBoard||ids.length<2)return; const title=window.prompt('Nombre del grupo:','Nuevo grupo'); if(title===null)return; if(!title.trim())return showToast('El grupo necesita un nombre.','error');
+    if(!activeBoard||ids.length<2)return; const title=await requestText('Nombre del grupo:','Nuevo grupo'); if(title===null)return; if(!title.trim())return showToast('El grupo necesita un nombre.','error');
     const children=activeBoard.nodes.filter(node=>ids.includes(node.id)); const left=Math.min(...children.map(node=>node.x)),top=Math.min(...children.map(node=>node.y)),right=Math.max(...children.map(node=>node.x+node.width)),bottom=Math.max(...children.map(node=>node.y+node.height));
     const group=createIdeaNode('group',{title,x:left-14,y:top-48,width:Math.max(160,right-left+28),height:Math.max(100,bottom-top+62),childrenIds:ids,color:'#e4efe7'});
     activeBoard.nodes.push(group);activeBoard.modifiedAt=new Date().toISOString();
@@ -1528,7 +1569,7 @@ function renderIdeaBoardCanvas(main, board) {
 
 function renderIdeaBoardLibrary(main) {
   const header = element('div', 'view-heading-row');
-  header.append(heading('Mis pizarrones', 'Un espacio para reunir ideas, proyectos y conexiones.', 'navigation/planner.png'));
+  header.append(heading('Pizarrones', 'Un espacio para reunir ideas, proyectos y conexiones.', 'navigation/dashboard.png'));
   const headerActions = element('div', 'ideas-library-header-actions');
   headerActions.append(button('Importar .oisym', 'ideas-import-trigger', 'button secondary'));
   headerActions.append(button('+ Nuevo pizarrón', 'ideas-create', 'button primary'));
@@ -1600,7 +1641,7 @@ function renderPlannerAgenda(main) {
   const dateBar = element('div', 'calendar-heading');
   const title = element('div', '');
   const plannerTitle = element('div', 'view-title-with-icon');
-  plannerTitle.append(iconImage('navigation/planner.png', '', 'view-title-icon'), element('h1', '', 'Planificador'));
+  plannerTitle.append(iconImage('navigation/dashboard.png', '', 'view-title-icon'), element('h1', '', 'Planificador'));
   title.append(plannerTitle, element('p', 'muted', dateLabel(state.selectedDate) + ' · Los compromisos bloqueados se respetan. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
   const dateInput = input('selectedDate', '', 'date', state.selectedDate);
   dateInput.id = 'planner-date';
@@ -2179,7 +2220,7 @@ function renderSettings(main) {
   });
   const panel=element('section','settings-panel');
   const active=sections.find(item=>item[0]===state.settingsSection);
-  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/planner.png',notifications:'notifications/task-reminder.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
+  panel.append(heading(active[1],active[2],state.settingsSection==='profiles'?'actions/profiles.png':({profile:'interface/settings.png',planning:'navigation/dashboard.png',notifications:'notifications/task-reminder.png',focus:'focus/timer.png',data:'actions/export.png',shortcuts:'interface/search.png'}[state.settingsSection]||'interface/settings.png')));
   if(state.settingsSection==='profile'){
     const form=element('form','form-card settings-form');
     form.dataset.form='profile-settings';
@@ -2747,7 +2788,7 @@ root.addEventListener('click', async event => {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     const note = board?.nodes.find(item => item.id === id && item.type === 'note');
     if (!note) return;
-    if (!confirm('¿Eliminar esta nota? Esta acción no se puede deshacer.')) return;
+    if (!confirm('¿Eliminar esta nota? Puedes recuperarla con Deshacer.')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
     board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item);
@@ -2764,7 +2805,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'ideas-open') { state.selectedIdeaBoardId = id; state.plannerSection = 'board'; updateShell(); return; }
   if (action === 'ideas-create') {
-    const title = window.prompt('Nombre del nuevo pizarrón:');
+    const title = await requestText('Nombre del nuevo pizarrón:');
     if (title === null) return;
     try {
       const previous = cloneActiveProfile();
@@ -2781,10 +2822,10 @@ root.addEventListener('click', async event => {
   if (action === 'ideas-edit') {
     const board = state.profile.ideaBoards.find(item => item.id === id);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
-    const title = window.prompt('Nombre del pizarrón:', board.title);
+    const title = await requestText('Nombre del pizarrón:', board.title);
     if (title === null) return;
     if (!title.trim()) return showToast('El nombre no puede quedar vacío.', 'error');
-    const description = window.prompt('Descripción (opcional, máximo 500 caracteres):', board.description || '');
+    const description = await requestText('Descripción (opcional, máximo 500 caracteres):', board.description || '');
     if (description === null) return;
     if (description.length > 500) return showToast('La descripción admite hasta 500 caracteres.', 'error');
     const previous = cloneActiveProfile();
@@ -2806,7 +2847,7 @@ root.addEventListener('click', async event => {
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const anchor = element('a');
-      const safeName = String(board.title).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() || 'pizarron';
+      const safeName = String(board.title).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() || 'pizarron';
       anchor.href = url;
       anchor.download = 'oisym-' + safeName + '.oisym';
       document.body.append(anchor); anchor.click(); anchor.remove();
@@ -2818,7 +2859,7 @@ root.addEventListener('click', async event => {
   if (action === 'ideas-rename') {
     const board = state.profile.ideaBoards.find(item => item.id === id);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
-    const title = window.prompt('Nuevo nombre del pizarrón:', board.title);
+    const title = await requestText('Nuevo nombre del pizarrón:', board.title);
     if (title === null) return;
     if (!title.trim()) return showToast('El nombre no puede quedar vacío.', 'error');
     const previous = cloneActiveProfile();
@@ -2831,7 +2872,7 @@ root.addEventListener('click', async event => {
     const source = state.profile.ideaBoards.find(item => item.id === id);
     if (!source) return showToast('No se encontró el pizarrón.', 'error');
     if (state.profile.ideaBoards.length >= 100) return showToast('Has alcanzado el máximo de pizarrones.', 'error');
-    const title = window.prompt('Nombre de la copia:', source.title + ' (copia)');
+    const title = await requestText('Nombre de la copia:', source.title + ' (copia)');
     if (title === null) return;
     try {
       const previous = cloneActiveProfile();
@@ -2915,7 +2956,7 @@ root.addEventListener('click', async event => {
     const url = URL.createObjectURL(blob);
     const anchor = element('a');
     anchor.href = url;
-    anchor.download = 'oisym-perfil-' + String(profile.name).normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '-' + localDate() + '.json';
+    anchor.download = 'oisym-perfil-' + String(profile.name).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-|-$/g,'').toLowerCase() + '-' + localDate() + '.json';
     document.body.append(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
     showToast('Perfil exportado.');
     return;
@@ -2980,7 +3021,7 @@ root.addEventListener('click', async event => {
     const task = taskById(id);
     if (!task) return;
     const previousProfile = cloneActiveProfile();
-    const choice = prompt('Escribe: bloquear, desbloquear, eliminar o posponer', task.locked ? 'desbloquear' : 'bloquear');
+    const choice = await requestText('Escribe: bloquear, desbloquear, eliminar o posponer', task.locked ? 'desbloquear' : 'bloquear');
     if (choice === 'eliminar' && confirm('¿Eliminar esta tarea?')) state.profile.tasks = state.profile.tasks.filter(item => item.id !== id);
     else if (choice === 'bloquear' || choice === 'desbloquear') state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { locked: choice === 'bloquear' }) : item);
     else if (choice === 'posponer') state.profile.tasks = state.profile.tasks.map(item => item.id === id && !item.locked ? updateTask(item, { scheduledDate: shiftDate(localDate(), 1), startTime: '', endTime: '' }) : item);
@@ -3036,7 +3077,7 @@ root.addEventListener('click', async event => {
     if (dateField) dateField.value = state.selectedDate;
     if (titleField) titleField.focus();
   }
-  if (action === 'navigate-date') { state.selectedDate = target.dataset.date; state.view = 'planner'; updateShell(); }
+  if (action === 'navigate-date') { state.plannerSection = 'agenda'; state.selectedDate = target.dataset.date; state.view = 'planner'; updateShell(); }
   if (action === 'apply-recommendation') {
     const task = taskById(id);
     if (task && !task.locked && task.status === 'pending') {

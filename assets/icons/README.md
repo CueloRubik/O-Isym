@@ -10,7 +10,7 @@ Los PNG se organizan por función para evitar una carpeta de recursos desordenad
 | `navigation/tasks.png` | Vista Tareas |
 | `navigation/activities.png` | Vista Actividades |
 | `navigation/calendar.png` | Vista Calendario |
-| `navigation/planner.png` | Vista Planificador |
+| `navigation/dashboard.png` | Vista Pizarrones |
 | `navigation/goals.png` | Vista Objetivos |
 | `navigation/insights.png` | Vista Insights |
 

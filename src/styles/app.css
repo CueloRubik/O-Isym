@@ -879,3 +879,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .ideas-filter-summary { margin-left:auto; color:var(--muted); font-size:11px; white-space:nowrap; }
 .ideas-note-card.is-filtered-out, .ideas-activity-card.is-filtered-out, .ideas-group-frame.is-filtered-out { display:none !important; }
 @media(max-width:620px) { .ideas-canvas-filter-tools { align-items:stretch; flex-direction:column; } .ideas-node-search,.ideas-node-filter { width:100%; min-width:0; } .ideas-filter-summary { margin-left:0; } }
+
+.text-dialog { border: 1px solid var(--border, #d7dfd9); border-radius: 16px; padding: 24px; background: var(--surface, #fff); color: inherit; }
+.text-dialog::backdrop { background: rgba(32, 48, 40, .28); }
+.text-dialog form { display: grid; gap: 20px; }
+.text-dialog label { display: grid; gap: 12px; }
+.text-dialog input { width: 100%; box-sizing: border-box; }
