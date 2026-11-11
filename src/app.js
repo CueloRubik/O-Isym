@@ -3268,7 +3268,7 @@ root.addEventListener('click', async event => {
     const task = taskById(id);
     if (task) {
       const previousProfile = cloneActiveProfile();
-      state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { status: item.status === 'done' ? 'pending' : 'done' }) : item);
+      state.profile = taskMutation(state.profile, { type: 'toggle', id });
       if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
       updateShell();
     }
@@ -3291,9 +3291,16 @@ root.addEventListener('click', async event => {
     if (!task) return;
     const previousProfile = cloneActiveProfile();
     const choice = await requestText('Escribe: bloquear, desbloquear, eliminar o posponer', task.locked ? 'desbloquear' : 'bloquear');
-    if (choice === 'eliminar' && confirm('¿Eliminar esta tarea?')) state.profile.tasks = state.profile.tasks.filter(item => item.id !== id);
-    else if (choice === 'bloquear' || choice === 'desbloquear') state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { locked: choice === 'bloquear' }) : item);
-    else if (choice === 'posponer') state.profile.tasks = state.profile.tasks.map(item => item.id === id && !item.locked ? updateTask(item, { scheduledDate: shiftDate(localDate(), 1), startTime: '', endTime: '' }) : item);
+    if (choice === 'eliminar') {
+      if (!confirm('¿Eliminar esta tarea?')) return;
+      state.profile = taskMutation(state.profile, { type: 'delete', id, allowLocked: true });
+    } else if (choice === 'bloquear' || choice === 'desbloquear') {
+      state.profile = taskMutation(state.profile, { type: 'edit', id, data: { locked: choice === 'bloquear' } });
+    } else if (choice === 'posponer') {
+      if (task.locked) return showToast('Primero desbloquea el compromiso.', 'error');
+      state.profile = taskMutation(state.profile, { type: 'edit', id,
+        data: { scheduledDate: shiftDate(localDate(), 1), startTime: '', endTime: '' } });
+    } else return;
     if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
     updateShell();
   }
@@ -3301,7 +3308,7 @@ root.addEventListener('click', async event => {
     const activity = activityById(id);
     if (activity) {
       const previousProfile = cloneActiveProfile();
-      state.profile.tasks.unshift(createTask({ title: activity.name, description: activity.description, estimatedMinutes: activity.durationMinutes, activityId: id, scheduledDate: state.selectedDate }));
+      state.profile = taskMutation(state.profile, { type: 'create', data: { title: activity.name, description: activity.description, estimatedMinutes: activity.durationMinutes, activityId: id, scheduledDate: state.selectedDate } });
       if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
       showToast('Tarea creada desde la actividad.'); updateShell();
     }
@@ -3364,7 +3371,7 @@ root.addEventListener('click', async event => {
     const task = taskById(id);
     if (task && !task.locked && task.status === 'pending') {
       const previousProfile = cloneActiveProfile();
-      state.profile.tasks = state.profile.tasks.map(item => item.id === id ? updateTask(item, { scheduledDate: target.dataset.date, startTime: '', endTime: '' }) : item);
+      state.profile = taskMutation(state.profile, { type: 'edit', id, data: { scheduledDate: target.dataset.date, startTime: '', endTime: '' } });
       if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
       updateShell(); showToast('Propuesta aplicada.');
     }
@@ -3455,14 +3462,17 @@ root.addEventListener('click', async event => {
     const previousProfile = cloneActiveProfile();
     const map = new Map(analysis.proposals.map(item => [item.taskId, item]));
     let applied = 0;
-    state.profile.tasks = state.profile.tasks.map(task => {
+    let candidate = state.profile;
+    for (const task of state.profile.tasks) {
       const proposal = map.get(task.id);
-      if (!proposal || task.locked || task.status !== 'pending') return task;
-      if (task.scheduledDate && task.scheduledDate !== analysis.date) return task;
-      if (task.scheduledDate === analysis.date && task.startTime && task.endTime) return task;
+      if (!proposal || task.locked || task.status !== 'pending') continue;
+      if (task.scheduledDate && task.scheduledDate !== analysis.date) continue;
+      if (task.scheduledDate === analysis.date && task.startTime && task.endTime) continue;
+      candidate = taskMutation(candidate, { type: 'edit', id: task.id,
+        data: { scheduledDate: proposal.date, startTime: proposal.startTime, endTime: proposal.endTime } });
       applied++;
-      return updateTask(task, { scheduledDate: proposal.date, startTime: proposal.startTime, endTime: proposal.endTime });
-    });
+    }
+    state.profile = candidate;
     state.plannerAnalysis = null;
     if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
     updateShell();
