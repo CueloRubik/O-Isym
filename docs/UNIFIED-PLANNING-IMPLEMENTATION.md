@@ -61,3 +61,10 @@ Antes de compilar para distribución en la Mac real:
 8. Si todo es correcto, compilar **localmente** con `npm run build:mac` (Intel) o `npm run build:mac:universal`; probar los instaladores en los dispositivos destino antes de publicar.
 
 La CI de GitHub utiliza Linux y **no demuestra por sí sola** que la interfaz Electron o las notificaciones funcionen en Catalina. No se han publicado Releases ni se ha fusionado con `main`.
+
+## Auditoría posterior (11 de noviembre de 2026)
+
+- **Ruta de recordatorios:** si una tarea fue eliminada, la notificación abre la fecha correspondiente en la vista Día del Calendario, en vez de abrir Pizarrones. Las fechas inválidas usan el día local. Los recordatorios de tareas existentes conservan su editor habitual.
+- **Pruebas adicionales:** tres pruebas de la interfaz cubren recordatorios de tareas eliminadas, fechas incorrectas y tareas existentes.
+- **Organización:** los cinco scripts de calendario/planificador del prototipo anterior y su hoja de estilos se trasladaron de `src/` a `legacy/`, con explicación en `legacy/README.md`. No estaban cargados por `index.html`; la aplicación y el instalador usan `src/app.js`, `src/planning.js` y `src/styles/app.css`. No se eliminaron los archivos históricos.
+- **Distribución:** se conserva la prohibición de publicar Releases o fusionar en `main`; la prueba manual en macOS Catalina sigue pendiente y los instaladores no se han publicado.
