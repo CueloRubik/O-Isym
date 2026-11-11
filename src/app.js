@@ -2648,7 +2648,7 @@ function renderProfiles(main) {
   const preferences = selected.preferences || {};
   const preferenceGrid = element('div', 'profile-preference-grid');
   [
-    ['Tema', ({classic:'Clásico',warm:'Cálido',sky:'Cielo',playful:'Colorido'}[preferences.theme] || 'Clásico')],
+    ['Apariencia', ({light:'Claro',dark:'Oscuro',system:'Automático'}[preferences.appearanceMode]||'Claro') + ' · ' + Appearance.findPalette(preferences.appearancePalette).name],
     ['Enfoque', (preferences.focusMinutes || 25) + ' min'],
     ['Descanso', (preferences.breakMinutes || 5) + ' min'],
     ['Planificación', ({manual:'Manual',suggested:'Sugerido',hybrid:'Híbrido',automatic:'Automático'}[preferences.autonomy] || 'Sugerido')]
@@ -2699,10 +2699,8 @@ function openProfileEditor(profile) {
   form.append(field('Edad (opcional)',age),element('p','small-note','No se guarda fecha de nacimiento.'));
   form.append(element('span','field-label','Avatar'));
   buildAvatarPicker(form,profile.avatarId || 'profile-1');
-  form.append(field('Color de acento',input('color','','color',profile.color)));
-  form.append(field('Tema',select('theme',[
-    {value:'classic',label:'Clásico'},{value:'warm',label:'Cálido'},{value:'sky',label:'Cielo'},{value:'playful',label:'Colorido'}
-  ],profile.preferences.theme || 'classic')));
+  form.append(field('Color del avatar',input('color','','color',profile.color)));
+  form.append(element('p','small-note','Los colores y el modo oscuro se configuran desde Ajustes → Apariencia.'));
   const preferences=element('details','profile-advanced-preferences');
   const preferencesSummary=element('summary','','Preferencias de planificación y Focus');
   preferences.append(preferencesSummary);
@@ -2748,7 +2746,8 @@ function openProfileEditor(profile) {
 
 function renderSettings(main) {
   const sections = [
-    ['profile','Mi perfil','Identidad y apariencia'],
+    ['profile','Mi perfil','Identidad y avatar'],
+    ['appearance','Apariencia','Temas claros, oscuros y colores'],
     ['planning','Planificación','Horario y autonomía'],
     ['notifications','Notificaciones','Recordatorios y segundo plano'],
     ['focus','Focus y sonido','Sesiones, música y alarmas'],
@@ -2776,25 +2775,22 @@ function renderSettings(main) {
     form.append(field('Nombre',input('name','Nombre del perfil','text',state.profile.name)));
     const age=input('age','Edad en años','number',state.profile.age==null?'':state.profile.age);age.min='1';age.max='120';age.step='1';
     form.append(field('Edad (opcional)',age),element('p','small-note','La edad adapta algunas sugerencias. No se guarda fecha de nacimiento.'));
-    form.append(field('Color de acento',input('color','','color',state.profile.color)));
+    form.append(field('Color del avatar',input('color','','color',state.profile.color)));
     form.append(element('span','field-label','Avatar'));
     buildAvatarPicker(form,state.profile.avatarId||'profile-1');
     const previewRow=element('div','profile-avatar-preview-row');
     const preview=element('div','profile-avatar profile-avatar-preview','');preview.setAttribute('aria-hidden','true');
     previewRow.append(preview,element('span','muted','Vista previa del perfil'));form.append(previewRow);updateProfilePreview(form);
-    form.append(field('Tema',select('theme',[
-      {value:'classic',label:'Clásico — limpio y equilibrado'},
-      {value:'warm',label:'Cálido — tonos suaves'},
-      {value:'sky',label:'Cielo — acentos azulados'},
-      {value:'playful',label:'Colorido — alegre y dinámico'}
-    ],state.profile.preferences.theme||'classic')));
+    form.append(button('Personalizar toda la interfaz','open-appearance','button secondary'));
     form.append(field('Movimiento de la interfaz',select('motionEnabled',[
       {value:'true',label:'Activado — transiciones sutiles'},
       {value:'false',label:'Reducido — menos movimiento'}
     ],String(state.profile.preferences.motionEnabled!==false))));
-    form.append(element('p','small-note','El avatar, el color y el tema solo cambian la presentación de este perfil.'));
+    form.append(element('p','small-note','Para cambiar los temas claros, oscuros y las paletas, abre Apariencia.'));
     form.append(actionIconButton('Guardar cambios','submit-form','save.png','button primary'));
     panel.append(form);
+  } else if(state.settingsSection==='appearance'){
+    renderAppearanceSettings(panel);
   } else if(state.settingsSection==='planning'){
     const form=element('form','form-card settings-form');form.dataset.form='profile-planning-settings';
     form.append(field('Autonomía del planificador',select('autonomy',[
@@ -2983,7 +2979,6 @@ async function handleSubmit(form) {
         avatarId: isImageAvatar(data.avatarId) ? data.avatarId : current.avatarId,
         preferences: {
           ...current.preferences,
-          theme: ['classic','warm','sky','playful'].includes(data.theme) ? data.theme : current.preferences.theme,
           autonomy: ['manual','suggested','hybrid','automatic'].includes(data.autonomy) ? data.autonomy : current.preferences.autonomy,
           focusMinutes: data.focusMinutes,
           breakMinutes: data.breakMinutes,
@@ -3131,11 +3126,23 @@ async function handleSubmit(form) {
       state.profile.preferences.ageBand=getAgeBand(state.profile.age);
       state.profile.color=/^#[0-9a-f]{6}$/i.test(data.color||'')?data.color:state.profile.color;
       state.profile.avatarId=isImageAvatar(data.avatarId)?data.avatarId:state.profile.avatarId;
-      state.profile.preferences.theme=['classic','warm','sky','playful'].includes(data.theme)?data.theme:getDefaultThemeForAge(state.profile.age);
       state.profile.preferences.motionEnabled=data.motionEnabled!=='false';
       const saved=await save();
       if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
       showToast('Perfil actualizado.');
+    } else if (form.dataset.form === 'profile-appearance-settings') {
+      const draft=appearanceDraft(form);
+      if (!['light','dark','system'].includes(draft.appearanceMode) ||
+          !Appearance.PALETTES.some(p => p.id===draft.appearancePalette) ||
+          Object.values(draft.appearanceColors).some(color => color!=='' && !Appearance.validHex(color))) {
+        throw new Error('No se pudo validar la apariencia seleccionada.');
+      }
+      const previous=cloneActiveProfile();
+      state.profile.preferences.appearanceMode=draft.appearanceMode;
+      state.profile.preferences.appearancePalette=draft.appearancePalette;
+      state.profile.preferences.appearanceColors={...draft.appearanceColors};
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      showToast('Apariencia guardada para este perfil.');
     } else if (form.dataset.form === 'profile-task-notifications') {
       const beforeSave=normalizeProfile(JSON.parse(JSON.stringify(state.profile)));
       state.profile.preferences.taskNotificationsEnabled=data.taskNotificationsEnabled==='true';
@@ -3523,6 +3530,26 @@ root.addEventListener('click', async event => {
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
   if (action === 'close-task-form') { closeTaskEditor(); return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
+  if (action === 'open-appearance') { state.view='settings'; state.settingsSection='appearance'; updateShell(); return; }
+  if (action === 'appearance-palette') {
+    const form=target.closest('form[data-form="profile-appearance-settings"]');
+    if (!form) return;
+    form.querySelector('[name="appearancePalette"]').value=target.dataset.palette;
+    updateAppearancePreview(form);
+    return;
+  }
+  if (action === 'appearance-reset') {
+    const form=target.closest('form[data-form="profile-appearance-settings"]');
+    if (!form) return;
+    const defaults=appearanceDefaults(state.profile);
+    form.querySelector('[name="appearancePalette"]').value=defaults.appearancePalette;
+    form.querySelector('[name="appearanceMode"][value="light"]').checked=true;
+    appearanceColorFields.forEach(([key]) => {
+      form.querySelector('[name="custom-'+key+'"]').checked=false;
+    });
+    updateAppearancePreview(form);
+    return;
+  }
   if (action === 'dismiss-launch-at-login') {
     try { localStorage.setItem('oisym-mac-launch-prompt-dismissed', 'true'); } catch {}
     $('[data-launch-prompt]')?.remove();
@@ -4210,6 +4237,13 @@ root.addEventListener('input', event => {
     return;
   }
 
+  const appearanceForm=event.target.closest('form[data-form="profile-appearance-settings"]');
+  if (appearanceForm) {
+    const key=appearanceColorFields.find(([name]) => event.target.name==='appearance-'+name)?.[0];
+    if (key) appearanceForm.querySelector('[name="custom-'+key+'"]').checked=true;
+    updateAppearancePreview(appearanceForm);
+    return;
+  }
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'name' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.name === 'focusAlarmVolume') { const value = $('.alarm-volume-value'); if (value) value.textContent = event.target.value + '%'; }
@@ -4278,6 +4312,8 @@ root.addEventListener('change', async event => {
     }catch(error){showToast('No se pudo importar el perfil: '+error.message,'error');}
     return;
   }
+  const appearanceForm=event.target.closest('form[data-form="profile-appearance-settings"]');
+  if (appearanceForm) { updateAppearancePreview(appearanceForm); return; }
   if (event.target.closest('[data-profile-modal]')) event.target.closest('[data-profile-modal]').dataset.dirty='true';
   if ((event.target.name === 'avatarId' || event.target.name === 'color') && (event.target.closest('[data-profile-modal]') || event.target.closest('form[data-form="profile-settings"]'))) updateProfilePreview(event.target.closest('form'));
   if (event.target.id === 'profile-select') {
@@ -4460,6 +4496,17 @@ async function boot() {
   }
 }
 
+const systemAppearanceQuery=window.matchMedia?.('(prefers-color-scheme: dark)');
+if (systemAppearanceQuery) {
+  const onAppearanceChange=() => {
+    if (state.profile?.preferences.appearanceMode !== 'system') return;
+    applyProfileAppearance();
+    if (state.view==='settings' && state.settingsSection==='appearance')
+      updateAppearancePreview($('form[data-form="profile-appearance-settings"]'));
+  };
+  if (systemAppearanceQuery.addEventListener) systemAppearanceQuery.addEventListener('change',onAppearanceChange);
+  else if (systemAppearanceQuery.addListener) systemAppearanceQuery.addListener(onAppearanceChange);
+}
 window.oisym?.notifications?.onOpenTask?.(openTaskFromReminder);
 window.oisym?.onSaveBeforeClose?.(flushIdeaChanges);
 boot();
