@@ -126,3 +126,38 @@ test('board canvas and Focus remain usable after navigating unified Calendar', a
   assert.ok(r.query('[data-action="focus-start"]'));
   assert.deepEqual(r.errors, []);
 });
+
+test('editing a template rule preserves its identity and leaves existing tasks intact', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  r.query('.day-template-form input[name="name"]').value = 'Plan original';
+  r.query('.day-template-form input[name="title"]').value = 'Práctica';
+  submit(r, '.day-template-form'); await settle(r);
+  const id = r.app.state.profile.dayTemplates[0].id;
+  r.click('[data-action="template-preview"]'); await settle(r);
+  r.click('[data-action="template-apply"]'); await settle(r);
+  const taskId = r.app.state.profile.tasks[0].id;
+  r.click('[data-action="template-edit"]');
+  assert.ok(r.query('.template-edit-form'));
+  r.query('.template-edit-form input[name="name"]').value = 'Plan modificado';
+  const wednesday = r.query('.template-edit-form input[name="weekday"][value="3"]');
+  wednesday.checked = false;
+  submit(r, '.template-edit-form'); await settle(r);
+  assert.equal(r.app.state.profile.dayTemplates[0].id, id);
+  assert.equal(r.app.state.profile.dayTemplates[0].name, 'Plan modificado');
+  assert.equal(r.app.state.profile.dayTemplates[0].recurrence.weekdays.includes(3), false);
+  assert.equal(r.app.state.profile.tasks[0].id, taskId);
+  assert.equal(r.saved().profiles[0].tasks[0].id, taskId);
+  assert.deepEqual(r.errors, []);
+});
+test('keyboard Tab while a task dialog is open does not throw or break navigation', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  r.click('[data-action="calendar-add-task"]');
+  const modal = r.query('[data-profile-modal]');
+  assert.ok(modal);
+  const e = new r.w.KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Tab' });
+  r.w.document.dispatchEvent(e);
+  assert.equal(e.defaultPrevented, true);
+  assert.deepEqual(r.errors, []);
+});
