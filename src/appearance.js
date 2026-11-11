@@ -32,7 +32,8 @@
     const one = luminance(a), two = luminance(b);
     return (Math.max(one, two) + .05) / (Math.min(one, two) + .05);
   };
-  const chooseText = background => contrast(background, '#ffffff') >= contrast(background, '#111923') ? '#ffffff' : '#111923';
+  // Black or white always provides at least 4.5:1 on an opaque sRGB color.
+  const chooseText = background => contrast(background, '#ffffff') >= contrast(background, '#000000') ? '#ffffff' : '#000000';
   const readable = (desired, background, lightText, darkText, ratio = 4.5) => {
     if (validHex(desired) && contrast(desired, background) >= ratio) return desired;
     const light = lightText || '#f5f8fb', dark = darkText || '#132432';
