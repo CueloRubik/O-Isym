@@ -3,6 +3,122 @@ const {
   createGoal, updateGoal, localDate, shiftDate, getRecommendations, analyzeSchedule,
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
  } = window.OIsymDomain;
+const Appearance = window.OIsymAppearance;
+const prefersDark = () => Boolean(window.matchMedia?.('(prefers-color-scheme: dark)')?.matches);
+const applyProfileAppearance = () => Appearance.apply(root,document.documentElement,state.profile?.preferences || {},prefersDark());
+const appearanceColorFields = [['accent','Acento','Botones y controles'],['page','Fondo','Fondo general'],['surface','Paneles','Tarjetas y ventanas'],['text','Texto','Títulos y contenido']];
+const appearanceDefaults = profile => ({
+  appearanceMode: 'light',
+  appearancePalette: profile.preferences.theme === 'sky' ? 'ocean' : profile.preferences.theme === 'warm' ? 'sand' :
+    profile.preferences.theme === 'playful' ? 'aurora' : 'forest',
+  appearanceColors: { accent:'', page:'', surface:'', text:'' }
+});
+const appearanceDraft = form => {
+  const colors = {};
+  appearanceColorFields.forEach(([key]) => {
+    colors[key] = form.querySelector('[name="custom-' + key + '"]')?.checked ?
+      form.querySelector('[name="appearance-' + key + '"]').value : '';
+  });
+  return { appearanceMode: form.querySelector('[name="appearanceMode"]:checked')?.value || 'light',
+    appearancePalette: form.querySelector('[name="appearancePalette"]').value, appearanceColors: colors };
+};
+function updateAppearancePreview(form) {
+  if (!form || form.dataset.form !== 'profile-appearance-settings') return;
+  const selected = appearanceDraft(form), result = Appearance.makeTokens(selected,prefersDark());
+  const preview = form.querySelector('.appearance-preview');
+  const tokens = result.vars;
+  const properties = {
+    '--preview-page': tokens['--page'], '--preview-surface': tokens['--surface'],
+    '--preview-text': tokens['--text'], '--preview-muted': tokens['--muted'],
+    '--preview-line': tokens['--line'], '--preview-accent': tokens['--accent'],
+    '--preview-accent-text': tokens['--ui-accent-text']
+  };
+  if (preview) Object.entries(properties).forEach(([key,value]) => preview.style.setProperty(key,value));
+  form.querySelectorAll('.appearance-palette-button').forEach(item =>
+    item.setAttribute('aria-pressed',String(item.dataset.palette === selected.appearancePalette)));
+  const note=form.querySelector('.appearance-contrast-note');
+  if (note) {
+    note.classList.toggle('warning',result.contrastAdjusted);
+    note.textContent=result.contrastAdjusted ?
+      'El texto elegido no tiene suficiente contraste. La aplicación mostrará un color legible.' :
+      'Esto es una vista previa. Los cambios solo se aplicarán al guardar.';
+  }
+}
+function renderAppearanceSettings(panel) {
+  const saved = state.profile.preferences;
+  const form=element('form','form-card settings-form appearance-form');
+  form.dataset.form='profile-appearance-settings';
+  form.append(element('p','muted','Elige tu estilo. La apariencia pertenece únicamente al perfil activo.'));
+  const modeSection=element('section','appearance-section');
+  modeSection.append(element('h3','','Modo visual'));
+  const modes=element('div','appearance-mode-options');
+  [['light','Claro'],['dark','Oscuro'],['system','Automático']].forEach(([value,label])=>{
+    const wrap=element('label','appearance-mode-option');
+    const radio=element('input');radio.type='radio';radio.name='appearanceMode';radio.value=value;
+    radio.checked=(saved.appearanceMode||'light')===value;
+    wrap.append(radio,document.createTextNode(label));modes.append(wrap);
+  });
+  modeSection.append(modes,element('p','small-note','Automático sigue los ajustes de apariencia de macOS.'));
+  form.append(modeSection);
+  const section=element('section','appearance-section');
+  section.append(element('h3','','Paletas preparadas'),
+    element('p','small-note','Todas incluyen colores compatibles con los modos claro y oscuro.'));
+  section.append(input('appearancePalette','','hidden',saved.appearancePalette||'forest'));
+  const paletteGrid=element('div','appearance-palette-grid');
+  Appearance.PALETTES.forEach(palette=>{
+    const choice=button('','appearance-palette','appearance-palette-button',{palette:palette.id});
+    choice.setAttribute('aria-label','Paleta '+palette.name);
+    choice.setAttribute('aria-pressed',String(saved.appearancePalette===palette.id));
+    const swatches=element('div','appearance-palette-swatches');
+    [palette.light,palette.base,palette.dark].forEach(color=>{
+      const span=element('span');span.style.backgroundColor=color;swatches.append(span);
+    });
+    choice.append(swatches,element('span','appearance-palette-name',palette.name));
+    paletteGrid.append(choice);
+  });
+  section.append(paletteGrid);form.append(section);
+  const custom=element('section','appearance-section');
+  custom.append(element('h3','','Colores personalizados'),
+    element('p','small-note','Marca los colores que quieras controlar. El resto se adapta a tu paleta.'));
+  const grid=element('div','appearance-custom-grid');
+  const current=Appearance.makeTokens(saved,prefersDark()).vars;
+  appearanceColorFields.forEach(([key,label,detail])=>{
+    const tile=element('div','appearance-color-control');
+    const paint=input('appearance-'+key,'','color',
+      saved.appearanceColors?.[key]||current[({accent:'--accent',page:'--page',surface:'--surface',text:'--text'})[key]]);
+    const title=element('label','',label);title.append(paint);
+    const toggle=element('label','appearance-custom-toggle');
+    const check=element('input');check.type='checkbox';check.name='custom-'+key;
+    check.checked=Boolean(saved.appearanceColors?.[key]);
+    toggle.append(check,document.createTextNode('Usar mi color'));
+    tile.append(element('span','field-label',label),title,element('p','small-note',detail),toggle);
+    grid.append(tile);
+  });
+  custom.append(grid);form.append(custom);
+  const display=element('section','appearance-section');
+  display.append(element('h3','','Vista previa'));
+  const preview=element('div','appearance-preview');
+  preview.setAttribute('role','img');
+  preview.setAttribute('aria-label','Ejemplo visual de menú y tarjeta con la nueva paleta');
+  const layout=element('div','appearance-preview-layout');
+  const sidebar=element('div','appearance-preview-nav');
+  sidebar.append(element('span','appearance-preview-brand','O-Isym'),
+    element('span','appearance-preview-item is-selected','Hoy'),
+    element('span','appearance-preview-item','Calendario'),
+    element('span','appearance-preview-item','Tareas'));
+  const main=element('div','appearance-preview-main');
+  main.append(element('strong','appearance-preview-title','Tu espacio'));
+  const card=element('div','appearance-preview-card');
+  card.append(element('strong','','Organizar el día'),
+    element('span','','Tareas y actividades en una vista'),
+    element('span','appearance-preview-button','Nueva tarea'));
+  main.append(card);layout.append(sidebar,main);preview.append(layout);display.append(preview);
+  const note=element('p','appearance-contrast-note');note.setAttribute('role','status');display.append(note);form.append(display);
+  const actions=element('div','appearance-actions');
+  actions.append(button('Restablecer selección','appearance-reset','button secondary'),
+    actionIconButton('Guardar apariencia','submit-form','save.png','button primary'));
+  form.append(actions);panel.append(form);updateAppearancePreview(form);
+}
 const { getItemsForDay, getCalendarRange, getUnscheduledTasks, detectScheduleConflicts,
   getFreeTimeSlots, getTimelineLayout, taskMutation, createDayTemplate, previewDayTemplate,
   applyDayTemplate, templateAppliesOn } = window.OIsymPlanning;
@@ -491,8 +607,8 @@ function updateShell() {
   else avatar.textContent = avatarMark(state.profile);
   avatar.setAttribute('aria-label', 'Avatar del perfil ' + state.profile.name);
   root.dataset.audience = getAgeBand(state.profile.age);
-  root.style.setProperty('--accent', state.profile.color);
   root.dataset.theme = state.profile.preferences.theme || 'classic';
+  applyProfileAppearance();
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
   $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'short', day: 'numeric', month: 'long' });
   const viewNames = { today: 'Hoy', calendar: 'Calendario', tasks: 'Tareas',
