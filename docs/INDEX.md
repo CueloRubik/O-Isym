@@ -4,6 +4,10 @@
 
 - [Estrategia de ramas, compilaciones y Releases](RELEASE-STRATEGY.md) — fuente actual para las ramas `development` y futura `main`, builds multiplataforma y página oficial.
 
+## Próxima etapa de producto
+
+- [Organización Unificada: planificación diaria y calendario avanzado](UNIFIED-PLANNING.md) — diseño y bloques de implementación, sin duplicar datos ni herramientas existentes.
+
 ## Desarrollo y revisión
 
 - [Auditoría técnica y prioridades](QUALITY_AUDIT_OISYM_5.md).
