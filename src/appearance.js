@@ -17,7 +17,13 @@
     { id: 'sand', name: 'Arena', light: '#91652f', dark: '#e8c080', base: '#29251c' },
     { id: 'citrus', name: 'Lima', light: '#547b26', dark: '#b4dc70', base: '#1c2719' },
     { id: 'slate', name: 'Pizarra', light: '#526d83', dark: '#acc6da', base: '#17232c' },
-    { id: 'graphite', name: 'Grafito', light: '#525c70', dark: '#b9c5de', base: '#181c24' }
+    { id: 'graphite', name: 'Grafito', light: '#525c70', dark: '#b9c5de', base: '#181c24' },
+    { id: 'cobalt', name: 'Cobalto', light: '#365ab2', dark: '#9fb7ff', base: '#17203d' },
+    { id: 'sage', name: 'Salvia', light: '#4a8068', dark: '#a2d4b5', base: '#182a24' },
+    { id: 'coral', name: 'Coral', light: '#b35454', dark: '#ffaaa2', base: '#322025' },
+    { id: 'amber', name: 'Ámbar', light: '#977122', dark: '#f1cd73', base: '#31291a' },
+    { id: 'plum', name: 'Ciruela', light: '#80456c', dark: '#e3a3cc', base: '#2c1b2c' },
+    { id: 'glacier', name: 'Glaciar', light: '#347f9e', dark: '#87d4ee', base: '#152733' }
   ];
   const findPalette = id => PALETTES.find(p => p.id === id) || PALETTES[0];
   const validHex = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
