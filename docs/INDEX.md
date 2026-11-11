@@ -6,7 +6,8 @@
 
 ## Próxima etapa de producto
 
-- [Organización Unificada: planificación diaria y calendario avanzado](UNIFIED-PLANNING.md) — diseño y bloques de implementación, sin duplicar datos ni herramientas existentes.
+- [Organización Unificada: planificación diaria y calendario avanzado](UNIFIED-PLANNING.md) — especificación y bloques de trabajo.
+- [Implementación de Organización Unificada](UNIFIED-PLANNING-IMPLEMENTATION.md) — arquitectura incorporada en `development`, validación automatizada y lista de comprobaciones en Catalina.
 
 ## Desarrollo y revisión
 
