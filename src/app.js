@@ -3115,7 +3115,11 @@ async function handleSubmit(form) {
       profile.color=/^#[0-9a-f]{6}$/i.test(data.color)?data.color:'#27856b';
       // Honor choices made in the profile wizard in the new appearance engine.
       profile.preferences.appearancePalette=appearanceDefaults(profile).appearancePalette;
+      profile.preferences.appearancePalettes={light:profile.preferences.appearancePalette,dark:profile.preferences.appearancePalette};
       profile.preferences.appearanceColors.accent=profile.color.toLowerCase()==='#27856b' ? '' : profile.color.toLowerCase();
+      profile.preferences.appearanceColorsByMode={
+        light:{...profile.preferences.appearanceColors},dark:{...profile.preferences.appearanceColors}
+      };
       state.snapshot.profiles.push(profile);
       focusAudioController.stopAll();
       stopFocusTicker();
