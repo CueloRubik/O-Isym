@@ -401,3 +401,10 @@ html[data-scheme] .meta-icon,
 html[data-scheme] .settings-nav-item img {
   filter: var(--ui-content-icon-filter);
 }
+
+/* Avatar files are optional presentation, never a reason to show an empty profile. */
+html[data-scheme] .avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-weight: 800; font-size: 14px; border-radius: inherit;
+}
