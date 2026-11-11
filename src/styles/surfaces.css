@@ -642,3 +642,182 @@ html[data-scheme] .appearance-custom-grid > * {
   html[data-scheme] .week-day,
   html[data-scheme] .workspace-main .button { transition: none; }
 }
+
+/* Rows were historically separated by flat horizontal rules. The same inset
+   tiles now work in task lists, activity/goal catalogues, history and planning,
+   with enough room for buttons and their associated popovers. */
+html[data-scheme] .workspace-main .task-list {
+  display:flex;
+  flex-direction:column;
+  gap:var(--ui-small-padding);
+  min-width:0;
+}
+html[data-scheme] .workspace-main .card .task-row,
+html[data-scheme] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) {
+  box-sizing:border-box;
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  border:1px solid var(--line);
+  border-radius:var(--ui-radius-nested);
+  background:var(--surface-soft);
+  padding:var(--ui-inner-padding);
+  box-shadow:var(--ui-surface-contained);
+  margin:0;
+  gap:11px;
+}
+html[data-scheme] .workspace-main .card .task-row:last-child,
+html[data-scheme] .workspace-main :is(
+  .inbox-row:last-child,.activity-row:last-child,.goal-row:last-child,
+  .history-row:last-child,.profile-row:last-child,.suggestion:last-child,
+  .template-row:last-child,.week-line:last-child,.chart-line:last-child
+) {
+  border:1px solid var(--line);
+}
+html[data-scheme] .workspace-main .card .task-row {
+  display:flex;
+  align-items:center;
+  overflow:visible;
+}
+html[data-scheme] .workspace-main .card .task-row > .task-content {
+  flex:1 1 120px;
+  min-width:0;
+}
+html[data-scheme] .workspace-main .card .task-row .task-actions {
+  display:flex;
+  flex:0 1 auto;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:7px;
+  min-width:0;
+  max-width:100%;
+  margin-left:auto;
+}
+html[data-scheme] .workspace-main .card .task-row .task-actions .button {
+  min-width:0;
+  max-width:100%;
+}
+html[data-scheme] .workspace-main .card .task-row .task-check {
+  flex:0 0 21px;
+  margin:0;
+}
+html[data-scheme] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) > * { min-width:0; }
+html[data-scheme] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) :is(span,strong,p,h3) {
+  overflow-wrap:anywhere;
+}
+html[data-scheme] .workspace-main .task-row .meta-chip {
+  padding:5px 8px;
+  min-height:23px;
+}
+html[data-scheme] .workspace-main .task-row .task-meta {
+  column-gap:7px;
+  row-gap:7px;
+}
+html[data-scheme] .workspace-main .card .inbox-row,
+html[data-scheme] .workspace-main .card .suggestion,
+html[data-scheme] .workspace-main .card .template-row,
+html[data-scheme] .workspace-main .card .week-line,
+html[data-scheme] .workspace-main .card .history-row {
+  margin-bottom:var(--ui-small-padding);
+}
+html[data-scheme] .workspace-main .card .inbox-row:last-child,
+html[data-scheme] .workspace-main .card .suggestion:last-child,
+html[data-scheme] .workspace-main .card .template-row:last-child,
+html[data-scheme] .workspace-main .card .week-line:last-child,
+html[data-scheme] .workspace-main .card .history-row:last-child {
+  margin-bottom:0;
+}
+html[data-scheme] .workspace-main .card .activity-row,
+html[data-scheme] .workspace-main .card .goal-row {
+  flex-wrap:wrap;
+  gap:9px 13px;
+}
+html[data-scheme] .workspace-main .card .activity-row > :first-child,
+html[data-scheme] .workspace-main .card .goal-row > :first-child {
+  flex:1 1 170px;
+  min-width:0;
+}
+html[data-scheme] .workspace-main .card .chart-line {
+  grid-template-columns:minmax(70px,90px) minmax(0,1fr) 30px;
+}
+html[data-scheme] .workspace-main .card .chart-line > * { min-width:0; }
+html[data-scheme] .workspace-main .card .profile-admin-item {
+  min-width:0;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:var(--ui-radius-nested);
+  box-shadow:var(--ui-surface-contained);
+}
+html[data-scheme] .workspace-main .card .profile-admin-item:not(.selected) {
+  background:var(--surface-soft);
+}
+html[data-scheme][data-card-style="outlined"] .workspace-main .card .task-row,
+html[data-scheme][data-card-style="outlined"] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) {
+  border:2px solid var(--line);
+  background:var(--surface);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+}
+html[data-scheme][data-card-style="soft"] .workspace-main .card .task-row,
+html[data-scheme][data-card-style="soft"] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) {
+  background:var(--surface);
+  box-shadow:0 2px 9px rgba(0,0,0,.035);
+}
+
+/* Empty states and module headers also have breathing room, but not a
+   second border around content already inside a card. */
+html[data-scheme] .workspace-main .empty-state {
+  box-sizing:border-box;
+  min-width:0;
+  padding:24px max(15px,var(--ui-inner-padding));
+}
+html[data-scheme] .workspace-main .section-heading {
+  min-width:0;
+  gap:8px;
+}
+html[data-scheme] .workspace-main .section-heading-title {
+  min-width:0;
+  gap:11px;
+}
+html[data-scheme] .workspace-main .section-heading-icon,
+html[data-scheme] .workspace-main .view-title-icon {
+  flex-shrink:0;
+}
+html[data-scheme] .workspace-main .focus-status,
+html[data-scheme] .workspace-main .focus-settings-heading {
+  max-width:100%;
+  box-sizing:border-box;
+}
+html[data-scheme] .workspace-main .focus-stat,
+html[data-scheme] .workspace-main .today-metric {
+  box-shadow:var(--ui-surface-contained);
+}
+@media(max-width:700px) {
+  html[data-scheme] .workspace-main .card .task-row {
+    flex-wrap:wrap;
+    row-gap:9px;
+  }
+  html[data-scheme] .workspace-main .card .task-row .task-actions {
+    flex:1 1 100%;
+    margin-left:0;
+    justify-content:flex-end;
+  }
+  html[data-scheme] .workspace-main .card .chart-line {
+    grid-template-columns:minmax(60px,78px) minmax(0,1fr) 26px;
+  }
+}
