@@ -1757,92 +1757,185 @@ function renderIdeaBoardLibrary(main) {
   main.append(grid);
 }
 
-function renderPlannerAgenda(main) {
-  const agendaHeader = element('div', 'view-heading-row');
-  agendaHeader.append(heading('Agenda y planificación', 'Organiza tus compromisos y conserva la planificación asistida.'));
-  agendaHeader.append(button('Mis pizarrones', 'ideas-library', 'button secondary'));
-  main.append(agendaHeader);
-  const dateBar = element('div', 'calendar-heading');
-  const title = element('div', '');
-  const plannerTitle = element('div', 'view-title-with-icon');
-  plannerTitle.append(iconImage('navigation/dashboard.png', '', 'view-title-icon'), element('h1', '', 'Planificador'));
-  title.append(plannerTitle, element('p', 'muted', dateLabel(state.selectedDate) + ' · Los compromisos bloqueados se respetan. Atajos: ←/→ día · N tarea · T hoy · ? ayuda.'));
-  const dateInput = input('selectedDate', '', 'date', state.selectedDate);
-  dateInput.id = 'planner-date';
-  dateBar.append(title, dateInput);
-  main.append(dateBar);
-  const scheduled = state.profile.tasks.filter(task => task.status === 'pending' && task.scheduledDate === state.selectedDate).sort((a, b) => (a.startTime || '99:99').localeCompare(b.startTime || '99:99'));
-  const plannerLayout=element('div','planner-layout');
-  const plannerMain=element('div','planner-main-column');
-  const plannerSide=element('div','planner-side-column');
-  const agenda = card();
-  agenda.append(heading('Agenda', scheduled.length + ' elementos programados'));
-  const hours = state.profile.preferences;
-  agenda.append(element('p', 'muted small-note', 'Horario habitual: ' + (hours.workingDayStart || '09:00') + '–' + (hours.workingDayEnd || '17:00') + '. Puedes cambiarlo en Ajustes.'));
-  renderTaskList(agenda, scheduled, { emptyTitle: 'No hay bloques programados', emptyDetail: 'Puedes asignar fecha y horario a una tarea.' });
-  plannerMain.append(agenda);
-  const unscheduled = card();
-  const waiting = state.profile.tasks.filter(task => task.status === 'pending' && !task.scheduledDate);
-  unscheduled.append(heading('Por organizar', waiting.length + ' tareas sin día asignado'));
-  renderTaskList(unscheduled, waiting, { emptyTitle: 'Todo tiene un día asignado', emptyDetail: 'No hay tareas pendientes de organizar.' });
-  plannerSide.append(unscheduled);
-  const add = element('form', 'form-card');
-  add.dataset.form = 'planner-task';
-  add.append(element('h3', '', 'Reservar un bloque'));
-  const titleInput = input('title', 'Nombre del compromiso o tarea');
-  add.append(field('Nombre', titleInput));
-  const row = element('div', 'form-grid');
-  row.append(field('Inicio', input('startTime', '', 'time', '09:00')), field('Fin', input('endTime', '', 'time', '10:00')));
-  add.append(row);
-  const row2 = element('div', 'form-grid');
-  row2.append(field('Prioridad', select('priority', [{ value: 'low', label: 'Baja' }, { value: 'medium', label: 'Media' }, { value: 'high', label: 'Alta' }], 'medium')));
-  row2.append(field('Tipo', select('locked', [{ value: 'false', label: 'Flexible' }, { value: 'true', label: 'Compromiso bloqueado' }], 'false')));
-  const row3 = element('div', 'form-grid');
-  row3.append(field('Notificación', select('reminderEnabled', [{ value: 'true', label: 'Avisarme a esta hora' }, { value: 'false', label: 'Sin aviso' }], 'true')));
-  add.append(row2, row3, button('Añadir a la agenda', 'submit-form', 'button primary'));
-  plannerSide.append(add);
-  plannerLayout.append(plannerMain,plannerSide);
-  main.append(plannerLayout);
-  const planner = card();
-  planner.append(heading('Planificación asistida', 'O-Isym busca huecos reales y explica cada propuesta. Nada se aplica sin tu aprobación.'));
-  planner.append(element('p', 'muted', 'Modo actual: ' + ({ manual: 'Manual', suggested: 'Sugerido', hybrid: 'Híbrido', automatic: 'Automático' }[state.profile.preferences.autonomy])));
-  planner.append(button('Analizar disponibilidad y proponer horarios', 'generate-plan', 'button primary'));
-  if (state.plannerAnalysis && state.plannerAnalysis.date === state.selectedDate) {
-    const analysis = state.plannerAnalysis;
-    const summary = element('p', 'small-note', analysis.proposals.length + ' propuestas · ' + analysis.proposedMinutes + ' min por organizar · Jornada ' + analysis.workday.start + '–' + analysis.workday.end);
-    planner.append(summary);
+function renderPlannerAgenda(main, listMode = false) {
+  const date = state.selectedDate;
+  const items = getItemsForDay(state.profile, date);
+  const scheduled = items.filter(item => item.scheduled);
+  const timed = scheduled.filter(item => item.timed && item.task.status === 'pending');
+  const untimed = items.filter(item => !item.timed);
+  const free = getFreeTimeSlots(state.profile, date);
+  const titleBar = element('div', 'day-date-bar');
+  const datePicker = input('selectedDate', '', 'date', date);
+  datePicker.id = 'planner-date';
+  datePicker.setAttribute('aria-label', 'Fecha de la agenda');
+  titleBar.append(element('p', 'muted', 'Plan del ' + dateLabel(date) + ' · Las fechas límite no crean bloques de tiempo.'), datePicker);
+  main.append(titleBar);
+  const dayLayout = element('div', 'planner-layout');
+  const mainColumn = element('div', 'planner-main-column');
+  const side = element('div', 'planner-side-column');
+  const timeCard = card('day-timeline-card');
+  timeCard.append(heading(listMode ? 'Agenda del día' : 'Línea temporal',
+    timed.length + ' bloques con horario · ' + free.availableMinutes + ' min libres dentro de la jornada'));
+  timeCard.append(element('p', 'small-note',
+    'Horario habitual: ' + free.startTime + '–' + free.endTime + '. Se configura en tu perfil.'));
+  const timeline = element('div', 'day-timeline');
+  if (!timed.length) timeline.append(empty('Sin bloques horarios',
+    'Puedes asignar horas a las tareas existentes o aceptar una propuesta.'));
+  timed.forEach(item => {
+    const row = element('div', 'day-time-block' + (item.task.locked ? ' is-locked' : ''));
+    const when = element('div', 'day-block-time', item.task.startTime + '–' + item.task.endTime);
+    const detail = element('div', 'day-block-details');
+    detail.append(element('strong', '', item.task.title), element('span', 'small-note',
+      (item.task.locked ? 'Compromiso bloqueado · ' : 'Bloque flexible · ') + priorityLabel(item.task.priority)));
+    const edit = button('Editar', 'edit-task', 'button secondary small', { id: item.id });
+    edit.setAttribute('aria-label', 'Editar horario de ' + item.task.title);
+    row.append(when, detail, edit);
+    timeline.append(row);
+  });
+  timeCard.append(timeline);
+  if (free.conflicts.length) {
+    const warnings = element('div', 'schedule-conflicts');
+    warnings.setAttribute('role', 'status');
+    warnings.append(element('strong', '', free.conflicts.length + ' superposiciones detectadas'));
+    free.conflicts.forEach(conflict => warnings.append(element('p', 'small-note',
+      conflict.startTime + '–' + conflict.endTime + ' · ' + conflict.firstTitle + ' / ' + conflict.secondTitle +
+      (conflict.locked ? ' · Incluye un compromiso bloqueado' : ''))));
+    timeCard.append(warnings);
+  }
+  const freeTitle = element('h3', '', 'Tiempo disponible');
+  timeCard.append(freeTitle);
+  if (!free.free.length) timeCard.append(element('p', 'muted', 'No quedan intervalos libres dentro del horario habitual.'));
+  const slots = element('div', 'free-slot-list');
+  free.free.forEach(slot => {
+    const row = element('div', 'free-slot');
+    row.append(element('span', '', slot.startTime + '–' + slot.endTime),
+      element('span', 'small-note', slot.minutes + ' min'));
+    slots.append(row);
+  });
+  timeCard.append(slots);
+  timeCard.append(button('Añadir tarea con horario', 'calendar-add-task', 'button primary'));
+  mainColumn.append(timeCard);
+  const pendingCard = card();
+  pendingCard.append(heading('Sin horario para este día',
+    'Tareas programadas sin horas y fechas límite que vencen hoy.'));
+  renderTaskList(pendingCard, untimed.map(item => item.task), { emptyTitle: 'Sin pendientes sin hora',
+    emptyDetail: 'Las tareas con horario están en la línea temporal.' });
+  mainColumn.append(pendingCard);
+  const inbox = card();
+  const waiting = getUnscheduledTasks(state.profile);
+  inbox.append(heading('Bandeja de entrada', waiting.length + ' tareas pendientes sin fecha programada'));
+  if (waiting.length) {
+    waiting.slice(0, 20).forEach(task => {
+      const row = element('div', 'inbox-row');
+      row.append(element('span', '', task.title));
+      row.append(button('Asignar al día', 'schedule-inbox-task', 'button secondary small', { id: task.id, date }));
+      inbox.append(row);
+    });
+  } else inbox.append(empty('Bandeja despejada', 'No hay tareas pendientes sin fecha.'));
+  side.append(inbox);
+  dayLayout.append(mainColumn, side);
+  main.append(dayLayout);
+
+  const analysisCard = card('unified-planner-card');
+  analysisCard.append(heading('Planificación asistida',
+    'O-Isym propone intervalos libres. Nada se mueve sin aprobación.'));
+  analysisCard.append(button('Analizar y proponer horarios', 'generate-plan', 'button secondary'));
+  const analysis = state.plannerAnalysis;
+  if (analysis && analysis.date === date) {
+    analysisCard.append(element('p', 'small-note',
+      analysis.proposals.length + ' propuestas · ' + analysis.availableMinutes + ' min libres al analizar.'));
     if (analysis.proposals.length) {
-      const proposalList = element('div', 'planner-proposals');
+      const list = element('div', 'planner-proposals');
       analysis.proposals.forEach(proposal => {
         const item = element('article', 'planner-proposal');
-        const top = element('div', 'planner-proposal-top');
-        top.append(element('strong', '', proposal.title), element('span', 'planner-time', proposal.startTime + '–' + proposal.endTime));
-        item.append(top, element('p', 'muted', proposal.reason));
-        proposalList.append(item);
+        item.append(element('strong', '', proposal.title),
+          element('span', 'planner-time', proposal.startTime + '–' + proposal.endTime),
+          element('p', 'small-note', proposal.reason));
+        list.append(item);
       });
-      planner.append(proposalList);
-      planner.append(element('p', 'small-note', 'Revisa los horarios antes de aplicarlos. Las tareas bloqueadas y los bloques ya programados no se cambian.'));
-      const actions = element('div', 'button-group');
-      actions.append(button('Aplicar propuestas', 'apply-plan', 'button primary'), button('Descartar', 'discard-plan', 'button secondary'));
-      planner.append(actions);
-    } else {
-      planner.append(empty('No hay propuestas disponibles', 'No se encontró espacio para las tareas flexibles de este día.'));
+      analysisCard.append(list);
+      analysisCard.append(button('Aplicar estas propuestas', 'apply-plan', 'button primary'),
+        button('Descartar', 'discard-plan', 'button secondary'));
     }
     if (analysis.skipped.length) {
       const skipped = element('div', 'planner-skipped');
-      skipped.append(element('h4', '', 'Tareas que necesitan atención'));
-      analysis.skipped.forEach(item => {
-        const row = element('p', 'small-note');
-        row.append(element('strong', '', item.title + ': '), document.createTextNode(item.reason));
-        skipped.append(row);
-      });
-      planner.append(skipped);
+      skipped.append(element('strong', '', 'No incluidas'));
+      analysis.skipped.forEach(item => skipped.append(element('p', 'small-note', item.title + ': ' + item.reason)));
+      analysisCard.append(skipped);
     }
+    if (!analysis.proposals.length) analysisCard.append(element('p', 'muted', 'No hay propuestas que encajen en la jornada.'));
   }
-  main.append(planner);
-  maybeShowMacLaunchPrompt();
-}
+  main.append(analysisCard);
 
+  const templatesCard = card('day-template-card');
+  templatesCard.append(heading('Plantillas y rutinas',
+    'Opcionales. Cada aplicación crea tareas reales una sola vez; las instancias se editan por separado.'));
+  const templates = state.profile.dayTemplates || [];
+  if (!templates.length) templatesCard.append(element('p', 'muted', 'Todavía no tienes plantillas de día.'));
+  templates.forEach(template => {
+    const row = element('div', 'template-row');
+    const applies = templateAppliesOn(template, date);
+    const info = element('div', '');
+    info.append(element('strong', '', template.name),
+      element('p', 'small-note', template.entries.length + ' bloques · ' +
+        (applies ? 'Aplicable a esta fecha' : 'Fuera de los días configurados')));
+    row.append(info,
+      button('Previsualizar', 'template-preview', 'button secondary small', { id: template.id }),
+      button(applies ? 'Excluir este día' : 'Alternar excepción', 'template-exception', 'button secondary small', { id: template.id }),
+      button('Eliminar', 'template-delete', 'button secondary small', { id: template.id }));
+    templatesCard.append(row);
+  });
+  const preview = state.templatePreview;
+  if (preview && preview.date === date && templates.some(item => item.id === preview.id)) {
+    const data = previewDayTemplate(state.profile, preview.id, date);
+    const summary = element('section', 'template-preview');
+    summary.append(element('h3', '', 'Vista previa · ' + data.template.name),
+      element('p', 'small-note', data.proposals.length + ' bloques nuevos · ' + data.skipped.length + ' omitidos'));
+    data.proposals.forEach(entry => summary.append(element('p', 'small-note',
+      entry.startTime + '–' + entry.endTime + ' · ' + entry.title +
+      (entry.conflicts.length ? ' · Conflicto: ' + entry.conflicts.join(', ') : '')));
+    data.skipped.forEach(item => summary.append(element('p', 'small-note', item.title ? item.title + ': ' + item.reason : item.reason)));
+    if (data.proposals.length) summary.append(button('Aplicar plantilla al día', 'template-apply', 'button primary', { id: preview.id }));
+    summary.append(button('Cerrar vista previa', 'template-preview-close', 'button secondary'));
+    templatesCard.append(summary);
+  }
+  const create = element('form', 'form-card day-template-form');
+  create.dataset.form = 'day-template-create';
+  create.append(element('h3', '', 'Nueva plantilla de día'));
+  create.append(field('Nombre de la plantilla', input('name', 'Ej. Mañana de estudio')));
+  create.append(field('Bloque o actividad', input('title', 'Ej. Lectura')));
+  create.append(field('Actividad del catálogo (opcional)', activitySelect('activityId', '')));
+  const times = element('div', 'form-grid');
+  times.append(field('Inicio', input('startTime', '', 'time', '09:00')),
+    field('Fin', input('endTime', '', 'time', '09:30')));
+  create.append(times);
+  const weekdays = element('fieldset', 'weekday-picker');
+  weekdays.append(element('legend', '', 'Días de repetición'));
+  [['1','Lun'],['2','Mar'],['3','Mié'],['4','Jue'],['5','Vie'],['6','Sáb'],['0','Dom']].forEach(([value,label]) => {
+    const wrap = element('label','weekday-option');
+    const check = element('input'); check.type = 'checkbox'; check.name = 'weekday'; check.value = value;
+    check.checked = ['1','2','3','4','5'].includes(value);
+    wrap.append(check, document.createTextNode(label)); weekdays.append(wrap);
+  });
+  create.append(weekdays);
+  const validity = element('div','form-grid');
+  validity.append(field('Desde (opcional)', input('startDate', '', 'date')),
+    field('Hasta (opcional)', input('endDate', '', 'date')));
+  create.append(validity, button('Guardar plantilla', 'submit-form', 'button primary'));
+  templatesCard.append(create);
+  if (templates.length) {
+    const add = element('form','form-card template-entry-form');
+    add.dataset.form = 'day-template-entry';
+    add.append(element('h3', '', 'Añadir bloque a una plantilla'));
+    add.append(field('Plantilla', select('templateId', templates.map(item => ({ value: item.id, label: item.name })), templates[0].id)));
+    add.append(field('Nombre del bloque', input('title', 'Ej. Descanso')));
+    const pair = element('div','form-grid');
+    pair.append(field('Inicio', input('startTime','','time','10:00')), field('Fin', input('endTime','','time','10:30')));
+    add.append(pair, button('Añadir bloque', 'submit-form', 'button secondary'));
+    templatesCard.append(add);
+  }
+  main.append(templatesCard);
+}
 function maybeShowMacLaunchPrompt() {
   if (state.launchPromptShown || state.profile?.preferences?.launchAtLogin === true) return;
   try { if (localStorage.getItem('oisym-mac-launch-prompt-dismissed') === 'true') return; } catch {}
