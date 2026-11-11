@@ -846,3 +846,14 @@ html[data-card-style="outlined"] .workspace-main .today-completed-card .task-row
 @media(prefers-reduced-motion:reduce) {
   html[data-scheme] .today-completed-card .task-row {transition:none;}
 }
+/* The settings preview respects the exact selected card treatment. */
+html[data-card-style="elevated"] .appearance-preview-card {
+  box-shadow:0 7px 16px rgba(15,35,45,.15);
+}
+html[data-card-style="soft"] .appearance-preview-card {
+  background:var(--preview-page);
+  box-shadow:0 2px 8px rgba(15,35,45,.07);
+}
+html[data-card-style="outlined"] .appearance-preview-card {
+  border-width:2px;box-shadow:none;
+}
