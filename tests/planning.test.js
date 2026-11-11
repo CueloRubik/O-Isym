@@ -152,3 +152,21 @@ test('templates are profile-local and independent of focus and idea boards', () 
   assert.equal(saved.profile.tasks.length, 1);
   assert.equal(first.tasks.length, 0);
 });
+
+test('a rescheduled template instance keeps its occurrence key and cannot regenerate on its original day', () => {
+  let profile = sample();
+  const template = P.createDayTemplate({ name: 'Clase', weekdays: [3], entries: [
+    { title: 'Practicar', startTime: '09:00', endTime: '10:00' }
+  ] });
+  profile.dayTemplates.push(template);
+  profile = P.applyDayTemplate(profile, template.id, date).profile;
+  const instance = profile.tasks[0];
+  assert.equal(instance.templateOccurrenceDate, date);
+  profile = P.taskMutation(profile, { type: 'edit', id: instance.id, data: {
+    scheduledDate: '2026-11-12', startTime: '10:00', endTime: '11:00'
+  } });
+  assert.equal(profile.tasks[0].scheduledDate, '2026-11-12');
+  assert.equal(profile.tasks[0].templateOccurrenceDate, date);
+  assert.equal(P.previewDayTemplate(profile, template.id, date).proposals.length, 0);
+  assert.equal(P.applyDayTemplate(profile, template.id, date).added, 0);
+});
