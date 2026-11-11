@@ -191,3 +191,81 @@ test('a reminder for an existing task still opens the shared task editor', async
   assert.ok(r.query('.task-form'));
   assert.deepEqual(r.errors, []);
 });
+
+test('workspace groups its navigation and keeps quick capture available outside Today', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r, '2026-11-11', 'day');
+  assert.ok(r.query('.workspace-shell'));
+  assert.equal(r.queryAll?.('.navigation-group')?.length || r.w.document.querySelectorAll('.navigation-group').length, 3);
+  assert.ok(r.query('.topbar-create'));
+  assert.equal(r.query('#topbar-view-name').textContent, 'Calendario');
+  r.click('[data-action="toggle-sidebar"]');
+  assert.equal(r.app.state.sidebarCollapsed, true);
+  assert.equal(r.query('.workspace-shell').classList.contains('is-sidebar-collapsed'), true);
+  r.click('[data-action="toggle-sidebar"]');
+  assert.equal(r.app.state.sidebarCollapsed, false);
+  r.click('.topbar-create');
+  assert.ok(r.query('.task-editor-panel'));
+  assert.ok(r.query('.task-form input[name="title"]'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('task inspector reuses the same record and protects unsaved changes', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Plan pendiente' });
+  r.app.state.profile.tasks.push(task);
+  r.app.state.view = 'tasks'; r.app.updateShell();
+  r.click('[data-action="plan-task"]');
+  assert.equal(r.app.state.editingTaskId, task.id);
+  assert.equal(r.w.document.activeElement.name, 'scheduledDate');
+  const field = r.query('.task-form input[name="scheduledDate"]');
+  field.value = '2026-11-15';
+  field.dispatchEvent(new r.w.Event('input', { bubbles: true }));
+  r.w.confirm = () => false;
+  r.click('.task-editor-close');
+  assert.ok(r.query('.task-editor-panel'));
+  assert.equal(r.app.state.editingTaskId, task.id);
+  r.w.confirm = () => true;
+  r.click('.task-editor-close');
+  assert.equal(r.query('.task-editor-panel'), null);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '');
+  assert.deepEqual(r.errors, []);
+});
+
+test('calendar day draws real time blocks and keeps overlapping entries editable', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const first = D.createTask({ title: 'Bloque A', scheduledDate: '2026-11-11', startTime: '09:00', endTime: '10:00' });
+  const second = D.createTask({ title: 'Bloque B', scheduledDate: '2026-11-11', startTime: '09:30', endTime: '10:30' });
+  r.app.state.profile.tasks.push(first, second);
+  openCalendar(r, '2026-11-11', 'day');
+  const blocks = Array.from(r.w.document.querySelectorAll('.day-positioned-block'));
+  assert.equal(blocks.length, 2);
+  assert.notEqual(blocks[0].style.left, blocks[1].style.left);
+  assert.equal(r.w.document.querySelectorAll('.day-ruler-label').length > 0, true);
+  assert.ok(r.query('.schedule-conflicts'));
+  assert.ok(blocks[0].querySelector('[data-action="edit-task"]'));
+  r.click('[data-action="calendar-mode-agenda"]');
+  assert.equal(r.w.document.querySelectorAll('.day-positioned-block').length, 0);
+  assert.equal(r.w.document.querySelectorAll('.day-agenda-list .day-time-block').length, 2);
+  assert.deepEqual(r.errors, []);
+});
+
+test('locked scheduled task asks for explicit permission before moving in shared editor', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Compromiso fijo', scheduledDate: '2026-11-11',
+    startTime: '09:00', endTime: '10:00', locked: true });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  openCalendar(r, '2026-11-11', 'day');
+  r.click('[data-action="edit-task"]');
+  r.query('.task-form input[name="startTime"]').value = '10:00';
+  r.query('.task-form input[name="endTime"]').value = '11:00';
+  r.w.confirm = () => false;
+  submit(r, '.task-form'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].startTime, '09:00');
+  r.w.confirm = () => true;
+  submit(r, '.task-form'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].startTime, '10:00');
+  assert.equal(r.saved().profiles[0].tasks[0].startTime, '10:00');
+  assert.deepEqual(r.errors, []);
+});
