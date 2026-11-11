@@ -28,7 +28,7 @@ async function renderer() {
     } },
     onSaveBeforeClose: cb => { close = cb; }
   };
-  for (const file of ['domain.js','planning.js','focus-audio.js','app.js']) {
+  for (const file of ['domain.js','planning.js','appearance.js','focus-audio.js','app.js']) {
     w.eval(fs.readFileSync(path.join(__dirname,'../../src',file),'utf8') + (file==='app.js' ? '\nwindow.testApp={state,save,flushIdeaChanges,restoreIdeaBoardHistory,updateShell};' : ''));
   }
   await wait();
