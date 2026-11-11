@@ -4,7 +4,7 @@ const {
   validateSnapshot, validateImportedProfile, clampNumber, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, getAgeBand, getDefaultThemeForAge, FOCUS_ALARM_TONES
  } = window.OIsymDomain;
 const { getItemsForDay, getCalendarRange, getUnscheduledTasks, detectScheduleConflicts,
-  getFreeTimeSlots, taskMutation, createDayTemplate, previewDayTemplate,
+  getFreeTimeSlots, getTimelineLayout, taskMutation, createDayTemplate, previewDayTemplate,
   applyDayTemplate, templateAppliesOn } = window.OIsymPlanning;
 
 // Electron does not implement window.prompt. Keep text entry inside the app.
@@ -87,6 +87,8 @@ const state = {
   selectedDate: localDate(),
   calendarDate: new Date(),
   calendarMode: 'month',
+  sidebarCollapsed: false,
+  taskEditorFocusField: 'title',
   taskFilter: 'active',
   focusTick: null,
   focusFinishing: false,
@@ -379,55 +381,91 @@ function buildShell() {
   root.replaceChildren();
   const skipLink = element('a', 'skip-link', 'Saltar al contenido');
   skipLink.href = '#main-content';
-  const shell = element('div', 'shell');
-  const sidebar = element('aside', 'sidebar');
-  sidebar.setAttribute('aria-label', 'Barra lateral');
-  const brand = element('div', 'brand');
-  brand.append(element('div', 'brand-mark', 'O'), element('div', 'brand-copy'));
-  brand.lastChild.append(element('strong', '', 'O-Isym'), element('span', '', 'tu espacio, a tu ritmo'));
+  const shell = element('div', 'shell workspace-shell');
+  const sidebar = element('aside', 'sidebar workspace-sidebar');
+  sidebar.id = 'workspace-sidebar';
+  sidebar.setAttribute('aria-label', 'Menú de O-Isym');
+
+  const brand = element('div', 'brand workspace-brand');
+  brand.append(element('div', 'brand-mark', 'O'));
+  const brandCopy = element('div', 'brand-copy');
+  brandCopy.append(element('strong', '', 'O-Isym'), element('span', '', 'Tu espacio de organización'));
+  brand.append(brandCopy);
   sidebar.append(brand);
 
   const profileBox = element('div', 'profile-switcher');
   const profileSelect = select('profile', []);
   profileSelect.id = 'profile-select';
-  profileSelect.setAttribute('aria-label', 'Cambiar el perfil activo');
-  profileBox.append(element('span', 'eyebrow', 'ESPACIO ACTUAL'), profileSelect, button('+ Perfil', 'new-profile', 'profile-add'));
+  profileSelect.setAttribute('aria-label', 'Cambiar perfil activo');
+  profileBox.append(element('span', 'eyebrow', 'PERFIL ACTIVO'), profileSelect,
+    button('+ Nuevo perfil', 'new-profile', 'profile-add'));
   sidebar.append(profileBox);
 
-  const nav = element('nav', 'navigation');
-  nav.setAttribute('aria-label', 'Navegación principal');
-  const profileNav = button('Perfiles', 'navigate', 'nav-item', { view: 'profiles' });
-  profileNav.prepend(iconImage('actions/profiles.png', '', 'nav-icon-image'));
-  nav.append(profileNav);
-  const items = [
-    ['today', 'Hoy', 'navigation/today.png'], ['tasks', 'Tareas', 'navigation/tasks.png'],
-    ['activities', 'Actividades', 'navigation/activities.png'], ['calendar', 'Calendario', 'navigation/calendar.png'],
-    ['planner', 'Pizarrones', 'navigation/dashboard.png'], ['focus', 'Enfoque', 'focus/timer.png'],
-    ['goals', 'Objetivos', 'navigation/goals.png'], ['insights', 'Insights', 'navigation/insights.png']
-  ];
-  items.forEach(([id, label, iconPath]) => {
-    const item = button('', 'navigate', 'nav-item', { view: id });
-    item.append(iconImage(iconPath, '', 'nav-icon-image'), element('span', '', label));
-    nav.append(item);
-  });
+  const nav = element('nav', 'navigation workspace-navigation');
+  nav.setAttribute('aria-label', 'Secciones');
+  const addGroup = (label, items) => {
+    const group = element('div', 'navigation-group');
+    group.append(element('div', 'navigation-group-label', label));
+    const list = element('div', 'navigation-group-items');
+    items.forEach(([id, name, icon]) => {
+      const item = button('', 'navigate', 'nav-item', { view: id });
+      item.setAttribute('aria-label', name);
+      item.title = name;
+      item.append(iconImage(icon, '', 'nav-icon-image'), element('span', 'nav-label', name));
+      list.append(item);
+    });
+    group.append(list); nav.append(group);
+  };
+  addGroup('PLANIFICAR', [
+    ['today', 'Hoy', 'navigation/today.png'],
+    ['calendar', 'Calendario', 'navigation/calendar.png'],
+    ['tasks', 'Tareas', 'navigation/tasks.png'],
+    ['activities', 'Actividades', 'navigation/activities.png'],
+    ['goals', 'Objetivos', 'navigation/goals.png']
+  ]);
+  addGroup('EXPLORAR Y CREAR', [
+    ['planner', 'Pizarrones', 'navigation/dashboard.png'],
+    ['focus', 'Focus', 'focus/timer.png'],
+    ['insights', 'Estadísticas', 'navigation/insights.png']
+  ]);
+  addGroup('TU ESPACIO', [
+    ['profiles', 'Perfiles', 'actions/profiles.png'],
+    ['settings', 'Ajustes', 'interface/settings.png']
+  ]);
   sidebar.append(nav);
   const sidebarBottom = element('div', 'sidebar-bottom');
-  const settingsButton = button('Ajustes', 'navigate', 'nav-item settings-link', { view: 'settings' });
-  settingsButton.prepend(iconImage('interface/settings.png', '', 'nav-icon-image'));
-  sidebarBottom.append(settingsButton);
-  sidebarBottom.append(element('div', 'sidebar-note', 'Tus datos permanecen en este dispositivo.'));
+  sidebarBottom.append(element('p', 'sidebar-note', 'Tus datos se guardan en este dispositivo.'));
   sidebar.append(sidebarBottom);
 
   const workspace = element('div', 'workspace');
-  const topbar = element('header', 'topbar');
-  const topLeft = element('div', 'topbar-date');
-  topLeft.id = 'topbar-date';
+  const topbar = element('header', 'topbar workspace-topbar');
+  const topLeft = element('div', 'topbar-context');
+  const toggle = button('☰', 'toggle-sidebar', 'sidebar-toggle');
+  toggle.id = 'toggle-sidebar';
+  toggle.setAttribute('aria-label', 'Contraer menú');
+  toggle.setAttribute('aria-controls', 'workspace-sidebar');
+  toggle.setAttribute('aria-expanded', 'true');
+  const location = element('div', 'topbar-location');
+  location.append(element('span', 'topbar-eyebrow', 'ESPACIO DE TRABAJO'));
+  const viewName = element('strong', 'topbar-view-name');
+  viewName.id = 'topbar-view-name';
+  location.append(viewName);
+  const date = element('span', 'topbar-date');
+  date.id = 'topbar-date';
+  topLeft.append(toggle, location, date);
+
   const topRight = element('div', 'topbar-actions');
-  const quickTaskButton = button('Nueva tarea', 'quick-task', 'button primary');
-  quickTaskButton.prepend(iconImage('interface/add.png', '', 'button-icon'));
-  topRight.append(quickTaskButton);
+  const inbox = element('span', 'topbar-inbox');
+  inbox.id = 'topbar-inbox';
+  inbox.setAttribute('aria-live', 'polite');
+  topRight.append(inbox, button('Hoy', 'topbar-today', 'button secondary topbar-today'),
+    button('Calendario', 'topbar-calendar', 'button secondary topbar-calendar'));
+  const quickTask = button('+ Nueva tarea', 'quick-task', 'button primary topbar-create');
+  quickTask.prepend(iconImage('interface/add.png', '', 'button-icon'));
+  topRight.append(quickTask);
   topbar.append(topLeft, topRight);
-  const main = element('main', 'main-content');
+
+  const main = element('main', 'main-content workspace-main');
   main.id = 'main-content';
   main.tabIndex = -1;
   workspace.append(topbar, main);
@@ -456,8 +494,18 @@ function updateShell() {
   root.style.setProperty('--accent', state.profile.color);
   root.dataset.theme = state.profile.preferences.theme || 'classic';
   root.classList.toggle('reduce-motion', state.profile.preferences.motionEnabled === false);
-  $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const topbarTaskAction=$('.topbar-actions [data-action="quick-task"]');if(topbarTaskAction)topbarTaskAction.hidden=state.view!=='today';
+  $('#topbar-date').textContent = dateLabel(localDate(), { weekday: 'short', day: 'numeric', month: 'long' });
+  const viewNames = { today: 'Hoy', calendar: 'Calendario', tasks: 'Tareas',
+    activities: 'Actividades', goals: 'Objetivos', planner: 'Pizarrones',
+    focus: 'Focus', insights: 'Estadísticas', profiles: 'Perfiles', settings: 'Ajustes' };
+  $('#topbar-view-name').textContent = viewNames[state.view] || 'Hoy';
+  $('#topbar-inbox').textContent = getUnscheduledTasks(state.profile).length + ' sin programar';
+  const shell = $('.workspace-shell');
+  shell.classList.toggle('is-sidebar-collapsed', state.sidebarCollapsed);
+  const menuToggle = $('#toggle-sidebar');
+  menuToggle.setAttribute('aria-expanded', String(!state.sidebarCollapsed));
+  menuToggle.setAttribute('aria-label', state.sidebarCollapsed ? 'Expandir menú' : 'Contraer menú');
+  menuToggle.title = state.sidebarCollapsed ? 'Expandir menú' : 'Contraer menú';
   $$('.nav-item').forEach(item => {
     const active = item.dataset.view === state.view;
     item.classList.toggle('active', active);
@@ -477,36 +525,54 @@ function updateShell() {
 
 function addTaskForm(parent, defaults = {}) {
   const editing = Boolean(state.editingTaskId);
-  const form = element('form', 'form-card task-form');
+  const form = element('form', 'form-card task-form task-editor-form');
   form.dataset.form = editing ? 'task-edit' : 'task';
-  form.append(element('h3', '', editing ? 'Editar tarea' : 'Añadir tarea'));
-  form.append(field('¿Qué necesitas hacer?', input('title', 'Ej. Leer 20 páginas', 'text', defaults.title || '')));
-  const row = element('div', 'form-grid');
-  row.append(field('Programar para (opcional)', input('scheduledDate', '', 'date', defaults.scheduledDate || '')));
-  row.append(field('Fecha límite (opcional)', input('dueDate', '', 'date', defaults.dueDate || '')));
-  form.append(row);
-  const row2 = element('div', 'form-grid');
-  row2.append(field('Prioridad', select('priority', [
+  form.append(element('h3', 'task-editor-title', editing ? 'Editar tarea' : 'Nueva tarea'),
+    element('p', 'task-editor-description muted',
+      'El mismo registro se verá en Hoy, Calendario y Tareas. No se crearán copias.'));
+
+  const basic = element('section', 'task-editor-section');
+  basic.append(element('h4', '', 'Detalles'));
+  basic.append(field('Nombre de la tarea', input('title', 'Ej. Practicar violín', 'text', defaults.title || '')));
+  basic.append(field('Notas (opcional)', textarea('description', 'Qué necesitas recordar…', defaults.description || '')));
+  const basicRow = element('div', 'form-grid');
+  basicRow.append(field('Prioridad', select('priority', [
     { value: 'low', label: 'Baja' }, { value: 'medium', label: 'Media' }, { value: 'high', label: 'Alta' }
-  ], defaults.priority || 'medium')));
-  row2.append(field('Duración estimada (min)', input('estimatedMinutes', '30', 'number', defaults.estimatedMinutes || 30)));
-  form.append(row2);
-  const row3 = element('div', 'form-grid');
-  row3.append(field('Hora de inicio (opcional)', input('startTime', '', 'time', defaults.startTime || '')));
-  row3.append(field('Hora de fin (opcional)', input('endTime', '', 'time', defaults.endTime || '')));
-  form.append(row3);
-  form.append(field('Vincular actividad', activitySelect('activityId', defaults.activityId || '')));
-  form.append(field('Recordatorio de esta tarea', select('reminderEnabled', [
-    { value: 'true', label: 'Avisarme a la hora programada' },
-    { value: 'false', label: 'No enviar notificación para esta tarea' }
+  ], defaults.priority || 'medium')),
+    field('Duración estimada (min)', input('estimatedMinutes', '30', 'number', defaults.estimatedMinutes || 30)));
+  basic.append(basicRow);
+  form.append(basic);
+
+  const scheduling = element('section', 'task-editor-section task-editor-scheduling');
+  scheduling.append(element('h4', '', 'Planificación'),
+    element('p', 'small-note', 'Puedes dejar una tarea sin fecha y programarla más tarde.'));
+  const dateRow = element('div', 'form-grid');
+  dateRow.append(field('Programar para (opcional)', input('scheduledDate', '', 'date', defaults.scheduledDate || '')),
+    field('Fecha límite (opcional)', input('dueDate', '', 'date', defaults.dueDate || '')));
+  scheduling.append(dateRow);
+  const hours = element('div', 'form-grid');
+  hours.append(field('Hora de inicio', input('startTime', '', 'time', defaults.startTime || '')),
+    field('Hora de fin', input('endTime', '', 'time', defaults.endTime || '')));
+  scheduling.append(hours);
+  scheduling.append(element('p', 'small-note', 'Las horas son opcionales, pero deben tener inicio y fin.'));
+  form.append(scheduling);
+
+  const options = element('section', 'task-editor-section');
+  options.append(element('h4', '', 'Opciones'));
+  options.append(field('Actividad del catálogo', activitySelect('activityId', defaults.activityId || '')));
+  options.append(field('Avisos de esta tarea', select('reminderEnabled', [
+    { value: 'true', label: 'Avisarme al llegar la hora' },
+    { value: 'false', label: 'No avisarme' }
   ], String(defaults.reminderEnabled !== false))));
-  form.append(element('p', 'small-note', 'Para recibir el aviso, asigna una fecha y una hora de inicio. Puedes cambiarlo después.'));
-  form.append(field('Notas (opcional)', textarea('description', 'Detalles o contexto…', defaults.description || '')));
-  const locked = select('locked', [{ value: 'false', label: 'Tarea flexible' }, { value: 'true', label: 'Compromiso bloqueado' }], String(Boolean(defaults.locked)));
-  form.append(field('Tipo de tarea', locked));
-  const actions = element('div', 'form-actions');
-  actions.append(editing ? actionIconButton('Guardar cambios', 'submit-form', 'save.png', 'button primary') : button('Guardar tarea', 'submit-form', 'button primary'));
-  if (editing) actions.append(button('Cancelar', 'cancel-edit-task', 'button secondary'));
+  options.append(field('Bloque de tiempo', select('locked', [
+    { value: 'false', label: 'Flexible, se puede mover' },
+    { value: 'true', label: 'Bloqueado, requiere confirmación para mover' }
+  ], String(Boolean(defaults.locked)))));
+  form.append(options);
+  const actions = element('div', 'form-actions task-editor-actions');
+  actions.append(button('Cancelar', editing ? 'cancel-edit-task' : 'close-task-form', 'button secondary'),
+    editing ? actionIconButton('Guardar cambios', 'submit-form', 'save.png', 'button primary') :
+      button('Crear tarea', 'submit-form', 'button primary'));
   form.append(actions);
   parent.append(form);
   return form;
@@ -700,21 +766,29 @@ function renderTasks(main) {
 function renderSharedTaskDialog(main) {
   const editing = state.editingTaskId ? taskById(state.editingTaskId) : null;
   if (state.editingTaskId && !editing) { state.editingTaskId = null; state.showTaskForm = false; return; }
-  const overlay = element('div', 'profile-modal-backdrop');
+  const overlay = element('div', 'profile-modal-backdrop task-editor-backdrop');
   overlay.dataset.profileModal = 'true';
   overlay.dataset.returnFocus = 'task-create-button';
-  const dialog = element('section', 'profile-modal');
+  const dialog = element('section', 'profile-modal task-editor-panel');
   dialog.setAttribute('role', 'dialog');
   dialog.setAttribute('aria-modal', 'true');
   dialog.setAttribute('aria-labelledby', 'task-modal-title');
+  dialog.setAttribute('aria-describedby', 'task-modal-description');
+  const panelHeader = element('div', 'task-editor-panel-header');
+  panelHeader.append(element('span', 'eyebrow', 'ORGANIZACIÓN UNIFICADA'));
+  const close = button('Cerrar', 'close-task-form', 'button secondary small task-editor-close');
+  close.setAttribute('aria-label', 'Cerrar editor de tareas');
+  panelHeader.append(close);
+  dialog.append(panelHeader);
   const form = addTaskForm(dialog, editing || state.taskFormDefaults || {});
   form.classList.add('profile-modal-form');
-  const title = form.querySelector('h3');
-  if (title) title.id = 'task-modal-title';
-  if (!editing) form.querySelector('.form-actions').append(button('Cancelar','close-task-form','button secondary'));
+  form.querySelector('.task-editor-title').id = 'task-modal-title';
+  form.querySelector('.task-editor-description').id = 'task-modal-description';
   overlay.append(dialog);
   main.append(overlay);
-  $('.task-form input[name="title"]', overlay)?.focus();
+  const field = state.taskEditorFocusField || 'title';
+  ($('.task-form [name="' + field + '"]', overlay) || $('.task-form input[name="title"]', overlay))?.focus();
+  state.taskEditorFocusField = 'title';
 }
 
 function renderActivities(main) {
@@ -3223,6 +3297,19 @@ root.addEventListener('click', async event => {
     updateShell(); showToast('Pizarrón eliminado.'); return;
   }
   if (action === 'new-task') { state.editingTaskId=null;state.taskFormDefaults={};state.showTaskForm=true;updateShell();return; }
+  if (action === 'toggle-sidebar') { state.sidebarCollapsed = !state.sidebarCollapsed; updateShell(); $('#toggle-sidebar')?.focus(); return; }
+  if (action === 'topbar-today' || action === 'topbar-calendar') {
+    state.selectedDate = localDate(); state.calendarDate = new Date();
+    state.view = action === 'topbar-today' ? 'today' : 'calendar';
+    if (state.view === 'calendar') state.calendarMode = 'day';
+    state.plannerAnalysis = null; state.templatePreview = null; updateShell();
+    $('#main-content')?.focus(); return;
+  }
+  if (action === 'plan-task') {
+    if (!taskById(id)) return showToast('La tarea ya no existe.', 'error');
+    state.editingTaskId = id; state.showTaskForm = true;
+    state.taskEditorFocusField = 'scheduledDate'; updateShell(); return;
+  }
   if (action === 'new-activity') { state.view='activities';state.editingActivityId=null;state.showActivityForm=true;updateShell();return; }
   if (action === 'new-goal') { state.view='goals';state.editingGoalId=null;state.showGoalForm=true;updateShell();return; }
   if (action === 'close-goal-form') { state.showGoalForm=false;state.editingGoalId=null;updateShell();$('#goal-create-button')?.focus();return; }
