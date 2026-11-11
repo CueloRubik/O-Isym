@@ -74,6 +74,17 @@
     const field=override('field',surface);
     const fieldText=readable(text,field,'#f5f8fb','#172735',4.5);
     const hover = blend(surface, accent, dark ? .11 : .065);
+    const iconTone = ['automatic','accent','custom'].includes(preferences.appearanceIconTone)
+      ? preferences.appearanceIconTone : 'automatic';
+    const requestedIcon = preferences.appearanceIconColorsByMode?.[scheme];
+    const requestedIconTile = preferences.appearanceIconBackgroundColorsByMode?.[scheme];
+    const iconSource = iconTone === 'custom' && validHex(requestedIcon) ? requestedIcon : accent;
+    const iconColor = readable(iconSource,surface,'#f5f8fb','#172735',4.5);
+    const navIconColor = readable(iconSource,nav,'#f5f8fb','#172735',4.5);
+    const iconTile = validHex(requestedIconTile) ? requestedIconTile : blend(surface,iconSource,dark?.24:.13);
+    const navIconTile = validHex(requestedIconTile) ? requestedIconTile : blend(nav,iconSource,dark?.25:.17);
+    const iconTileColor = readable(iconSource,iconTile,'#f5f8fb','#172735',4.5);
+    const navIconTileColor = readable(iconSource,navIconTile,'#f5f8fb','#172735',4.5);
     return {
       dark, mode, palette: palette.id, contrastAdjusted,
       vars: {
@@ -97,6 +108,9 @@
         '--ui-field': field, '--ui-field-text':fieldText,
         '--ui-input-placeholder': readable(blend(fieldText,field,.26),field,'#c6d6e2','#5a6476',4.5),
         '--ui-hover': hover, '--ui-tile': alt,
+        '--ui-icon-color': iconColor, '--ui-nav-icon-color': navIconColor,
+        '--ui-icon-tile': iconTile, '--ui-nav-icon-tile': navIconTile,
+        '--ui-icon-tile-ink':iconTileColor, '--ui-nav-icon-tile-ink':navIconTileColor,
         '--ui-accent-contrast': emphasis, '--ui-contrast-border': line
       }
     };
@@ -109,6 +123,11 @@
       el.dataset.scheme = result.dark ? 'dark' : 'light';
       el.dataset.density = preferences.appearanceDensity === 'compact' ? 'compact' : 'comfortable';
       el.dataset.radius = ['soft','rounded','square'].includes(preferences.appearanceRadius) ? preferences.appearanceRadius : 'soft';
+      el.dataset.iconMode = ['vector','image','none'].includes(preferences.appearanceIconMode) ? preferences.appearanceIconMode : 'vector';
+      el.dataset.iconVariant = ['outline','bold','duotone','filled'].includes(preferences.appearanceIconVariant) ? preferences.appearanceIconVariant : 'outline';
+      el.dataset.iconTone = ['automatic','accent','custom'].includes(preferences.appearanceIconTone) ? preferences.appearanceIconTone : 'automatic';
+      el.dataset.iconBackground = ['none','soft','filled'].includes(preferences.appearanceIconBackground) ? preferences.appearanceIconBackground : 'none';
+      el.dataset.cardStyle = ['elevated','soft','outlined'].includes(preferences.appearanceCardStyle) ? preferences.appearanceCardStyle : 'elevated';
       el.style.colorScheme = result.dark ? 'dark' : 'light';
     }
     return result;
