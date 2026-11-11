@@ -3304,12 +3304,26 @@ root.addEventListener('click', async event => {
     if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
     updateShell();
   }
-  if (action === 'select-date') { state.selectedDate = target.dataset.date; updateShell(); }
+  if (action === 'select-date') {
+    state.selectedDate = target.dataset.date;
+    state.calendarDate = new Date(state.selectedDate + 'T12:00:00');
+    state.plannerAnalysis = null; state.templatePreview = null;
+    updateShell();
+  }
   if (action === 'calendar-prev') { state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() - 1, 1); updateShell(); }
   if (action === 'calendar-next') { state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth() + 1, 1); updateShell(); }
   if (action === 'calendar-today') { state.calendarDate = new Date(); state.selectedDate = localDate(); updateShell(); }
   if (action === 'calendar-mode-month') { state.calendarMode = 'month'; updateShell(); }
   if (action === 'calendar-mode-week') { state.calendarMode = 'week'; updateShell(); }
+  if (action === 'calendar-mode-day' || action === 'calendar-mode-agenda') {
+    state.calendarMode = action === 'calendar-mode-day' ? 'day' : 'agenda';
+    state.calendarDate = new Date(state.selectedDate + 'T12:00:00'); updateShell();
+  }
+  if (action === 'calendar-day-prev' || action === 'calendar-day-next') {
+    state.selectedDate = shiftDate(state.selectedDate, action === 'calendar-day-prev' ? -1 : 1);
+    state.calendarDate = new Date(state.selectedDate + 'T12:00:00');
+    state.plannerAnalysis = null; state.templatePreview = null; updateShell();
+  }
   if (action === 'calendar-week-prev' || action === 'calendar-week-next') {
     state.selectedDate = shiftDate(state.selectedDate, action === 'calendar-week-prev' ? -7 : 7);
     const [year, month, day] = state.selectedDate.split('-').map(Number);
@@ -3326,7 +3340,7 @@ root.addEventListener('click', async event => {
     if (dateField) dateField.value = state.selectedDate;
     if (titleField) titleField.focus();
   }
-  if (action === 'navigate-date') { state.plannerSection = 'agenda'; state.selectedDate = target.dataset.date; state.view = 'planner'; updateShell(); }
+  if (action === 'navigate-date') { state.selectedDate = target.dataset.date; state.calendarDate = new Date(state.selectedDate + 'T12:00:00'); state.view = 'calendar'; state.calendarMode = 'day'; state.plannerAnalysis = null; updateShell(); }
   if (action === 'apply-recommendation') {
     const task = taskById(id);
     if (task && !task.locked && task.status === 'pending') {
@@ -3335,6 +3349,69 @@ root.addEventListener('click', async event => {
       if (!await save()) { restoreActiveProfile(previousProfile); updateShell(); return; }
       updateShell(); showToast('Propuesta aplicada.');
     }
+  }
+  if (action === 'schedule-inbox-task') {
+    const task = taskById(id);
+    if (!task || task.status !== 'pending' || task.locked || task.scheduledDate) return;
+    const previous = cloneActiveProfile();
+    try {
+      state.profile = taskMutation(state.profile, { type: 'edit', id,
+        data: { scheduledDate: target.dataset.date, startTime: '', endTime: '' } });
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      state.plannerAnalysis = null; updateShell(); showToast('Tarea asignada al día. Puedes agregar las horas cuando quieras.');
+    } catch (error) { restoreActiveProfile(previous); showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'template-preview') {
+    try { previewDayTemplate(state.profile, id, state.selectedDate);
+      state.templatePreview = { id, date: state.selectedDate }; updateShell();
+    } catch (error) { showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'template-preview-close') {
+    state.templatePreview = null; updateShell(); return;
+  }
+  if (action === 'template-exception') {
+    const previous = cloneActiveProfile();
+    try {
+      const template = (state.profile.dayTemplates || []).find(item => item.id === id);
+      if (!template) throw new Error('La plantilla ya no existe.');
+      const excluded = new Set(template.recurrence.exceptions || []);
+      if (excluded.has(state.selectedDate)) excluded.delete(state.selectedDate);
+      else excluded.add(state.selectedDate);
+      state.profile.dayTemplates = state.profile.dayTemplates.map(item => item.id === id
+        ? { ...item, recurrence: { ...item.recurrence, exceptions: [...excluded].sort() } } : item);
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      state.templatePreview = null; updateShell();
+      showToast('Excepción de la rutina actualizada. Las tareas existentes se conservan.');
+    } catch (error) { restoreActiveProfile(previous); showToast(error.message, 'error'); }
+    return;
+  }
+  if (action === 'template-delete') {
+    const template = (state.profile.dayTemplates || []).find(item => item.id === id);
+    if (!template || !confirm('¿Eliminar la plantilla «' + template.name + '»? Las tareas existentes se conservarán.')) return;
+    const previous = cloneActiveProfile();
+    state.profile.dayTemplates = state.profile.dayTemplates.filter(item => item.id !== id);
+    if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+    state.templatePreview = null; updateShell(); showToast('Plantilla eliminada.');
+    return;
+  }
+  if (action === 'template-apply') {
+    if (!state.templatePreview || state.templatePreview.id !== id ||
+        state.templatePreview.date !== state.selectedDate) return showToast('Previsualiza primero la plantilla de este día.', 'error');
+    const previous = cloneActiveProfile();
+    try {
+      const proposal = previewDayTemplate(state.profile, id, state.selectedDate);
+      if (!proposal.proposals.length) return showToast('No hay bloques nuevos para aplicar.');
+      const overlaps = proposal.proposals.filter(item => item.conflicts.length);
+      if (overlaps.length && !confirm('Hay ' + overlaps.length + ' bloques que se superponen. ¿Aplicarlos de todos modos?')) return;
+      const applied = applyDayTemplate(state.profile, id, state.selectedDate, { allowConflicts: overlaps.length > 0 });
+      state.profile = applied.profile;
+      if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
+      state.templatePreview = null; state.plannerAnalysis = null; updateShell();
+      showToast(applied.added + ' tareas creadas desde la plantilla.');
+    } catch (error) { restoreActiveProfile(previous); showToast(error.message, 'error'); }
+    return;
   }
   if (action === 'generate-plan') {
     state.plannerAnalysis = analyzeSchedule(state.profile, state.selectedDate);
@@ -3827,7 +3904,8 @@ root.addEventListener('change', async event => {
   }
   if (event.target.id === 'planner-date') {
     state.selectedDate = event.target.value || localDate();
-    state.plannerAnalysis = null;
+    state.calendarDate = new Date(state.selectedDate + 'T12:00:00');
+    state.plannerAnalysis = null; state.templatePreview = null;
     updateShell();
   }
   if (event.target.id === 'focus-task') {
