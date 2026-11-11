@@ -815,6 +815,18 @@ function renderSharedTaskDialog(main) {
   state.taskEditorFocusField = 'title';
 }
 
+function closeTaskEditor() {
+  const modal = $('.task-editor-backdrop');
+  if (modal?.dataset.dirty === 'true' &&
+      !confirm('Hay cambios sin guardar. ¿Cerrar el editor y descartarlos?')) return false;
+  state.showTaskForm = false;
+  state.editingTaskId = null;
+  state.taskEditorFocusField = 'title';
+  updateShell();
+  ($('#task-create-button') || $('.topbar-create') || $('#main-content'))?.focus();
+  return true;
+}
+
 function renderActivities(main) {
   const band=getAgeBand(state.profile.age);
   const ideas=band==='child'?[['Leer un cuento','Lectura','Leer o escuchar un cuento',15],['Dibujar','Creatividad','Dibujar, colorear o inventar personajes',20],['Jugar al aire libre','Movimiento','Un rato de juego y movimiento',30],['Ordenar mis cosas','Hogar','Guardar juguetes, libros o materiales',10],['Practicar música','Música','Tocar o escuchar música',15]]:band==='teen'?[['Estudiar una materia','Estudio','Repasar un tema o preparar una tarea',30],['Practicar una habilidad','Creatividad','Practicar música, dibujo o una habilidad',25],['Leer','Lectura','Leer por gusto o para clase',20],['Moverme un rato','Bienestar','Caminar, bailar o una actividad recreativa',20]]:[['Lectura','Personal','Tiempo para leer',25],['Aprendizaje','Estudio','Aprender o practicar una habilidad',30],['Movimiento','Bienestar','Actividad recreativa o paseo',30]];
@@ -2889,9 +2901,16 @@ async function handleSubmit(form) {
         data.estimatedMinutes = (Number(data.endTime.slice(0, 2)) * 60 + Number(data.endTime.slice(3))) - (Number(data.startTime.slice(0, 2)) * 60 + Number(data.startTime.slice(3)));
       }
       const editingId = state.editingTaskId;
-      const candidate = taskMutation(state.profile, form.dataset.form === 'task-edit'
+      const mutation = form.dataset.form === 'task-edit'
         ? { type: 'edit', id: editingId, data }
-        : { type: 'create', data });
+        : { type: 'create', data };
+      const original = editingId ? taskById(editingId) : null;
+      if (original?.locked && form.dataset.form === 'task-edit' &&
+          ['scheduledDate', 'startTime', 'endTime'].some(key => data[key] !== original[key])) {
+        if (!confirm('Este bloque está protegido. ¿Confirmas que quieres modificar su horario?')) return;
+        mutation.allowLocked = true;
+      }
+      const candidate = taskMutation(state.profile, mutation);
       const affected = form.dataset.form === 'task-edit' ? candidate.tasks.find(task => task.id === editingId) : candidate.tasks[0];
       if (affected?.scheduledDate && affected.startTime && affected.endTime) {
         const collisions = detectScheduleConflicts(candidate, affected.scheduledDate)
@@ -3376,7 +3395,7 @@ root.addEventListener('click', async event => {
   if (action === 'new-goal') { state.view='goals';state.editingGoalId=null;state.showGoalForm=true;updateShell();return; }
   if (action === 'close-goal-form') { state.showGoalForm=false;state.editingGoalId=null;updateShell();$('#goal-create-button')?.focus();return; }
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
-  if (action === 'close-task-form') { state.showTaskForm=false;state.editingTaskId=null;updateShell();$('#task-create-button')?.focus();return; }
+  if (action === 'close-task-form') { closeTaskEditor(); return; }
   if (action === 'settings-section') { state.settingsSection = target.dataset.section; updateShell(); return; }
   if (action === 'dismiss-launch-at-login') {
     try { localStorage.setItem('oisym-mac-launch-prompt-dismissed', 'true'); } catch {}
@@ -3482,11 +3501,7 @@ root.addEventListener('click', async event => {
     const titleInput = $('.task-form input[name="title"]');
     if (titleInput) { titleInput.focus(); titleInput.select(); }
   }
-  if (action === 'cancel-edit-task') {
-    state.editingTaskId = null;
-    state.showTaskForm = false;
-    updateShell();
-  }
+  if (action === 'cancel-edit-task') { closeTaskEditor(); return; }
   if (action === 'task-menu') {
     const task = taskById(id);
     if (!task) return;
