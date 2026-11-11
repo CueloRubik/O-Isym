@@ -648,3 +648,102 @@ test('appearance density and corners update instantly and survive persistence',a
  assert.equal(r.saved().profiles[0].preferences.appearanceRadius,'square');
  assert.deepEqual(r.errors,[]);
 });
+
+test('original PNG icons and vector icons switch instantly without recreating the appearance form', async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const form=r.query('.appearance-form');
+  const field=form.querySelector('[name="appearanceIconMode"]');
+  const nav=r.query('[data-action="navigate"][data-view="calendar"]');
+  assert.ok(nav.querySelector('svg.icon-glyph'));
+  field.value='image';
+  field.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceIconMode,'image');
+  assert.equal(r.query('.appearance-form'),form);
+  const bitmap=nav.querySelector('img.icon-bitmap');
+  assert.ok(bitmap);
+  assert.match(bitmap.getAttribute('src'),/assets\/icons\/navigation\/calendar\.png/);
+  assert.ok(r.query('.appearance-icon-examples img.icon-bitmap'));
+  field.value='vector';
+  field.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.ok(nav.querySelector('svg.icon-glyph'));
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceIconMode,'vector');
+  assert.deepEqual(r.errors,[]);
+});
+test('icons can be hidden while navigation labels and actions still work',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const type=r.query('[name="appearanceIconMode"]');
+  type.value='none';type.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  const nav=r.query('[data-action="navigate"][data-view="calendar"]');
+  assert.ok(nav.querySelector('.icon-disabled'));
+  assert.match(nav.textContent,/Calendario/);
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  nav.click();await settle(r);
+  assert.equal(r.app.state.view,'calendar');
+  assert.equal(r.saved().profiles[0].preferences.appearanceIconMode,'none');
+  assert.deepEqual(r.errors,[]);
+});
+test('custom icon colors and background shades are retained for each light and dark scheme',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const color=r.query('[name="appearanceIconColor"]');
+  color.value='#216c83';color.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.query('[name="appearanceIconTone"]').value,'custom');
+  const background=r.query('[name="appearanceIconBackgroundColor"]');
+  background.value='#cde7eb';background.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.query('[name="appearanceIconBackgroundCustom"]').checked,true);
+  assert.equal(r.app.state.profile.preferences.appearanceIconColorsByMode.light,'#216c83');
+  assert.equal(r.app.state.profile.preferences.appearanceIconBackgroundColorsByMode.light,'#cde7eb');
+  r.click('[data-action="appearance-edit-scheme"][data-scheme="dark"]');
+  const dark=r.query('[name="appearanceIconColor"]');
+  dark.value='#accadd';dark.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceIconColorsByMode.dark,'#accadd');
+  assert.equal(r.app.state.profile.preferences.appearanceIconColorsByMode.light,'#216c83');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  const saved=r.saved().profiles[0].preferences;
+  assert.equal(saved.appearanceIconColorsByMode.light,'#216c83');
+  assert.equal(saved.appearanceIconColorsByMode.dark,'#accadd');
+  r.click('[data-action="appearance-edit-scheme"][data-scheme="light"]');
+  assert.equal(r.query('[name="appearanceIconColor"]').value,'#216c83');
+  assert.deepEqual(r.errors,[]);
+});
+test('filled icons, colorful backgrounds and card depth persist and update root attributes',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  for(const [name,value] of [
+    ['appearanceIconVariant','filled'],['appearanceIconTone','accent'],
+    ['appearanceIconBackground','filled'],['appearanceCardStyle','soft']
+  ]){
+    const select=r.query('[name="'+name+'"]');
+    select.value=value;select.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  }
+  const doc=r.w.document.documentElement;
+  assert.equal(doc.dataset.iconVariant,'filled');
+  assert.equal(doc.dataset.iconTone,'accent');
+  assert.equal(doc.dataset.iconBackground,'filled');
+  assert.equal(doc.dataset.cardStyle,'soft');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceIconVariant,'filled');
+  assert.equal(r.saved().profiles[0].preferences.appearanceCardStyle,'soft');
+  assert.deepEqual(r.errors,[]);
+});
+test('today completed tasks and Focus use structured themed card markup',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  const task=D.createTask({title:'Terminada'});
+  task.status='done';task.completedAt=D.localDate()+'T12:00:00.000Z';
+  r.app.state.profile.tasks.push(task);
+  r.app.state.view='today';r.app.updateShell();
+  const completed=r.query('.today-completed-card');
+  assert.ok(completed);
+  assert.ok(completed.querySelector('.task-row'));
+  assert.ok(completed.querySelector('.section-heading-title svg.icon-glyph'));
+  const focus=r.query('.focus-card');
+  assert.ok(focus.querySelector('.focus-teaser-heading svg.icon-glyph'));
+  const action=focus.querySelector('[data-action="navigate"][data-view="focus"]');
+  assert.ok(action);
+  action.click();await settle(r);
+  assert.equal(r.app.state.view,'focus');
+  assert.deepEqual(r.errors,[]);
+});
