@@ -4,11 +4,22 @@ const { JSDOM } = require('jsdom');
 const D = require('../../src/domain');
 const clone = value => JSON.parse(JSON.stringify(value));
 const wait = () => new Promise(resolve => setTimeout(resolve, 15));
-async function renderer() {
+async function renderer({ systemDark = false } = {}) {
   const errors = [];
   const dom = new JSDOM('<div id="app"></div>', { runScripts: 'outside-only', url: 'https://oisym.test', pretendToBeVisual: true });
   const w = dom.window;
   w.addEventListener('error', e => errors.push(e.error));
+  let currentSystemDark = systemDark;
+  const mediaListeners = new Set();
+  w.matchMedia = query => ({
+    media: query, get matches() { return currentSystemDark; },
+    addEventListener: (type, callback) => { if (type === 'change') mediaListeners.add(callback); },
+    removeEventListener: (type, callback) => { if (type === 'change') mediaListeners.delete(callback); }
+  });
+  const setSystemDark = value => {
+    currentSystemDark = Boolean(value);
+    mediaListeners.forEach(listener => listener({matches: currentSystemDark}));
+  };
   w.confirm = () => true;
   w.prompt = () => { throw new Error('Electron does not support prompt'); };
   w.HTMLElement.prototype.setPointerCapture = () => {};
@@ -39,6 +50,6 @@ async function renderer() {
   const pointer = (selector,type,opts={}) => { const e=new w.MouseEvent(type,{bubbles:true,cancelable:true,button:0,...opts}); Object.defineProperty(e,'pointerId',{value:1}); query(selector).dispatchEvent(e); };
   const answer = async value => { query('dialog input').value=value;query('dialog form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await wait(); };
   const current = () => app.state.profile.ideaBoards[0];
-  return { w, app, errors, query, click, pointer, answer, current, wait, saved:()=>saved, fail:value=>{fail=value}, delay:value=>{delay=value}, close:()=>close(), dispose:()=>dom.window.close() };
+  return { w, app, errors, query, click, pointer, answer, current, wait, saved:()=>saved, fail:value=>{fail=value}, delay:value=>{delay=value}, setSystemDark, close:()=>close(), dispose:()=>dom.window.close() };
 }
 module.exports={renderer};
