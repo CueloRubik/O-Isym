@@ -92,6 +92,7 @@ async function swipe(page,x,y,endY){
    await page.locator('[data-mobile-more]').tap();
    assert.equal(await page.locator('.workspace-sidebar').getAttribute('aria-hidden'),'false');
    assert.equal(await page.locator('.workspace-sidebar .navigation-group-items').first().evaluate(e=>getComputedStyle(e).flexDirection),'column');
+   await page.waitForFunction(()=>{const r=document.querySelector('.workspace-sidebar').getBoundingClientRect();return Math.abs(r.left)<1&&r.right>150;});
    await page.screenshot({path:path.join(output,width+'-menu.png')});
    await page.locator('.workspace-sidebar [data-view="tasks"]').tap();
    await page.waitForTimeout(120);
@@ -110,8 +111,9 @@ async function swipe(page,x,y,endY){
    await page.locator('.ideas-canvas-viewport').scrollIntoViewIfNeeded();
    let box=await page.locator('.ideas-canvas-viewport').boundingBox();
    const start=await page.evaluate(()=>window.scrollY);
-   await swipe(page,Math.round(box.x+box.width-20),Math.min(box.y+box.height-20,700),Math.max(120,box.y));
-   assert.ok(await page.evaluate(()=>window.scrollY)>start,width+'px board permits page scrolling');
+   assert.ok(start>50,width+'px board starts below the page header');
+   await swipe(page,Math.round(box.x+box.width-20),Math.max(110,box.y+30),Math.min(750,box.y+box.height-30));
+   assert.ok(await page.evaluate(()=>window.scrollY)<start-50,width+'px board permits page scrolling');
    await context.close();
    console.log('Mobile UI '+width+'px: navigation, editors, touch scroll and screen bounds passed');
   }

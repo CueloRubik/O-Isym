@@ -181,3 +181,6 @@ html.oisym-android[data-scheme] :is(.mobile-focus-options,.mobile-settings-navig
 html.oisym-android[data-scheme] .mobile-focus-options { margin:8px 0; }
 html.oisym-android[data-scheme] .mobile-focus-options[open] > :is(.focus-alarm-settings,.focus-music-settings) { margin:12px 0 0; }
 html.oisym-android[data-scheme] .mobile-settings-navigation[open] > .settings-navigation { margin-top:10px; }
+
+html.oisym-android[data-scheme] .task-menu-choice { min-height:48px; }
+html.oisym-android[data-scheme] body.mobile-menu-open .workspace-shell.is-sidebar-collapsed .workspace-sidebar { transform:none; visibility:visible; }
