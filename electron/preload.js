@@ -36,6 +36,7 @@ const focusAlarms = Object.freeze({
 });
 
 contextBridge.exposeInMainWorld('oisym', Object.freeze({
+  platform: process.platform,
   storage,
   onSaveBeforeClose: callback => {
     if (typeof callback !== 'function') return () => {};

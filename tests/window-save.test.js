@@ -6,6 +6,7 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 function setup(platform = 'darwin') {
   const ipcMain = new EventEmitter(); const app = new EventEmitter();
+  app.setAppUserModelId=()=>{};
   app.disableHardwareAcceleration=()=>{};app.whenReady=()=>({then:()=>({catch:()=>{}})});
   app.quit=()=>{app.quits=(app.quits||0)+1};
   app.requestSingleInstanceLock=()=>true;

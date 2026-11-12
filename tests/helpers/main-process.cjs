@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true, atLogin = false } = {}) {
+function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true, atLogin = false, args = [] } = {}) {
   const app = new EventEmitter();
   const ipcMain = new EventEmitter();
   const windows = [], notifications = [], dialogs = [];
@@ -11,6 +11,7 @@ function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true,
   let ready, startup;
   const readyPromise = new Promise(resolve => { ready = resolve; });
   app.requestSingleInstanceLock = () => ownsLock;
+  app.setAppUserModelId = value => { app.appUserModelId = value; };
   app.disableHardwareAcceleration = () => {};
   app.whenReady = () => {
     readyCalls++;
@@ -54,6 +55,7 @@ function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true,
       Menu: { buildFromTemplate: value => value },
       nativeImage: { createFromPath: () => ({ isEmpty: () => false, resize() { return this; } }) }
     },
+    './login-items': require('../../electron/login-items'),
     './storage': { createStorage: () => { storageOpens++; return storage; } },
     './ipc-handlers': { registerIpcHandlers() {}, isTrustedMainFrame: () => true },
     './focus-notifications': { createFocusNotificationScheduler: () => ({ dispose() {} }) },
@@ -61,12 +63,12 @@ function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true,
   };
   const context = {
     require: name => Object.hasOwn(modules, name) ? modules[name] : require(name),
-    __dirname: path.join(__dirname, '../../electron'), process: { platform },
+    __dirname: path.join(__dirname, '../../electron'), process: { platform, argv: args },
     console: { error() {} }, setTimeout: () => 1, clearTimeout() {}
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../electron/main.js'), 'utf8'), context);
   const settle = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
-  return { app, windows, notifications, dialogs, settle,
+  return { app, ipcMain, windows, notifications, dialogs, settle,
     start: async () => { ready(); await startup; await settle(); },
     tray: () => tray, menu: () => menu,
     storageOpens: () => storageOpens, readyCalls: () => readyCalls,

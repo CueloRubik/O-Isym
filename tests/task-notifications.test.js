@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { createTaskNotificationScheduler, localDateTime } = require('../electron/task-notifications');
 
-function makeHarness() {
+function makeHarness({ platform = 'darwin', synchronousFailure = false } = {}) {
   let now = new Date(2026, 10, 5, 8, 0, 0, 0).getTime();
   let timerId = 0;
   const timers = new Map();
@@ -12,13 +12,14 @@ function makeHarness() {
   let openedTask = null;
   class FakeNotification extends EventEmitter {
     constructor(options) { super(); this.options = options; }
-    show() { notifications.push(this); }
+    show() { notifications.push(this); if (synchronousFailure) this.emit('failed', {}, 'Rejected'); }
+    close() { this.emit('close'); }
     static isSupported() { return true; }
   }
   const scheduler = createTaskNotificationScheduler({
     Notification: FakeNotification,
     powerMonitor,
-    platform: 'darwin',
+    platform,
     now: () => now,
     setTimer: (fn, delay) => { const id = ++timerId; timers.set(id, { at: now + delay, fn }); return id; },
     clearTimer: id => timers.delete(id),
@@ -192,4 +193,43 @@ test('un fallo del sistema no deja el recordatorio marcado permanentemente como 
   h.scheduler.scheduleSnapshot(snapshot);
   assert.equal(h.notifications.length, 2);
   h.dispose();
+});
+
+
+test('Windows task toast includes activity in a supported field and uses system sound', () => {
+  const h = makeHarness({ platform: 'win32' });
+  h.scheduler.scheduleSnapshot(h.snapshot('08:00'));
+  const toast = h.notifications[0];
+  assert.equal(toast.options.title, 'Hora de Lectura');
+  assert.equal(toast.options.subtitle, undefined);
+  assert.equal(toast.options.sound, undefined);
+  assert.equal(toast.options.silent, false);
+  assert.equal(toast.listenerCount('close'), 1);
+  h.dispose();
+  // Disposal closes retained native toasts rather than leaving dangling callbacks.
+  assert.equal(toast.listenerCount('close'), 0);
+});
+
+test('failed Windows task toast retries without edits and does not duplicate after success', () => {
+  const h = makeHarness({ platform: 'win32' });
+  h.scheduler.scheduleSnapshot(h.snapshot('08:00'));
+  h.failNotification();
+  h.advance(29999);
+  assert.equal(h.notifications.length, 1);
+  h.advance(1);
+  assert.equal(h.notifications.length, 2);
+  h.advance(60000);
+  assert.equal(h.notifications.length, 2);
+  h.dispose();
+});
+
+test('synchronous Windows rejection never marks sent and retries are bounded', () => {
+  const h = makeHarness({ platform: 'win32', synchronousFailure: true });
+  h.scheduler.scheduleSnapshot(h.snapshot('08:00'));
+  for (let i = 0; i < 10; i++) h.advance(30000);
+  assert.equal(h.notifications.length, 4);
+  assert.equal(h.scheduler.getScheduledCount(), 1);
+  h.dispose();
+  h.advance(60000);
+  assert.equal(h.notifications.length, 4);
 });

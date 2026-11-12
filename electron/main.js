@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Notification, powerMonitor } = requ
 const path = require('node:path');
 
 const { createStorage } = require('./storage');
+const { HIDDEN_LOGIN_ARGUMENT, loginQuery, loginOptions } = require('./login-items');
 const { registerIpcHandlers, isTrustedMainFrame } = require('./ipc-handlers');
 const { createFocusNotificationScheduler } = require('./focus-notifications');
 const { createTaskNotificationScheduler } = require('./task-notifications');
@@ -13,6 +14,9 @@ const appIconPath = path.join(__dirname, '..', 'assets', 'icons', 'app.png');
 
 // Evita fallos de inicialización gráfica en Macs antiguos con GPU Intel integrada.
 app.disableHardwareAcceleration();
+
+// Must match electron-builder's appId / installed Windows shortcut identity.
+if (process.platform === 'win32') app.setAppUserModelId('com.oisym.app');
 
 function reportStartupError(title, error) {
   const detail = error && (error.stack || error.message) ? (error.stack || error.message) : String(error);
@@ -62,11 +66,11 @@ function showMainWindow(reminder) {
 }
 
 function createTray() {
-  if (process.platform !== 'darwin' || tray) return;
-  let image = nativeImage.createFromPath(appIconPath);
+  if (!['darwin', 'win32'].includes(process.platform) || tray) return;
+  let image = nativeImage.createFromPath(process.platform === 'win32' ? path.join(__dirname, '..', 'app.ico') : appIconPath);
   if (image.isEmpty()) image = nativeImage.createFromPath(path.join(__dirname, '..', 'app.icns'));
   if (image.isEmpty()) image = nativeImage.createFromPath(reminderIconPath);
-  if (!image.isEmpty()) image = image.resize({ width: 18, height: 18 });
+  if (!image.isEmpty()) image = image.resize({ width: process.platform === 'win32' ? 20 : 18, height: process.platform === 'win32' ? 20 : 18 });
   tray = new Tray(image);
   tray.setToolTip('O-Isym');
   tray.setContextMenu(Menu.buildFromTemplate([
@@ -108,7 +112,7 @@ function createWindow(options = {}) {
     if (event.sender !== win.webContents || !isTrustedMainFrame(event, BrowserWindow, indexPath) || !closePending) return;
     clearTimeout(closeTimer); closePending = false;
     if (success !== true) { isQuitting = false; win.show(); return; }
-    if (process.platform === 'darwin' && !isQuitting) win.hide();
+    if (!isQuitting && (process.platform === 'darwin' || process.platform === 'win32' && tray)) win.hide();
     else { closeApproved = true; if (isQuitting) app.quit(); else win.close(); }
   };
   ipcMain.on('oisym:window:saved-before-close', onSaveBeforeClose);
@@ -162,9 +166,12 @@ if (hasSingleInstanceLock) app.whenReady().then(async () => {
       onOpenTask: showMainWindow
     });
     registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focusNotifications, taskNotifications, app });
-    createTray();
+    try { createTray(); } catch (error) {
+      if (tray) { tray.destroy(); tray = null; }
+      reportStartupError('No se pudo crear el icono de segundo plano', error);
+    }
     const supportsLoginItems = process.platform === 'darwin' || process.platform === 'win32';
-    const loginSettings = supportsLoginItems ? app.getLoginItemSettings() : {};
+    const loginSettings = supportsLoginItems ? app.getLoginItemSettings(loginQuery(process.platform)) : {};
     let initialSnapshot = null;
     try { initialSnapshot = await storage.read(); }
     catch (error) {
@@ -174,8 +181,9 @@ if (hasSingleInstanceLock) app.whenReady().then(async () => {
     }
     if (initialSnapshot) taskNotifications.scheduleSnapshot(initialSnapshot);
     const activeProfile = initialSnapshot?.profiles.find(profile => profile.id === initialSnapshot.activeProfileId);
-    if (supportsLoginItems && initialSnapshot) app.setLoginItemSettings({ openAtLogin: activeProfile?.preferences?.launchAtLogin === true, openAsHidden: true });
-    const launchedAtLogin = process.platform === 'darwin' && loginSettings.wasOpenedAtLogin;
+    if (supportsLoginItems && initialSnapshot) app.setLoginItemSettings(loginOptions(activeProfile?.preferences?.launchAtLogin === true, process.platform));
+    const launchedAtLogin = process.platform === 'darwin' && loginSettings.wasOpenedAtLogin ||
+      process.platform === 'win32' && tray && activeProfile?.preferences?.launchAtLogin === true && process.argv?.includes(HIDDEN_LOGIN_ARGUMENT);
     startupComplete = true;
     createWindow({ show: openRequested || !initialSnapshot || !launchedAtLogin });
 
@@ -197,5 +205,5 @@ app.on('will-quit', () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin' && !(process.platform === 'win32' && tray)) app.quit();
 });

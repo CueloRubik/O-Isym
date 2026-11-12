@@ -26,7 +26,7 @@ function storageBridge(storage) {
       on() {}, removeListener() {}
     }
   };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../electron/preload.js'), 'utf8'), { require: () => electron });
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../electron/preload.js'), 'utf8'), { require: () => electron, process: { platform: 'linux' } });
   return { storage: exposed.storage, trust: value => { trusted = value; } };
 }
 module.exports = { storageBridge };

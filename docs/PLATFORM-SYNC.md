@@ -4,7 +4,7 @@ Fuente compartida: `development`, commit `8f38e14e8e57c55ead78a5ab3c6d5b9c11bb78
 
 ## Windows: solo código compartido
 
-- Código de aplicación, recursos compartidos y pruebas idénticos a `development`.
+- Base de código, recursos compartidos y pruebas tomados de `development`. Después de esta sincronización se incorporan [correcciones específicas de compatibilidad con Windows](WINDOWS-COMPATIBILITY.md).
 - `package.json`, `package-lock.json` y el icono `app.ico` permanecen idénticos a la rama Windows anterior (`d382604940811dbe9ad17fe6b3af35ad523db3c6`). No se incorpora el workflow nuevo de instaladores.
 - Se conserva por petición expresa la versión de paquete anterior (`5.0.0`), junto con los comandos y destinos de empaquetado. No se ha preparado una nueva versión distribuible de Windows.
 - Para desarrollo: `npm ci` y `npm start` desde la raíz.

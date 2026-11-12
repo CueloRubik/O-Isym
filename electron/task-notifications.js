@@ -30,8 +30,11 @@ function createTaskNotificationScheduler({
 }) {
   let timer = null;
   let disposed = false;
+  let retryTimer = null;
+  const failures = new Map();
   let lastSnapshot = null;
   const sent = new Set();
+  const liveNotifications = new Set();
 
   if (sentPath) {
     try {
@@ -65,26 +68,48 @@ function createTaskNotificationScheduler({
     persistSent();
   }
 
+  // Bounded, delayed retries: a failed toast must not need an unrelated edit to retry.
+  function retryFailed(reminder) {
+    if (disposed || !reminder.key) return;
+    const attempts = (failures.get(reminder.key) || 0) + 1;
+    failures.set(reminder.key, attempts);
+    while (failures.size > 500) failures.delete(failures.keys().next().value);
+    if (attempts > 3 || retryTimer !== null) return;
+    retryTimer = setTimer(() => {
+      retryTimer = null;
+      if (!disposed && lastSnapshot) scheduleSnapshot(lastSnapshot);
+    }, 30000);
+  }
+
   function showReminder(reminder) {
+    let notification;
     try {
       if (!Notification || (typeof Notification.isSupported === 'function' && !Notification.isSupported())) return false;
-      const notification = new Notification({
-        title: 'O-Isym',
-        subtitle: 'Hora de ' + reminder.activityName,
+      notification = new Notification({
+        title: platform === 'darwin' ? 'O-Isym' : 'Hora de ' + reminder.activityName,
+        ...(platform === 'darwin' ? { subtitle: 'Hora de ' + reminder.activityName } : {}),
         body: reminder.body,
         icon: iconPath || undefined,
         silent: !reminder.soundEnabled,
         ...(platform === 'darwin' && reminder.soundEnabled ? { sound: 'Ping' } : {})
       });
+      let failed = false;
+      liveNotifications.add(notification);
+      notification.once('close', () => liveNotifications.delete(notification));
       notification.on('failed', (_event, error) => {
+        failed = true;
+        liveNotifications.delete(notification);
         console.error('[O-Isym] Falló una notificación de tarea:', error);
         if (reminder.key && sent.delete(reminder.key)) persistSent();
+        retryFailed(reminder);
       });
       notification.on('click', () => onOpenTask(reminder));
       notification.show();
-      return true;
+      return !failed;
     } catch (error) {
+      liveNotifications.delete(notification);
       console.error('[O-Isym] No se pudo mostrar una notificación de tarea:', error);
+      retryFailed(reminder);
       return false;
     }
   }
@@ -187,6 +212,10 @@ function createTaskNotificationScheduler({
 
   function dispose() {
     disposed = true;
+    if (retryTimer !== null) clearTimer(retryTimer);
+    retryTimer = null;
+    for (const notification of liveNotifications) notification.close();
+    liveNotifications.clear();
     cancelTimer();
     if (powerMonitor && typeof powerMonitor.removeListener === 'function') powerMonitor.removeListener('resume', onResume);
   }

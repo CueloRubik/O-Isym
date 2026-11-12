@@ -1,4 +1,5 @@
 const path = require('node:path');
+const { loginQuery, loginOptions } = require('./login-items');
 const { fileURLToPath } = require('node:url');
 
 function isTrustedMainFrame(event, BrowserWindow, indexPath) {
@@ -60,7 +61,7 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
   ipcMain.handle('oisym:notifications:status', event => {
     assertTrusted(event);
     const canManageLogin = process.platform === 'darwin' || process.platform === 'win32';
-    const login = canManageLogin && app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings() : {};
+    const login = canManageLogin && app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings(loginQuery()) : {};
     return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true, canManageLogin, platform: process.platform, loginStatus: login.status || null };
   });
 
@@ -72,8 +73,8 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
   ipcMain.handle('oisym:notifications:launch-at-login', (event, enabled) => {
     assertTrusted(event);
     if (typeof enabled !== 'boolean' || !['darwin', 'win32'].includes(process.platform) || !app || typeof app.setLoginItemSettings !== 'function') return false;
-    app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: enabled });
-    return app.getLoginItemSettings().openAtLogin === enabled;
+    app.setLoginItemSettings(loginOptions(enabled));
+    return app.getLoginItemSettings(loginQuery()).openAtLogin === enabled;
   });
 
   ipcMain.handle('oisym:focus:notifications:schedule', (event, payload) => {

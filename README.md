@@ -23,6 +23,8 @@ npm test
 npm start
 ```
 
+La revisión posterior y las correcciones de compatibilidad están documentadas en [Compatibilidad con Windows](docs/WINDOWS-COMPATIBILITY.md).
+
 ## Compilación de Windows pendiente
 
 Esta rama recibe el código actual de `development`, pero conserva **sin cambios** su `package.json`, `package-lock.json`, configuración de empaquetado e iconos. Por ello, el paquete mantiene su versión anterior (`5.0.0`); no representa una nueva Release. No se incorporan aquí los comandos nuevos `build:win` ni el workflow de instaladores de `development`.

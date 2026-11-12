@@ -326,6 +326,46 @@ function requestText(message, initialValue = '') {
   });
 }
 
+// Native synchronous confirmations can leave Electron/Windows text input unfocused.
+// Keep the Windows interaction in the same renderer and never block its event loop.
+async function requestConfirmation(message) {
+  if (window.oisym?.platform !== 'win32') return window.confirm(message);
+  if (document.querySelector('[data-confirm-dialog]')) return false;
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const dialog = element('dialog', 'profile-modal text-dialog');
+    dialog.dataset.confirmDialog = 'true';
+    dialog.setAttribute('aria-label', 'Confirmar acción');
+    const form = element('form', 'profile-modal-form');
+    const actions = element('div', 'form-actions');
+    const cancel = element('button', 'button secondary', 'Cancelar');
+    cancel.type = 'button';
+    const accept = element('button', 'button primary', 'Aceptar');
+    accept.type = 'submit';
+    actions.append(cancel, accept);
+    form.append(element('p', '', message), actions);
+    dialog.append(form);
+    let finished = false;
+    const finish = value => {
+      if (finished) return;
+      finished = true;
+      dialog.close();
+      dialog.remove();
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      resolve(value);
+    };
+    cancel.addEventListener('click', () => finish(false));
+    dialog.addEventListener('cancel', event => { event.preventDefault(); finish(false); });
+    form.addEventListener('submit', event => {
+      event.preventDefault(); event.stopPropagation(); finish(true);
+    });
+    dialog.addEventListener('keydown', event => event.stopPropagation());
+    document.body.append(dialog);
+    dialog.showModal();
+    cancel.focus();
+  });
+}
+
 const root = document.getElementById('app');
 const FOCUS_MUSIC_CATALOG = [
   { id: 'focus1', name: 'Circuito de calma', category: 'Electrónica', description: 'Sintetizadores suaves y un pulso constante para entrar en ritmo.' },
@@ -1251,10 +1291,10 @@ function renderSharedTaskDialog(main) {
   state.taskEditorFocusField = 'title';
 }
 
-function closeTaskEditor() {
+async function closeTaskEditor() {
   const modal = $('.task-editor-backdrop');
   if (modal?.dataset.dirty === 'true' &&
-      !confirm('Hay cambios sin guardar. ¿Cerrar el editor y descartarlos?')) return false;
+      !await requestConfirmation('Hay cambios sin guardar. ¿Cerrar el editor y descartarlos?')) return false;
   state.showTaskForm = false;
   state.editingTaskId = null;
   state.taskEditorFocusField = 'title';
@@ -3129,7 +3169,7 @@ function renderSettings(main) {
     form.dataset.form='profile-task-notifications';
     const preferences=state.profile.preferences;
     form.append(element('h3','','Recordatorios de tareas'));
-    form.append(element('p','muted','O-Isym revisa tu agenda en segundo plano y muestra una notificación nativa de macOS cuando llega el momento de una tarea.'));
+    form.append(element('p','muted','O-Isym revisa tu agenda en segundo plano y muestra una notificación del sistema cuando llega el momento de una tarea.'));
     form.append(field('Notificaciones de tareas',select('taskNotificationsEnabled',[
       {value:'true',label:'Activadas'}, {value:'false',label:'Desactivadas'}
     ],String(preferences.taskNotificationsEnabled!==false))));
@@ -3146,15 +3186,15 @@ function renderSettings(main) {
     form.append(field('Sonido de la notificación',select('taskNotificationSound',[
       {value:'true',label:'Activado'}, {value:'false',label:'Silenciosa'}
     ],String(preferences.taskNotificationSound!==false))));
-    form.append(field('Si el aviso vence mientras el Mac está suspendido',select('taskNotificationMissed',[
+    form.append(field('Si el aviso vence mientras el equipo está suspendido',select('taskNotificationMissed',[
       {value:'notify',label:'Avisarme al volver (hasta 12 horas después)'},
       {value:'skip',label:'Omitir los avisos que ya pasaron'}
     ],preferences.taskNotificationMissed||'notify')));
-    form.append(field('Al iniciar sesión en el Mac',select('launchAtLogin',[
+    form.append(field('Al iniciar sesión en el equipo',select('launchAtLogin',[
       {value:'false',label:'No abrir O-Isym automáticamente'},
       {value:'true',label:'Abrir O-Isym en segundo plano al iniciar sesión'}
     ],String(preferences.launchAtLogin===true))));
-    form.append(element('p','small-note','Al cerrar la ventana, O-Isym permanece en la barra de menús junto a los iconos del sistema. Usa el menú de O-Isym para volver a abrirlo o salir por completo.'));
+    form.append(element('p','small-note','Al cerrar la ventana, O-Isym permanece en la bandeja o barra de menús junto a los iconos del sistema. Usa el menú de O-Isym para volver a abrirlo o salir por completo.'));
     const actions=element('div','form-actions');
     actions.append(button('Enviar notificación de prueba','test-task-notification','button secondary'));
     actions.append(actionIconButton('Guardar preferencias','submit-form','save.png','button primary'));
@@ -3162,11 +3202,11 @@ function renderSettings(main) {
     const status=element('p','notification-system-status small-note','Comprobando disponibilidad de notificaciones…');
     status.dataset.notificationStatus='true';
     const info=card('settings-info-card notification-system-card');
-    info.append(element('h3','','Notificaciones del sistema'),status,element('p','muted','macOS puede ocultar o silenciar avisos si O-Isym no tiene permiso en Ajustes del Sistema → Notificaciones. El botón de prueba permite comprobarlo.'));
+    info.append(element('h3','','Notificaciones del sistema'),status,element('p','muted','El sistema puede ocultar o silenciar avisos. Revisa los permisos de O-Isym y el modo No molestar en la configuración de notificaciones. El botón de prueba permite comprobarlo.'));
     panel.append(form,info);
     window.oisym?.notifications?.getStatus?.().then(result=>{
       const target=$('[data-notification-status]',panel);
-      if(target)target.textContent=(result.supported?'Notificaciones nativas disponibles. ':'Este sistema no informa compatibilidad con notificaciones nativas. ')+(result.canManageLogin?'Inicio automático: '+(result.launchAtLogin?'activado.':'desactivado.'):'El inicio automático no está disponible en este sistema.')+' Si no aparecen avisos, revisa los permisos de O-Isym en macOS.';
+      if(target)target.textContent=(result.supported?'Notificaciones nativas disponibles. ':'Este sistema no informa compatibilidad con notificaciones nativas. ')+(result.canManageLogin?'Inicio automático: '+(result.launchAtLogin?'activado.':'desactivado.'):'El inicio automático no está disponible en este sistema.')+' Si no aparecen avisos, revisa los permisos de O-Isym y el modo No molestar en la configuración del sistema.';
     }).catch(()=>{const target=$('[data-notification-status]',panel);if(target)target.textContent='No se pudo consultar el estado de las notificaciones.';});
   } else if(state.settingsSection==='focus'){
     const info=card('settings-info-card');
@@ -3350,7 +3390,7 @@ async function handleSubmit(form) {
       const original = editingId ? taskById(editingId) : null;
       if (original?.locked && form.dataset.form === 'task-edit' &&
           ['scheduledDate', 'startTime', 'endTime'].some(key => data[key] !== original[key])) {
-        if (!confirm('Este bloque está protegido. ¿Confirmas que quieres modificar su horario?')) return;
+        if (!await requestConfirmation('Este bloque está protegido. ¿Confirmas que quieres modificar su horario?')) return;
         mutation.allowLocked = true;
       }
       const candidate = taskMutation(state.profile, mutation);
@@ -3358,7 +3398,7 @@ async function handleSubmit(form) {
       if (affected?.scheduledDate && affected.startTime && affected.endTime) {
         const collisions = detectScheduleConflicts(candidate, affected.scheduledDate)
           .filter(item => item.firstId === affected.id || item.secondId === affected.id);
-        if (collisions.length && !confirm('El horario se superpone con ' + collisions.length + ' bloque(s). ¿Guardar de todos modos?')) return;
+        if (collisions.length && !await requestConfirmation('El horario se superpone con ' + collisions.length + ' bloque(s). ¿Guardar de todos modos?')) return;
       }
       state.profile.tasks = candidate.tasks;
       const saved=await save();
@@ -3593,7 +3633,7 @@ async function finishFocus(options = {}) {
 }
 
 root.addEventListener('click', async event => {
-  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(focusId==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (event.target.matches('[data-profile-modal]')) { if(event.target.dataset.dirty==='true'&&!await requestConfirmation('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return; const focusId=event.target.dataset.returnFocus;if(focusId==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(focusId==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}event.target.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
@@ -3602,7 +3642,7 @@ root.addEventListener('click', async event => {
   if (/^ideas-(note|activity)-(create|duplicate|delete|color)$/.test(action) && state.ideaViewportSaveTimer && !await flushIdeaChanges()) return;
   if (action === 'retry-boot') { await boot(); return; }
   if (action === 'recovery-overwrite') {
-    if (!confirm('O-Isym guardará una copia exacta del archivo actual y después creará un espacio nuevo vacío. ¿Quieres continuar?')) return;
+    if (!await requestConfirmation('O-Isym guardará una copia exacta del archivo actual y después creará un espacio nuevo vacío. ¿Quieres continuar?')) return;
     try {
       const result = await window.oisym.storage.recovery.overwrite();
       await initializeApp(await window.oisym.storage.read());
@@ -3615,7 +3655,7 @@ root.addEventListener('click', async event => {
   if (action === 'recovery-restore') {
     const backupName = $('#recovery-backup-select')?.value;
     if (!backupName) return showToast('Selecciona una copia válida.', 'error');
-    if (!confirm('O-Isym conservará primero el archivo actual y después restaurará la copia seleccionada. ¿Continuar?')) return;
+    if (!await requestConfirmation('O-Isym conservará primero el archivo actual y después restaurará la copia seleccionada. ¿Continuar?')) return;
     try {
       await window.oisym.storage.recovery.restore(backupName);
       await initializeApp(await window.oisym.storage.read());
@@ -3625,7 +3665,7 @@ root.addEventListener('click', async event => {
     }
     return;
   }
-  if (action === 'navigate') { if (!await flushAppearanceChanges()) return; if (state.ideaViewportSaveTimer || state.ideaSaveFailed) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
+  if (action === 'navigate') { if (!await flushAppearanceChanges()) return; if (state.ideaViewportSaveTimer || state.ideaSaveFailed) { clearTimeout(state.ideaViewportSaveTimer); state.ideaViewportSaveTimer = null; if (!await save()) return; } const openModal=$('[data-profile-modal]');if(openModal?.dataset.dirty==='true'&&!await requestConfirmation('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;if(openModal){if(openModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}if(openModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(openModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}openModal.remove();}state.view = target.dataset.view; updateShell(); }
   if (action === 'ideas-activity-create') {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
@@ -3670,7 +3710,7 @@ root.addEventListener('click', async event => {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     const activity = board?.nodes.find(item => item.id === id && item.type === 'activity');
     if (!activity) return;
-    if (!confirm('¿Eliminar esta actividad del pizarrón?')) return;
+    if (!await requestConfirmation('¿Eliminar esta actividad del pizarrón?')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
     board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item).filter(item => item.type !== 'group' || item.childrenIds.length);
@@ -3727,7 +3767,7 @@ root.addEventListener('click', async event => {
     const board = state.profile.ideaBoards.find(item => item.id === state.selectedIdeaBoardId);
     const note = board?.nodes.find(item => item.id === id && item.type === 'note');
     if (!note) return;
-    if (!confirm('¿Eliminar esta nota? Puedes recuperarla con Deshacer.')) return;
+    if (!await requestConfirmation('¿Eliminar esta nota? Puedes recuperarla con Deshacer.')) return;
     const previous = board.nodes;
     const previousConnections = board.connections;
     board.nodes = board.nodes.filter(item => item.id !== id).map(item => item.type === 'group' ? { ...item, childrenIds: item.childrenIds.filter(childId => childId !== id) } : item).filter(item => item.type !== 'group' || item.childrenIds.length);
@@ -3832,7 +3872,7 @@ root.addEventListener('click', async event => {
   if (action === 'ideas-delete') {
     const board = state.profile.ideaBoards.find(item => item.id === id);
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
-    if (!confirm('¿Eliminar el pizarrón «' + board.title + '»? Esta acción no se puede deshacer.')) return;
+    if (!await requestConfirmation('¿Eliminar el pizarrón «' + board.title + '»? Esta acción no se puede deshacer.')) return;
     const previous = cloneActiveProfile();
     state.profile.ideaBoards = state.profile.ideaBoards.filter(item => item.id !== id);
     if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
@@ -3857,7 +3897,7 @@ root.addEventListener('click', async event => {
   if (action === 'new-goal') { state.view='goals';state.editingGoalId=null;state.showGoalForm=true;updateShell();return; }
   if (action === 'close-goal-form') { state.showGoalForm=false;state.editingGoalId=null;updateShell();$('#goal-create-button')?.focus();return; }
   if (action === 'close-activity-form') { state.showActivityForm=false;state.editingActivityId=null;updateShell();$('#activity-create-button')?.focus();return; }
-  if (action === 'close-task-form') { closeTaskEditor(); return; }
+  if (action === 'close-task-form') { await closeTaskEditor(); return; }
   if (action === 'settings-section') {
     if (!await flushAppearanceChanges()) return;
     state.settingsSection = target.dataset.section; updateShell(); return;
@@ -3944,7 +3984,7 @@ root.addEventListener('click', async event => {
     showToast('Perfil exportado.');
     return;
   }
-  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(focusId==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
+  if (action === 'cancel-new-profile' || action === 'close-profile-modal') { const modal = $('[data-profile-modal]'); if (modal && modal.dataset.dirty === 'true' && !await requestConfirmation('Hay cambios sin guardar. ¿Cerrar sin guardarlos?')) return; const focusId=modal?.dataset.returnFocus;if(focusId==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}if(focusId==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}if(modal)modal.remove();if(focusId)document.getElementById(focusId)?.focus();else $('.profile-add')?.focus();return; }
   if(action==='choose-profile-avatar'){const form=target.closest('form'),hidden=$('input[name="avatarId"]',form);if(form&&hidden){hidden.value=target.dataset.avatar;updateProfilePreview(form);}return;}
   if(action==='profile-wizard-next'||action==='profile-wizard-back'){const form=target.closest('form'),current=Number($('[data-profile-step]:not([hidden])',form)?.dataset.profileStep||1);if(action==='profile-wizard-next'&&current===1){const name=$('input[name="name"]',form),age=$('input[name="age"]',form);if(!name.value.trim()){name.focus();return showToast('Escribe un nombre para el perfil.','error');}if(age.value&&!age.checkValidity()){age.focus();return showToast('La edad debe estar entre 1 y 120 años.','error');}const theme=$('select[name="theme"]',form);if(theme&&age.value)theme.value=getDefaultThemeForAge(Number(age.value));}const next=action==='profile-wizard-next'?Math.min(3,current+1):Math.max(1,current-1);$$('[data-profile-step]',form).forEach(step=>step.hidden=Number(step.dataset.profileStep)!==next);$('[data-action="profile-wizard-back"]',form).hidden=next===1;$('[data-action="profile-wizard-next"]',form).hidden=next===3;$('[data-action="submit-form"]',form).hidden=next!==3;if(next===3)updateProfilePreview(form);return;}
   if(action==='use-activity-idea'){const form=target.closest('form');if(form){form.closest('[data-profile-modal]')?.setAttribute('data-dirty','true');$('input[name="name"]',form).value=target.dataset.name||'';$('input[name="category"]',form).value=target.dataset.category||'';$('textarea[name="description"]',form).value=target.dataset.description||'';$('input[name="durationMinutes"]',form).value=target.dataset.minutes||'20';$('input[name="name"]',form).focus();}return;}
@@ -3994,13 +4034,13 @@ root.addEventListener('click', async event => {
     const titleInput = $('.task-form input[name="title"]');
     if (titleInput) { titleInput.focus(); titleInput.select(); }
   }
-  if (action === 'cancel-edit-task') { closeTaskEditor(); return; }
+  if (action === 'cancel-edit-task') { await closeTaskEditor(); return; }
   if (['task-action-lock', 'task-action-postpone', 'task-action-delete'].includes(action)) {
     const task = taskById(id);
     if (!task) return showToast('La tarea ya no existe.', 'error');
     const previous = cloneActiveProfile();
     if (action === 'task-action-delete') {
-      if (!confirm(task.locked ? 'Este compromiso está bloqueado. ¿Eliminarlo de todas las vistas?'
+      if (!await requestConfirmation(task.locked ? 'Este compromiso está bloqueado. ¿Eliminarlo de todas las vistas?'
         : '¿Eliminar esta tarea de todas las vistas?')) return;
       state.profile = taskMutation(state.profile, { type: 'delete', id, allowLocked: true });
     } else if (action === 'task-action-lock') {
@@ -4013,7 +4053,7 @@ root.addEventListener('click', async event => {
       if (task.startTime && task.endTime) {
         const conflicts = detectScheduleConflicts(candidate, nextDate)
           .filter(item => item.firstId === id || item.secondId === id);
-        if (conflicts.length && !confirm('Hay ' + conflicts.length +
+        if (conflicts.length && !await requestConfirmation('Hay ' + conflicts.length +
           ' superposición(es) en el nuevo día. ¿Mover de todos modos?')) return;
       }
       state.profile = candidate;
@@ -4126,7 +4166,7 @@ root.addEventListener('click', async event => {
     const template = (state.profile.dayTemplates || []).find(item => item.id === id);
     const entry = template?.entries?.find(item => item.id === target.dataset.entry);
     if (!entry || template.entries.length <= 1) return showToast('Toda plantilla necesita al menos un bloque.', 'error');
-    if (!confirm('¿Quitar el bloque «' + entry.title + '»? Las tareas ya creadas se conservarán.')) return;
+    if (!await requestConfirmation('¿Quitar el bloque «' + entry.title + '»? Las tareas ya creadas se conservarán.')) return;
     const previous = cloneActiveProfile();
     state.profile.dayTemplates = state.profile.dayTemplates.map(item => item.id === id
       ? { ...item, entries: item.entries.filter(item => item.id !== entry.id) } : item);
@@ -4152,7 +4192,7 @@ root.addEventListener('click', async event => {
   }
   if (action === 'template-delete') {
     const template = (state.profile.dayTemplates || []).find(item => item.id === id);
-    if (!template || !confirm('¿Eliminar la plantilla «' + template.name + '»? Las tareas existentes se conservarán.')) return;
+    if (!template || !await requestConfirmation('¿Eliminar la plantilla «' + template.name + '»? Las tareas existentes se conservarán.')) return;
     const previous = cloneActiveProfile();
     state.profile.dayTemplates = state.profile.dayTemplates.filter(item => item.id !== id);
     if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
@@ -4167,7 +4207,7 @@ root.addEventListener('click', async event => {
       const proposal = previewDayTemplate(state.profile, id, state.selectedDate);
       if (!proposal.proposals.length) return showToast('No hay bloques nuevos para aplicar.');
       const overlaps = proposal.proposals.filter(item => item.conflicts.length);
-      if (overlaps.length && !confirm('Hay ' + overlaps.length + ' bloques que se superponen. ¿Aplicarlos de todos modos?')) return;
+      if (overlaps.length && !await requestConfirmation('Hay ' + overlaps.length + ' bloques que se superponen. ¿Aplicarlos de todos modos?')) return;
       const applied = applyDayTemplate(state.profile, id, state.selectedDate, { allowConflicts: overlaps.length > 0 });
       state.profile = applied.profile;
       if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }
@@ -4277,7 +4317,7 @@ root.addEventListener('click', async event => {
   if (action === 'focus-stop') await finishFocus();
   if (action === 'focus-retry-save' && isFocusSaveBlocked()) await finishFocus({ completed: true });
   if (action === 'focus-reset') {
-    if (state.profile.activeFocus && !confirm('¿Terminar y descartar la sesión actual?')) return;
+    if (state.profile.activeFocus && !await requestConfirmation('¿Terminar y descartar la sesión actual?')) return;
     const previousProfile = cloneActiveProfile();
     state.profile.activeFocus = null; stopFocusTicker();
     focusAudioController.stopAll();
@@ -4335,7 +4375,7 @@ root.addEventListener('click', async event => {
       imported.profiles.forEach(validateImportedProfile);
       const normalizedProfiles = imported.profiles.map(normalizeProfile);
       const activeProfile = normalizedProfiles.find(profile => profile.id === imported.activeProfileId) || normalizedProfiles[0];
-      if (!confirm('La importación reemplazará los datos actuales. O-Isym conservará una copia de seguridad. ¿Continuar?')) return;
+      if (!await requestConfirmation('La importación reemplazará los datos actuales. O-Isym conservará una copia de seguridad. ¿Continuar?')) return;
       focusAudioController.stopAll();
       state.snapshot = { ...imported, profiles: normalizedProfiles, activeProfileId: activeProfile.id };
       state.profile = activeProfile;
@@ -4443,7 +4483,7 @@ root.addEventListener('click', async event => {
       targetProfile.focusSessions.length + ' sesiones Focus',
       targetProfile.activeFocus ? 'Tiene una sesión Focus activa' : ''
     ].filter(Boolean).join(', ');
-    if (!confirm('Eliminar el perfil «' + targetProfile.name + '»?\n\nSe borrarán únicamente sus datos: ' + summary + '.\n\nLos demás perfiles no se modificarán. Esta acción no se puede deshacer desde la aplicación.')) return;
+    if (!await requestConfirmation('Eliminar el perfil «' + targetProfile.name + '»?\n\nSe borrarán únicamente sus datos: ' + summary + '.\n\nLos demás perfiles no se modificarán. Esta acción no se puede deshacer desde la aplicación.')) return;
     const previousSnapshot = state.snapshot;
     const wasActive = targetProfile.id === state.profile.id;
     const fallback = wasActive ? state.snapshot.profiles.find(item => item.id !== targetProfile.id) : null;
@@ -4478,7 +4518,7 @@ root.addEventListener('click', async event => {
   }
 });
 
-document.addEventListener('keydown', event => {
+document.addEventListener('keydown', async event => {
   if (state.view === 'planner' && state.plannerSection === 'board' && !document.querySelector('dialog[open]') && (event.metaKey || event.ctrlKey) && !event.altKey && ['z', 'y'].includes(event.key.toLowerCase())) {
     event.preventDefault(); event.stopPropagation();
     if (!event.repeat) restoreIdeaBoardHistory(event.key.toLowerCase() === 'y' || event.shiftKey ? 'redo' : 'undo');
@@ -4487,7 +4527,7 @@ document.addEventListener('keydown', event => {
   const profileModal = $('[data-profile-modal]');
   if (profileModal && event.key === 'Escape') {
     event.preventDefault();
-    if(profileModal.dataset.dirty==='true'&&!confirm('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
+    if(profileModal.dataset.dirty==='true'&&!await requestConfirmation('Hay cambios sin guardar. ¿Cerrar sin guardarlos?'))return;
     if(profileModal.dataset.returnFocus==='task-create-button'){state.showTaskForm=false;state.editingTaskId=null;}
     if(profileModal.dataset.returnFocus==='activity-create-button'){state.showActivityForm=false;state.editingActivityId=null;}
     if(profileModal.dataset.returnFocus==='goal-create-button'){state.showGoalForm=false;state.editingGoalId=null;}
@@ -4624,7 +4664,7 @@ root.addEventListener('change', async event => {
       const summary = importedBoards.map((board, index) =>
         (index + 1) + '. ' + files[index].name + '\n   ' + board.title + ' · ' + board.nodes.length + ' elementos · ' + board.connections.length + ' conexiones'
       ).join('\n');
-      if (!confirm('Se importarán ' + importedBoards.length + ' pizarrón(es):\n\n' + summary + '\n\nSe añadirán como pizarrones nuevos. Ninguno existente será reemplazado. ¿Continuar?')) return;
+      if (!await requestConfirmation('Se importarán ' + importedBoards.length + ' pizarrón(es):\n\n' + summary + '\n\nSe añadirán como pizarrones nuevos. Ninguno existente será reemplazado. ¿Continuar?')) return;
       const previous = cloneActiveProfile();
       state.profile.ideaBoards = normalizeIdeaBoards([...state.profile.ideaBoards, ...importedBoards]);
       if (!await save()) { restoreActiveProfile(previous); updateShell(); return; }

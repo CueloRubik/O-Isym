@@ -18,7 +18,10 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +38,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/oisym-ui-tests" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jsdom@22.1.0
           echo "NODE_PATH=$RUNNER_TEMP/oisym-ui-tests/node_modules" >> "$GITHUB_ENV"
       - name: Run automated tests
+        shell: bash
         run: |
           node --check src/app.js
           node --check src/planning.js

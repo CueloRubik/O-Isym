@@ -222,11 +222,11 @@ test('task inspector reuses the same record and protects unsaved changes', async
   field.value = '2026-11-15';
   field.dispatchEvent(new r.w.Event('input', { bubbles: true }));
   r.w.confirm = () => false;
-  r.click('.task-editor-close');
+  r.click('.task-editor-close'); await r.wait();
   assert.ok(r.query('.task-editor-panel'));
   assert.equal(r.app.state.editingTaskId, task.id);
   r.w.confirm = () => true;
-  r.click('.task-editor-close');
+  r.click('.task-editor-close'); await r.wait();
   assert.equal(r.query('.task-editor-panel'), null);
   assert.equal(r.app.state.profile.tasks[0].scheduledDate, '');
   assert.deepEqual(r.errors, []);
