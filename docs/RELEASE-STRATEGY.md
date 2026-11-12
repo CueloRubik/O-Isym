@@ -4,7 +4,7 @@ Actualizado: 2026-11-11
 
 ## Principio
 
-**Un solo código de aplicación para todas las plataformas.** No se deben copiar cambios entre ramas `oisym-mac-intel`, `oisym-mac-universal` y `oisym-windows`. La distinción de plataforma pertenece a la compilación y a los archivos adjuntos a una Release, no a ramas permanentes.
+**Un solo código de aplicación para todas las plataformas.** `development` sigue siendo la fuente compartida. Por petición del proyecto, las ramas `oisym-mac-intel`, `oisym-mac-universal` y `oisym-windows` reciben una sincronización puntual; no se convierten en líneas independientes de desarrollo. Consulta [el alcance y las excepciones de plataforma](PLATFORM-SYNC.md).
 
 ## Ramas
 
@@ -12,7 +12,7 @@ Actualizado: 2026-11-11
 - `main`: futuro código estable de la aplicación, junto con su documentación. **Todavía NO ha sido migrada**: actualmente conserva la documentación de la estrategia anterior. No fusionar ni reemplazar a ciegas; primero preservar los documentos exclusivos de `main`, revisar las diferencias y aprobar la transición.
 - `feature/*` y `fix/*`: opcionales y temporales, nacen de `development` y regresan a ella mediante Pull Request.
 - `oisym-website`: sitio web independiente. Se actualiza al publicar una Release verificada.
-- `oisym-mac-intel`, `oisym-mac-universal`, `oisym-windows`: ramas heredadas; **conservar como respaldo**, no continuar desarrollando en ellas. Solo archivar/eliminar cuando el sistema unificado haya producido instaladores verificados.
+- `oisym-mac-intel`, `oisym-mac-universal`, `oisym-windows`: instantáneas de plataforma sincronizadas puntualmente desde `development`, conservando su historial. Windows conserva su manifiesto y configuración de compilación anteriores. Las funciones y correcciones compartidas se desarrollan en `development`; sincronizar código no equivale a publicar instaladores verificados.
 - `planning/*`: trabajo histórico de documentación. Revisar antes de retirar.
   
 ## Compilaciones desde development

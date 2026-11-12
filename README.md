@@ -7,7 +7,7 @@ O-Isym es una aplicación de organización personal con perfiles, tareas, calend
 - **`development`**: base de código en desarrollo, compartida por macOS y Windows.
 - **`main`**: todavía conserva documentación de una organización anterior; está pendiente su migración controlada a rama estable de código.
 - **`oisym-website`**: página de descargas, desplegada por separado.
-- **`oisym-mac-intel`, `oisym-mac-universal`, `oisym-windows`**: ramas antiguas conservadas como respaldo. No se deben actualizar como copias separadas.
+- **`oisym-mac-intel`, `oisym-mac-universal`, `oisym-windows`**: instantáneas sincronizadas con `development` a petición del proyecto; conservan los recursos y ajustes propios de cada plataforma. El desarrollo compartido continúa en `development`. Consulta [el alcance de esta sincronización](docs/PLATFORM-SYNC.md).
 
 Consulta [la estrategia de Releases](docs/RELEASE-STRATEGY.md) antes de fusionar ramas o publicar una versión.
 

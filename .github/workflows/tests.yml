@@ -5,10 +5,16 @@ on:
     branches:
       - development
       - main
+      - oisym-mac-intel
+      - oisym-mac-universal
+      - oisym-windows
   pull_request:
     branches:
       - development
       - main
+      - oisym-mac-intel
+      - oisym-mac-universal
+      - oisym-windows
 
 jobs:
   test:
@@ -41,7 +47,7 @@ jobs:
   macos-node18-smoke:
     name: macOS smoke (Node 18; no Catalina runtime claim)
     runs-on: macos-15
-    if: github.ref == 'refs/heads/development'
+    if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/oisym-mac-intel' || github.ref == 'refs/heads/oisym-mac-universal'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
