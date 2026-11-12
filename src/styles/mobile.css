@@ -118,7 +118,7 @@ html.oisym-android .welcome-card h1 { font-size:26px; margin:10px 0; }
 html.oisym-android .welcome-card > p { font-size:12px; opacity:.9; }
 html.oisym-android .welcome-card .eyebrow { font-size:10px; opacity:.8; }
 html.oisym-android .welcome-card .progress-wrap { margin-top:18px; }
-html.oisym-android .welcome-card .progress-label { font-size:11px; }
+html.oisym-android[data-scheme] .workspace-main .welcome-card .progress-label { font-size:11px; color:var(--ui-accent-text); }
 html.oisym-android .welcome-card .progress-track { background:rgba(255,255,255,.22); height:5px; }
 html.oisym-android .welcome-card .progress-fill { background:var(--ui-accent-text); }
 html.oisym-android .today-hero-actions { display:flex; margin-top:16px; }
