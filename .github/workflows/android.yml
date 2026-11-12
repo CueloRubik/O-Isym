@@ -53,6 +53,7 @@ jobs:
         run: |
           test -f dist-android/O-Isym-1.1.0-Android-debug.apk
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging dist-android/O-Isym-1.1.0-Android-debug.apk
+          python3 scripts/check-android-icon.py dist-android/O-Isym-1.1.0-Android-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: O-Isym-Android-debug

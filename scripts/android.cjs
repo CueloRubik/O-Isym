@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
+const {installAndroidIcon}=require('./android-icons.cjs');
 const root=path.resolve(__dirname,'..'), mobile=path.join(root,'mobile');
 const mode=process.argv[2]||'debug';
 function run(exe,args,cwd=mobile){
@@ -49,12 +50,13 @@ async function buildWeb(){
 function installNative(){
  const target=path.join(mobile,'android','app','src','main');
  fs.cpSync(path.join(mobile,'native'),target,{recursive:true});
+ installAndroidIcon(root,target);
  const variables=path.join(mobile,'android','variables.gradle');
  fs.writeFileSync(variables,fs.readFileSync(variables,'utf8').replace(/minSdkVersion\s*=\s*\d+/,'minSdkVersion = 26'));
  const appGradle=path.join(mobile,'android','app','build.gradle');
  let gradle=fs.readFileSync(appGradle,'utf8');
  const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
-  gradle=gradle.replace(/versionCode\s*(?:=\s*)?\d+/,'versionCode 11003').replace(/versionName\s*(?:=\s*)?"[^"]+"/,'versionName "'+version+'"');
+  gradle=gradle.replace(/versionCode\s*(?:=\s*)?\d+/,'versionCode 11004').replace(/versionName\s*(?:=\s*)?"[^"]+"/,'versionName "'+version+'"');
  fs.writeFileSync(appGradle,gradle);
 }
 (async()=>{
@@ -71,7 +73,7 @@ function installNative(){
  await buildWeb();if(mode==='web')return;
  const cli=path.join(mobile,'node_modules','@capacitor','cli','bin','capacitor');
  if(!fs.existsSync(path.join(mobile,'android','gradlew')))node(cli,['add','android']);
- installNative();node(cli,['sync','android']);
+ node(cli,['sync','android']);installNative();
  const sdk=process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT||(process.env.LOCALAPPDATA?path.join(process.env.LOCALAPPDATA,'Android','Sdk'):null);
  if(sdk && fs.existsSync(sdk))fs.writeFileSync(path.join(mobile,'android','local.properties'),'sdk.dir='+sdk.replace(/\\/g,'/')+'\n');
  if(mode==='sync')return;
