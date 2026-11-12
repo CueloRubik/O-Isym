@@ -17,16 +17,18 @@ section{padding:72px 0}.head{max-width:620px;margin-bottom:28px}.head h2{margin:
 footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justify-content:space-between;gap:16px}.foot a{text-decoration:none}
 @media(max-width:760px){.hero-inner{padding:65px 0}.features,.downloads{grid-template-columns:1fr}.download{min-height:190px}section{padding:55px 0}.navlinks{gap:12px}.navlinks a:first-child{display:none}}
 @media(max-width:480px){.wrap{width:calc(100% - 28px)}.nav{min-height:65px}.navlinks{font-size:12px}.navlinks .button{padding:0 11px;min-height:38px}h1{letter-spacing:-2px}.hero p{font-size:16px}.foot{flex-direction:column}}
+.release{border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:16px;overflow-wrap:anywhere}.release summary{cursor:pointer;font-weight:700}.release .downloads{margin-top:18px}.download h3{overflow-wrap:anywhere}.navlinks{flex-wrap:wrap}.nav{padding-block:12px}.navlinks a:focus-visible,summary:focus-visible,.button:focus-visible{outline:3px solid var(--green);outline-offset:4px}
+@media(max-width:760px){.nav{align-items:flex-start}.navlinks{justify-content:flex-end;gap:10px}.release{padding:16px}}
 </style>
 </head>
 <body>
 <header><div class="wrap nav">
 <a class="brand" href="#" aria-label="O-Isym, inicio"><span class="mark" aria-hidden="true"><svg width="23" height="23" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v4.8l3.1 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></span>O-Isym</a>
-<nav class="navlinks" aria-label="Navegación"><a href="#funciones">Funciones</a><a href="#descargas">Descargas</a><a class="button" href="https://github.com/CueloRubik/O-Isym/releases">Obtener O-Isym</a></nav>
+<nav class="navlinks" aria-label="Navegación"><a href="#funciones">Funciones</a><a href="#descargas">Descargas</a><a href="#versiones-anteriores">Versiones anteriores</a><a class="button" href="#descargas">Obtener O-Isym</a></nav>
 </div></header>
 <main>
 <section class="hero"><div class="wrap hero-inner">
-<span class="eyebrow">O-ISYM 5.0</span>
+<span class="eyebrow" id="release-badge">O-ISYM · PRÓXIMAMENTE 1.1.0</span>
 <h1>Organiza tu tiempo.<br>Enfócate en lo que importa.</h1>
 <p>Un espacio personal para organizar actividades, tareas, calendario y objetivos, y dedicar tu atención a lo que quieres conseguir.</p>
 <div class="actions"><a class="button" href="#descargas">Descargar O-Isym ↓</a><a class="button alt" href="https://github.com/CueloRubik/O-Isym">Conocer el proyecto</a></div>
@@ -39,13 +41,112 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
 <article class="feature"><div class="symbol" aria-hidden="true">↗</div><h3>Objetivos</h3><p>Da seguimiento a tus objetivos y observa cómo avanzas con el tiempo.</p></article>
 </div></div></section>
 <section class="download-section" id="descargas"><div class="wrap">
-<div class="head"><h2>Descarga O-Isym.</h2><p>Elige la versión correspondiente a tu equipo.</p></div>
-<div class="downloads">
+<div class="head"><h2>Descarga O-Isym.</h2><p id="current-release">La versión 1.1.0 estará disponible próximamente.</p></div>
+<div class="downloads" id="latest-downloads"><article class="download"><h3>O-Isym 1.1.0</h3><p class="detail">Los instaladores aparecerán aquí cuando se publiquen. Mientras tanto, puedes descargar la edición anterior.</p><a class="button alt" href="#versiones-anteriores">Ver versiones anteriores</a></article></div>
+<p class="note" id="release-status" role="status">Consultando las publicaciones de GitHub…</p>
+<p class="note"><a href="https://github.com/CueloRubik/O-Isym/releases">Ver todas las publicaciones en GitHub</a></p>
+</div></section>
+<section id="versiones-anteriores"><div class="wrap">
+<div class="head"><h2>Versiones anteriores.</h2><p>Instaladores de ediciones anteriores de O-Isym.</p></div>
+<div id="release-history"><details class="release" open><summary>O-Isym 5.0.0</summary><p class="note">Publicada el 5 de noviembre de 2026. Nombre conservado tal como aparece en GitHub.</p><div class="downloads">
 <article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Intel</h3><span class="detail">DMG · Procesadores Intel</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/v5.0.0/O-Isym.Intel-Installer.dmg">Descargar para Mac Intel</a></article>
 <article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Universal</h3><span class="detail">DMG · Intel y Apple Silicon</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/v5.0.0/O-Isym-universal-installer.dmg">Descargar para Mac Universal</a></article>
 <article class="download"><div class="platform" aria-hidden="true">▦</div><h3>Windows</h3><span class="detail">Instalador · Windows x64</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/v5.0.0/O-Isym.Setup.5.0.0.exe">Descargar para Windows</a></article>
-</div><p class="note">Los instaladores se publican en GitHub Releases. Consulta allí la versión más reciente.</p>
+</div>
+</details></div>
 </div></section>
 </main>
 <footer><div class="wrap foot"><span>© 2026 O-Isym. Hecho para organizar mejor tu tiempo.</span><a href="https://github.com/CueloRubik/O-Isym">Código y novedades en GitHub</a></div></footer>
+<script>
+(async () => {
+  const repository = 'https://github.com/CueloRubik/O-Isym';
+  const baseline = 'v5.0.0';
+  const baselineDate = Date.parse('2026-11-05T18:37:45Z');
+  const status = document.getElementById('release-status');
+  const latest = document.getElementById('latest-downloads');
+  const history = document.getElementById('release-history');
+  function installers(release) {
+    return (release.assets || []).filter(asset => /\.(dmg|exe|msi|apk)$/i.test(asset.name) && asset.state === 'uploaded');
+  }
+  function safeUrl(value) {
+    try {
+      const url = new URL(value);
+      return url.origin === 'https://github.com' && url.pathname.startsWith('/CueloRubik/O-Isym/releases/') ? url.href : null;
+    } catch { return null; }
+  }
+  function cards(release) {
+    const grid = document.createElement('div');
+    grid.className = 'downloads';
+    for (const asset of installers(release)) {
+      const url = safeUrl(asset.browser_download_url);
+      if (!url) continue;
+      const card = document.createElement('article');
+      card.className = 'download';
+      const heading = document.createElement('h3');
+      const name = asset.name;
+      heading.textContent = /\.apk$/i.test(name) ? 'Android' : /\.(exe|msi)$/i.test(name) ? 'Windows' : /universal/i.test(name) ? 'Mac Universal' : /intel|x64/i.test(name) ? 'Mac Intel' : /arm64|silicon/i.test(name) ? 'Mac Apple Silicon' : 'Mac';
+      const detail = document.createElement('p');
+      detail.className = 'detail';
+      detail.textContent = name + ' · ' + (asset.size / 1048576).toFixed(1) + ' MB';
+      const link = document.createElement('a');
+      link.className = 'button';
+      link.href = url;
+      link.textContent = 'Descargar para ' + heading.textContent;
+      card.append(heading, detail, link);
+      grid.append(card);
+    }
+    return grid;
+  }
+  function archive(release) {
+    const item = document.createElement('details');
+    item.className = 'release';
+    const title = document.createElement('summary');
+    title.textContent = release.name || release.tag_name;
+    const detail = document.createElement('p');
+    detail.className = 'note';
+    detail.textContent = 'Publicada el ' + new Date(release.published_at).toLocaleDateString('es-MX', {year:'numeric', month:'long', day:'numeric'});
+    item.append(title, detail, cards(release));
+    const url = safeUrl(release.html_url);
+    if (url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.textContent = 'Ver publicación y novedades';
+      item.append(link);
+    }
+    return item;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch('https://api.github.com/repos/CueloRubik/O-Isym/releases?per_page=100', {signal:controller.signal, headers:{Accept:'application/vnd.github+json'}});
+    if (!response.ok) throw new Error('GitHub no disponible');
+    const data = await response.json();
+    if (!Array.isArray(data)) throw new Error('Respuesta inesperada');
+    const releases = data.filter(r => !r.draft && !r.prerelease && installers(r).length).sort((a,b) => Date.parse(b.published_at) - Date.parse(a.published_at));
+    // Publication date supports the transition from the old 5.0.0 numbering to 1.1.0.
+    const current = releases.find(r => r.tag_name !== baseline && Date.parse(r.published_at) > baselineDate);
+    if (current) {
+      const grid = cards(current);
+      if (grid.childElementCount) {
+        latest.replaceChildren(...grid.children);
+        document.getElementById('release-badge').textContent = 'O-ISYM · ' + current.tag_name;
+        document.getElementById('current-release').textContent = (current.name || current.tag_name) + ' · Elige el instalador correspondiente a tu equipo.';
+      }
+    }
+    const previous = releases.filter(r => r !== current);
+    if (previous.length) {
+      const items = previous.map(archive);
+      // Keep the known legacy downloads even if GitHub's first page no longer includes them.
+      if (!previous.some(r => r.tag_name === baseline)) items.push(history.firstElementChild);
+      history.replaceChildren(...items);
+      history.firstElementChild.open = true;
+    }
+    status.textContent = current ? 'Descargas actualizadas desde GitHub. Solo se muestran instaladores publicados; los demás se añadirán cuando estén disponibles.' : 'La versión 1.1.0 todavía no tiene instaladores publicados. Las descargas anteriores están disponibles abajo.';
+  } catch {
+    status.textContent = 'No se pudieron consultar las nuevas versiones. Puedes descargar la edición anterior abajo o consultar GitHub.';
+  } finally {
+    clearTimeout(timeout);
+  }
+})();
+</script>
 </body></html>
