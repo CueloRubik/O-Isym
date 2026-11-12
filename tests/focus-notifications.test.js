@@ -24,3 +24,14 @@ test('Focus retains native toasts until close and closes them on disposal', () =
   assert.equal(notifications[0].closed, true);
   assert.equal(notifications[0].listenerCount('close'), 0);
 });
+
+test('clicking a Focus notification reopens the app and uses its icon', () => {
+  let toast, opened = 0;
+  class N extends EventEmitter { constructor(options) { super(); this.options = options; toast = this; } show() {} close() {} }
+  const scheduler = createFocusNotificationScheduler({ Notification: N, now: () => 1000, iconPath: 'task-reminder.png', onOpen: () => { opened++; } });
+  scheduler.schedule({ endsAt: new Date(1000).toISOString() });
+  assert.equal(toast.options.icon, 'task-reminder.png');
+  toast.emit('click');
+  assert.equal(opened, 1);
+  scheduler.dispose();
+});

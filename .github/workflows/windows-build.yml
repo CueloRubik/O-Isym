@@ -1,0 +1,56 @@
+name: Windows installer
+on:
+  push:
+    branches: [oisym-windows]
+  pull_request:
+    branches: [oisym-windows]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:win
+      - run: npm run build:win:portable
+      - name: Verify packaged application and executable icon
+        run: node scripts/verify-windows-build.cjs
+      - name: Install and launch on Windows
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem dist/*-Setup.exe).FullName
+          $destination = Join-Path $env:RUNNER_TEMP 'O-Isym-installed'
+          $install = Start-Process -FilePath $installer -ArgumentList @('/S', "/D=$destination") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Installer failed: $($install.ExitCode)" }
+          $exe = Join-Path $destination 'O-Isym.exe'
+          if (!(Test-Path $exe)) { throw 'Installed executable missing' }
+          $shortcut = Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs/O-Isym.lnk'
+          if (!(Test-Path $shortcut)) { throw 'Start menu shortcut missing' }
+          $shell = New-Object -ComObject Shell.Application
+          $link = $shell.Namespace((Split-Path $shortcut)).ParseName((Split-Path $shortcut -Leaf))
+          if ($link.ExtendedProperty('System.AppUserModel.ID') -ne 'com.oisym.app') { throw 'Incorrect notification identity' }
+          $app = Start-Process -FilePath $exe -PassThru
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              $app.Refresh()
+              if ($app.HasExited) { throw 'O-Isym exited before opening a window' }
+              if ($app.MainWindowHandle -ne 0) { $ready = $true; break }
+            }
+            if (!$ready) { throw 'No O-Isym window appeared' }
+          } finally {
+            if (!$app.HasExited) { Stop-Process -Id $app.Id -Force }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: O-Isym-Windows-x64
+          path: dist/*.exe
+          if-no-files-found: error

@@ -11,25 +11,44 @@ O-Isym es una aplicación de organización personal con perfiles, tareas, calend
 
 Consulta [la estrategia de Releases](docs/RELEASE-STRATEGY.md) antes de fusionar ramas o publicar una versión.
 
-## Instalar y probar
+## Windows: instalar, probar y compilar
 
-Node.js 18.x y npm. Instala desde la raíz del proyecto:
+Esta rama `oisym-windows` usa Electron 45.3.0 y electron-builder 26.18.0 para Windows 10/11 x64. Requiere Node.js 22.12 o posterior; se comprueba con Node 24 y 26. Las versiones de macOS se compilan desde sus respectivas ramas.
 
-```bash
-npm ci
-# Las pruebas de interfaz requieren jsdom, sin cambiar package.json ni el lockfile:
-npm install --no-save --package-lock=false --ignore-scripts jsdom@22.1.0
-npm test
-npm start
+En PowerShell, desde la carpeta del proyecto:
+
+```powershell
+git switch oisym-windows
+git pull --ff-only origin oisym-windows
+npm.cmd ci
+npm.cmd test
+npm.cmd start
+npm.cmd run build:win
 ```
 
-La revisión posterior y las correcciones de compatibilidad están documentadas en [Compatibilidad con Windows](docs/WINDOWS-COMPATIBILITY.md).
+El instalador queda en `dist/O-Isym-5.0.0-Windows-x64-Setup.exe`. Incluye el icono `app.ico`, asistente en español, selección de carpeta, acceso directo en Inicio y en el escritorio. Conserva los datos de perfiles al actualizar o desinstalar. No se publica ninguna Release automáticamente.
 
-## Compilación de Windows pendiente
+Otros destinos:
 
-Esta rama recibe el código actual de `development`, pero conserva **sin cambios** su `package.json`, `package-lock.json`, configuración de empaquetado e iconos. Por ello, el paquete mantiene su versión anterior (`5.0.0`); no representa una nueva Release. No se incorporan aquí los comandos nuevos `build:win` ni el workflow de instaladores de `development`.
+```powershell
+npm.cmd run build:win:portable
+npm.cmd run build:win:dir
+```
 
-La generación y validación de instaladores Windows queda para una tarea posterior. Esta sincronización no corrige ni valida el problema de permisos de winCodeSign, ni publica o reemplaza descargas.
+El portable se genera como `dist/O-Isym-5.0.0-Windows-x64-Portable.exe`. Para notificaciones e inicio automático se recomienda instalar: el portable no registra inicio automático porque su ruta de ejecución es temporal. `npm start` también desactiva ese registro para evitar iniciar `electron.exe` sin la aplicación.
+
+La firma digital está desactivada mediante `signExecutable: false`; el empaquetador sigue aplicando icono y metadatos. Así se evita el flujo antiguo de winCodeSign sin desactivar la edición del icono. Windows puede mostrar editor desconocido porque estos paquetes no tienen certificado de firma.
+
+## Notificaciones y segundo plano en Windows
+
+- El instalador crea el acceso directo de Inicio con la identidad `com.oisym.app`, compartida por Electron y el empaquetador.
+- Al cerrar con la X, se guarda y oculta la ventana. O-Isym sigue en la bandeja con sus recordatorios, música y alarmas. Clic o doble clic abre la ventana; el menú **Salir de O-Isym** termina el proceso y los temporizadores.
+- Ajustes → Notificaciones incluye una prueba, el botón para abrir la configuración de Windows e inicio automático para la aplicación instalada.
+- Windows puede silenciar avisos con No molestar. La disponibilidad de la API no garantiza que Windows muestre cada aviso.
+- Mientras el equipo está suspendido no reproduce música ni ejecuta temporizadores. Al reanudar se revisan los avisos pendientes según tus preferencias. Los avisos requieren que O-Isym siga ejecutándose; salir por completo los detiene.
+- Pulsar un aviso de tarea abre su tarea; pulsar un aviso de Focus vuelve a abrir O-Isym.
+
+Consulta [la revisión de Windows](docs/WINDOWS-COMPATIBILITY.md). El workflow **Windows installer** compila en Windows, comprueba el icono y los archivos empaquetados, instala y abre la aplicación, y adjunta los `.exe` como artefactos. La entrega visual y el sonido de notificaciones requieren la comprobación final en un equipo Windows.
 
 ## Desarrollo y recursos
 

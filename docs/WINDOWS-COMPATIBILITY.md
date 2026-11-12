@@ -11,7 +11,15 @@
 7. **Inicio oculto exclusivo de macOS.** `openAsHidden` no implementa el inicio oculto en Windows. Se usa ahora un argumento explícito `--oisym-hidden`, tanto al registrar como al consultar el inicio automático. Solo se oculta con preferencia activa y bandeja disponible. Un inicio manual sigue mostrando la ventana.
 8. **Instrucciones y cobertura limitadas a Mac/Linux.** Los ajustes hablaban exclusivamente de permisos de macOS. Se usa información común de permisos y No molestar. CI añade Windows a la matriz de pruebas con Node 18 y usa Bash para conservar el fallo de cualquier comando de la suite.
 
-El manifiesto, el lockfile, las versiones de dependencias y los destinos de empaquetado se mantienen sin cambios. Estas correcciones se aplican a `oisym-windows`; no se modifica aquí ninguna rama de macOS ni `development`.
+## Adaptación del empaquetado de Windows
+
+La revisión siguiente completa el manifiesto y el lockfile de `oisym-windows`: Electron 45.3.0, electron-builder 26.18.0 y jsdom como dependencia de pruebas reproducible. Node mínimo 22.12. Comandos `build:win`, `build:win:portable` y `build:win:dir`, siempre x64 y sin publicar automáticamente.
+
+`app.ico` forma parte de app.asar y se usa en ventana, bandeja, ejecutable e instalador/desinstalador NSIS. El instalador en español crea el acceso directo con el mismo AppUserModelID del proceso y conserva los datos. `signExecutable: false` omite firma, manteniendo icono y metadatos con resedit; no se usa el arreglo que desactiva también la edición del ejecutable.
+
+Los ajustes abren exclusivamente `ms-settings:notifications` mediante IPC validado. Se sustituyen los avisos erróneos de permisos de macOS. Desarrollo y portable no pueden registrar inicio automático; la versión instalada usa el argumento oculto existente. El clic en notificaciones de Focus abre la ventana. La aceleración por hardware solo se desactiva para el caso de Mac antiguo que motivó esa excepción.
+
+CI comprueba Node 24/26 en Linux/Windows. El workflow Windows installer genera NSIS y portable, verifica el icono PE y recursos en app.asar, instala silenciosamente, valida el acceso directo y abre una ventana. No certifica entrega visual ni sonido de los avisos. No modifica las ramas macOS ni development.
 
 ## Evidencia y límites
 

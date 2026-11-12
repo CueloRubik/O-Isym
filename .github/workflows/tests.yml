@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        node: [24, 26]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -28,15 +29,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node }}
           cache: npm
       - name: Install test dependencies
         run: npm ci --ignore-scripts
-      - name: Install UI test dependency without changing Windows packaging
-        shell: bash
-        run: |
-          npm install --prefix "$RUNNER_TEMP/oisym-ui-tests" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jsdom@22.1.0
-          echo "NODE_PATH=$RUNNER_TEMP/oisym-ui-tests/node_modules" >> "$GITHUB_ENV"
       - name: Run automated tests
         shell: bash
         run: |
@@ -53,17 +49,17 @@ jobs:
           node --check electron/storage.js
 
 
-  macos-node18-smoke:
-    name: macOS smoke (Node 18; no Catalina runtime claim)
+  macos-smoke:
+    name: macOS smoke (Node 24)
     runs-on: macos-15
     if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/oisym-mac-intel' || github.ref == 'refs/heads/oisym-mac-universal'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Node.js 18 for Electron 28 development
+      - name: Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
           cache: npm
       - name: Install regression dependencies
         run: npm ci --ignore-scripts

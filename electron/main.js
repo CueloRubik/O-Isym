@@ -11,9 +11,10 @@ const { Menu, Tray, nativeImage } = require('electron');
 const indexPath = path.join(__dirname, '..', 'index.html');
 const reminderIconPath = path.join(__dirname, '..', 'assets', 'icons', 'notifications', 'task-reminder.png');
 const appIconPath = path.join(__dirname, '..', 'assets', 'icons', 'app.png');
+const windowsIconPath = path.join(__dirname, '..', 'app.ico');
 
 // Evita fallos de inicialización gráfica en Macs antiguos con GPU Intel integrada.
-app.disableHardwareAcceleration();
+if (process.platform === 'darwin') app.disableHardwareAcceleration();
 
 // Must match electron-builder's appId / installed Windows shortcut identity.
 if (process.platform === 'win32') app.setAppUserModelId('com.oisym.app');
@@ -67,7 +68,7 @@ function showMainWindow(reminder) {
 
 function createTray() {
   if (!['darwin', 'win32'].includes(process.platform) || tray) return;
-  let image = nativeImage.createFromPath(process.platform === 'win32' ? path.join(__dirname, '..', 'app.ico') : appIconPath);
+  let image = nativeImage.createFromPath(process.platform === 'win32' ? windowsIconPath : appIconPath);
   if (image.isEmpty()) image = nativeImage.createFromPath(path.join(__dirname, '..', 'app.icns'));
   if (image.isEmpty()) image = nativeImage.createFromPath(reminderIconPath);
   if (!image.isEmpty()) image = image.resize({ width: process.platform === 'win32' ? 20 : 18, height: process.platform === 'win32' ? 20 : 18 });
@@ -90,6 +91,8 @@ function createWindow(options = {}) {
     minWidth: 360,
     minHeight: 560,
     resizable: true,
+    icon: process.platform === 'win32' ? windowsIconPath : appIconPath,
+    autoHideMenuBar: process.platform === 'win32',
     show: options.show !== false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -157,7 +160,7 @@ let taskNotifications = null;
 if (hasSingleInstanceLock) app.whenReady().then(async () => {
   try {
     const storage = createStorage(app.getPath('userData'));
-    focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor, hasWindow: () => BrowserWindow.getAllWindows().length > 0 });
+    focusNotifications = createFocusNotificationScheduler({ Notification, powerMonitor, iconPath: reminderIconPath, onOpen: () => showMainWindow() });
     taskNotifications = createTaskNotificationScheduler({
       Notification,
       powerMonitor,
@@ -170,7 +173,7 @@ if (hasSingleInstanceLock) app.whenReady().then(async () => {
       if (tray) { tray.destroy(); tray = null; }
       reportStartupError('No se pudo crear el icono de segundo plano', error);
     }
-    const supportsLoginItems = process.platform === 'darwin' || process.platform === 'win32';
+    const supportsLoginItems = process.platform === 'darwin' || process.platform === 'win32' && app.isPackaged && !process.env?.PORTABLE_EXECUTABLE_FILE;
     const loginSettings = supportsLoginItems ? app.getLoginItemSettings(loginQuery(process.platform)) : {};
     let initialSnapshot = null;
     try { initialSnapshot = await storage.read(); }

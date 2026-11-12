@@ -3,13 +3,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true, atLogin = false, args = [] } = {}) {
+function mainProcess({ storage, directory, platform = 'darwin', ownsLock = true, atLogin = false, args = [], packaged = true } = {}) {
   const app = new EventEmitter();
   const ipcMain = new EventEmitter();
   const windows = [], notifications = [], dialogs = [];
   let storageOpens = 0, readyCalls = 0, menu, tray;
   let ready, startup;
   const readyPromise = new Promise(resolve => { ready = resolve; });
+  app.isPackaged = packaged;
   app.requestSingleInstanceLock = () => ownsLock;
   app.setAppUserModelId = value => { app.appUserModelId = value; };
   app.disableHardwareAcceleration = () => {};

@@ -2747,7 +2747,7 @@ function renderFocus(main) {
   const stop=button('Detener alarma','stop-focus-alarm','button ghost small');stop.id='focus-alarm-stop';stop.disabled=!focusAudioController.isAlarmPlaying();audioActions.append(stop);alarmOptions.append(audioActions);
   const notificationLabel=element('label','focus-option'),notifications=input('focusNotifications','','checkbox');notifications.checked=state.profile.preferences.focusNotifications!==false;notifications.disabled=Boolean(focus);
   notificationLabel.append(notifications,element('span','','Mostrar notificación del sistema al terminar'));alarmOptions.append(notificationLabel);
-  alarmOptions.append(element('p','small-note','El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
+  alarmOptions.append(element('p','small-note',window.oisym?.platform === 'win32' ? 'La música y la alarma siguen activas al minimizar o cerrar la ventana mientras O-Isym permanece en la bandeja. Al elegir Salir de O-Isym, se detienen. Durante la suspensión del equipo no se reproduce audio; los avisos pendientes se revisan al reanudar.' : 'El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
   focusCard.append(alarmOptions);
   main.append(focusCard);
   const sessions = state.profile.focusSessions.slice().reverse();
@@ -3196,6 +3196,7 @@ function renderSettings(main) {
     ],String(preferences.launchAtLogin===true))));
     form.append(element('p','small-note','Al cerrar la ventana, O-Isym permanece en la bandeja o barra de menús junto a los iconos del sistema. Usa el menú de O-Isym para volver a abrirlo o salir por completo.'));
     const actions=element('div','form-actions');
+    if(window.oisym?.platform==='win32') actions.append(button('Abrir configuración de Windows','open-notification-settings','button secondary'));
     actions.append(button('Enviar notificación de prueba','test-task-notification','button secondary'));
     actions.append(actionIconButton('Guardar preferencias','submit-form','save.png','button primary'));
     form.append(actions);
@@ -3206,6 +3207,10 @@ function renderSettings(main) {
     panel.append(form,info);
     window.oisym?.notifications?.getStatus?.().then(result=>{
       const target=$('[data-notification-status]',panel);
+      if(result.platform==='win32' && !result.canManageLogin) {
+        form.querySelector('[name="launchAtLogin"]').disabled=true;
+        form.append(element('p','small-note','Instala O-Isym con el instalador de Windows para registrar su acceso directo y activar el inicio automático. La entrega de avisos desde npm start puede ser distinta.'));
+      }
       if(target)target.textContent=(result.supported?'Notificaciones nativas disponibles. ':'Este sistema no informa compatibilidad con notificaciones nativas. ')+(result.canManageLogin?'Inicio automático: '+(result.launchAtLogin?'activado.':'desactivado.'):'El inicio automático no está disponible en este sistema.')+' Si no aparecen avisos, revisa los permisos de O-Isym y el modo No molestar en la configuración del sistema.';
     }).catch(()=>{const target=$('[data-notification-status]',panel);if(target)target.textContent='No se pudo consultar el estado de las notificaciones.';});
   } else if(state.settingsSection==='focus'){
@@ -3503,11 +3508,11 @@ async function handleSubmit(form) {
       state.profile.preferences.taskNotificationLeadMinutes=[0,5,10,15,30,60].includes(Number(data.taskNotificationLeadMinutes))?Number(data.taskNotificationLeadMinutes):0;
       state.profile.preferences.taskNotificationSound=data.taskNotificationSound==='true';
       state.profile.preferences.taskNotificationMissed=data.taskNotificationMissed==='skip'?'skip':'notify';
-      state.profile.preferences.launchAtLogin=data.launchAtLogin==='true';
+      if(!form.querySelector('[name="launchAtLogin"]')?.disabled) state.profile.preferences.launchAtLogin=data.launchAtLogin==='true';
       const saved=await save();
       if(!saved){state.profile=beforeSave;state.snapshot.profiles=state.snapshot.profiles.map(item=>item.id===beforeSave.id?beforeSave:item);state.snapshot.activeProfileId=beforeSave.id;updateShell();return;}
-      const loginUpdated=await window.oisym?.notifications?.setLaunchAtLogin?.(state.profile.preferences.launchAtLogin);
-      showToast(loginUpdated===false?'Preferencias guardadas, pero macOS no confirmó el inicio automático.':'Preferencias de notificaciones guardadas.');
+      const loginUpdated=form.querySelector('[name="launchAtLogin"]')?.disabled ? undefined : await window.oisym?.notifications?.setLaunchAtLogin?.(state.profile.preferences.launchAtLogin);
+      showToast(loginUpdated===false?'Preferencias guardadas, pero el sistema no confirmó el inicio automático. Instala O-Isym antes de activar esta opción.':'Preferencias de notificaciones guardadas.');
     } else if (form.dataset.form === 'profile-planning-settings') {
       const start=data.workingDayStart,end=data.workingDayEnd;
       if(!start||!end||end<=start)throw new Error('El horario habitual debe terminar después de comenzar.');
@@ -3939,7 +3944,7 @@ root.addEventListener('click', async event => {
     const previous = state.profile.preferences.launchAtLogin === true;
     try {
       const enabled = await window.oisym?.notifications?.setLaunchAtLogin?.(true);
-      if (!enabled) throw new Error('macOS no confirmó el inicio automático.');
+      if (!enabled) throw new Error('El sistema no confirmó el inicio automático. Instala O-Isym antes de activar esta opción.');
       state.profile.preferences.launchAtLogin = true;
       const saved = await save();
       if (!saved) {
@@ -3956,9 +3961,14 @@ root.addEventListener('click', async event => {
     }
     return;
   }
+  if (action === 'open-notification-settings') {
+    try { await window.oisym.notifications.openSettings(); }
+    catch { showToast('No se pudo abrir la configuración de Windows.', 'error'); }
+    return;
+  }
   if (action === 'test-task-notification') {
     const sent=await window.oisym?.notifications?.sendTest?.();
-    showToast(sent?'Notificación de prueba enviada. Si no aparece, revisa los permisos de macOS.':'No se pudo enviar la notificación de prueba.',''+(sent?'success':'error'));
+    showToast(sent?'Notificación de prueba enviada. Si no aparece, revisa los permisos de O-Isym y No molestar en la configuración del sistema.':'No se pudo enviar la notificación de prueba.',''+(sent?'success':'error'));
     return;
   }
   if (action === 'select-profile-admin') { state.selectedProfileId = id; updateShell(); return; }

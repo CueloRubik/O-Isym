@@ -60,9 +60,16 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
 
   ipcMain.handle('oisym:notifications:status', event => {
     assertTrusted(event);
-    const canManageLogin = process.platform === 'darwin' || process.platform === 'win32';
+    const canManageLogin = process.platform === 'darwin' || process.platform === 'win32' && app?.isPackaged && !process.env?.PORTABLE_EXECUTABLE_FILE;
     const login = canManageLogin && app && typeof app.getLoginItemSettings === 'function' ? app.getLoginItemSettings(loginQuery()) : {};
-    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true, canManageLogin, platform: process.platform, loginStatus: login.status || null };
+    return { supported: Boolean(require('electron').Notification?.isSupported?.()), launchAtLogin: login.openAtLogin === true, canManageLogin: Boolean(canManageLogin), packaged: app?.isPackaged === true, portable: Boolean(process.env?.PORTABLE_EXECUTABLE_FILE), platform: process.platform, loginStatus: login.status || null };
+  });
+
+  ipcMain.handle('oisym:notifications:open-settings', async event => {
+    assertTrusted(event);
+    if (process.platform !== 'win32') return false;
+    await require('electron').shell.openExternal('ms-settings:notifications');
+    return true;
   });
 
   ipcMain.handle('oisym:notifications:test', event => {
@@ -72,6 +79,7 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
 
   ipcMain.handle('oisym:notifications:launch-at-login', (event, enabled) => {
     assertTrusted(event);
+    if (process.platform === 'win32' && (!app?.isPackaged || process.env?.PORTABLE_EXECUTABLE_FILE)) return false;
     if (typeof enabled !== 'boolean' || !['darwin', 'win32'].includes(process.platform) || !app || typeof app.setLoginItemSettings !== 'function') return false;
     app.setLoginItemSettings(loginOptions(enabled));
     return app.getLoginItemSettings(loginQuery()).openAtLogin === enabled;

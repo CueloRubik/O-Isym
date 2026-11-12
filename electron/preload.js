@@ -20,6 +20,7 @@ const storage = Object.freeze({
 
 const notifications = Object.freeze({
   getStatus: () => ipcRenderer.invoke('oisym:notifications:status'),
+  openSettings: () => ipcRenderer.invoke('oisym:notifications:open-settings'),
   sendTest: () => ipcRenderer.invoke('oisym:notifications:test'),
   setLaunchAtLogin: enabled => ipcRenderer.invoke('oisym:notifications:launch-at-login', enabled),
   onOpenTask: callback => {

@@ -8,14 +8,14 @@
     "start": "electron .",
     "dev": "electron .",
     "test": "node --test",
-    "build:mac": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dmg --x64",
-    "build:mac:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dir --x64",
-    "build:mac:universal": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dmg --universal",
-    "build:mac:universal:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dir --universal"
+    "build:win": "node scripts/build-windows.cjs nsis",
+    "build:win:portable": "node scripts/build-windows.cjs portable",
+    "build:win:dir": "node scripts/build-windows.cjs dir"
   },
   "devDependencies": {
-    "electron": "28.3.3",
-    "electron-builder": "24.13.3"
+    "electron": "45.3.0",
+    "electron-builder": "26.18.0",
+    "jsdom": "22.1.0"
   },
   "build": {
     "appId": "com.oisym.app",
@@ -28,27 +28,43 @@
       "src/**/*",
       "assets/**/*",
       "index.html",
-      "package.json"
+      "package.json",
+      "app.ico"
     ],
-    "mac": {
-      "category": "public.app-category.productivity",
-      "icon": "app.icns",
-      "identity": "-",
-      "target": [
-        {
-          "target": "dmg"
-        }
-      ],
-      "hardenedRuntime": false
-    },
     "win": {
       "icon": "app.ico",
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
-      ]
+      ],
+      "signExecutable": false,
+      "artifactName": "O-Isym-${version}-Windows-${arch}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "O-Isym",
+      "installerIcon": "app.ico",
+      "uninstallerIcon": "app.ico",
+      "installerHeaderIcon": "app.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false,
+      "include": "scripts/installer.nsh",
+      "language": "3082"
+    },
+    "portable": {
+      "artifactName": "O-Isym-${version}-Windows-${arch}-Portable.${ext}"
     }
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
