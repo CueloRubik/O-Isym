@@ -1,4 +1,4 @@
-# O-Isym 5
+# O-Isym 1.0.0
 
 O-Isym es un sistema personal de organización: actividades, tareas, calendario, enfoque y objetivos.
 

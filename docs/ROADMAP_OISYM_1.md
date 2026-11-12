@@ -1,4 +1,4 @@
-# O-Isym 5 — Plan de desarrollo
+# O-Isym 1.0.0 — Plan de desarrollo
 
 > Documento de trabajo. La rama `oisym-5-development` parte de `main`; la versión principal se conserva intacta.
 
