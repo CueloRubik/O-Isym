@@ -1,4 +1,4 @@
-# O-Isym 5
+# O-Isym 1.0.0
 
 O-Isym es un sistema personal de organización: actividades, tareas, calendario, enfoque y objetivos.
 
@@ -10,7 +10,7 @@ O-Isym es un sistema personal de organización: actividades, tareas, calendario,
 
 ## Preparar el proyecto
 
-1. Descarga el ZIP de la rama `oisym-5-development` o clona esa rama.
+1. Descarga el ZIP de la rama `development` o clona esa rama.
 2. Abre la carpeta del proyecto en Terminal o VS Code.
 3. Ejecuta:
 
@@ -42,4 +42,4 @@ La versión de Electron está fijada en **28.3.3**. No actualizar Electron sin c
 
 ## Estado
 
-Proyecto en desarrollo. La rama `oisym-5-development` es la rama de trabajo; `main` se conserva como versión principal.
+Proyecto en desarrollo. La rama `development` es la rama de trabajo; `main` se conserva como versión principal.
