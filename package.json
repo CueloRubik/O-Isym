@@ -42,7 +42,8 @@
           "target": "dmg"
         }
       ],
-      "hardenedRuntime": false
+      "hardenedRuntime": false,
+      "artifactName": "O-Isym-${version}-mac-${arch}.${ext}"
     },
     "win": {
       "icon": "app.ico",
@@ -53,7 +54,11 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "artifactName": "O-Isym-${version}-Windows-${arch}-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "O-Isym-${version}-Windows-${arch}-Portable.${ext}"
     }
   }
 }
