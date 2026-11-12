@@ -944,6 +944,8 @@ function updateShell() {
   };
   (renderers[state.view] || renderToday)(main);
   if (state.showTaskForm || state.editingTaskId) renderSharedTaskDialog(main);
+  main.dataset.view = state.view;
+  if (window.oisym?.platform === 'android') window.dispatchEvent(new CustomEvent('oisym:rendered', { detail: { view: state.view } }));
 }
 
 function addTaskForm(parent, defaults = {}) {
@@ -1637,8 +1639,11 @@ function renderIdeaBoardCanvas(main, board) {
     return { x: (event.clientX - rect.left - rect.width / 2 - camera.x) / camera.zoom,
       y: (event.clientY - rect.top - rect.height / 2 - camera.y) / camera.zoom };
   };
+  const mobileTouch = event => event.pointerType === 'touch' && window.oisym?.platform === 'android';
+  const pageTouch = event => mobileTouch(event) && viewport.dataset.mobileInteraction !== 'board';
   viewport.addEventListener('pointerdown', event => {
-    if (event.button === 1) {
+    if (pageTouch(event)) return;
+    if (event.button === 1 || (mobileTouch(event) && !event.target.closest('.ideas-note-card, .ideas-activity-card, .ideas-group-header, .ideas-connection-hit, button, input, textarea, select, a'))) {
       event.preventDefault(); event.stopPropagation();
       pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, cameraX: camera.x, cameraY: camera.y };
       moved = false; viewport.setPointerCapture(event.pointerId); viewport.classList.add('is-panning'); return;
@@ -1949,6 +1954,7 @@ function renderIdeaBoardCanvas(main, board) {
   };
   const bindNodeDrag = (handle, id) => {
     handle.addEventListener('pointerdown', event => {
+      if (pageTouch(event)) return;
       if (event.button !== 0 || connectMode || event.target.closest('input, button, textarea, select')) return;
       event.preventDefault(); event.stopPropagation();
       viewport.focus({ preventScroll: true });
@@ -2053,6 +2059,7 @@ function renderIdeaBoardCanvas(main, board) {
 
     bindNodeDrag(noteHeader, node.id);
     resize.addEventListener('pointerdown', event => {
+      if (pageTouch(event)) return;
       if (event.button !== 0) return;
       event.preventDefault();
       event.stopPropagation();

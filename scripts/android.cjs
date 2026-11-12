@@ -54,7 +54,7 @@ function installNative(){
  const appGradle=path.join(mobile,'android','app','build.gradle');
  let gradle=fs.readFileSync(appGradle,'utf8');
  const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
-  gradle=gradle.replace(/versionCode\s*(?:=\s*)?\d+/,'versionCode 11001').replace(/versionName\s*(?:=\s*)?"[^"]+"/,'versionName "'+version+'"');
+  gradle=gradle.replace(/versionCode\s*(?:=\s*)?\d+/,'versionCode 11002').replace(/versionName\s*(?:=\s*)?"[^"]+"/,'versionName "'+version+'"');
  fs.writeFileSync(appGradle,gradle);
 }
 (async()=>{
