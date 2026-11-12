@@ -1,0 +1,44 @@
+name: Android APK
+on:
+  push:
+    branches: [oisym-android]
+  pull_request:
+    branches: [oisym-android]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix mobile install
+      - name: JavaScript and regression tests
+        run: npm test
+      - name: Build debug APK
+        run: npm run android:debug
+      - name: Inspect APK
+        run: |
+          test -f dist-android/O-Isym-1.1.0-Android-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging dist-android/O-Isym-1.1.0-Android-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: O-Isym-Android-debug
+          path: |
+            dist-android/*.apk
+            mobile/package-lock.json
+          if-no-files-found: error

@@ -18,3 +18,12 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 *.log
+
+# Android build products and local SDK
+/mobile/node_modules/
+/mobile/android/
+/build/android-web/
+/dist-android/
+*.keystore
+*.jks
+local.properties

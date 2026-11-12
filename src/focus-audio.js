@@ -6,6 +6,7 @@
   if (root) root.OIsymFocusAudio = api;
 })(typeof window !== 'undefined' ? window : null, function createFocusAudioModule() {
   function createFocusAudioController(options = {}) {
+    if (typeof window !== 'undefined' && window.oisym?.nativeAudio && !options.AudioClass) return window.oisym.nativeAudio.createController(options);
     const AudioClass = options.AudioClass || (typeof Audio !== 'undefined' ? Audio : null);
     const setTimer = options.setTimer || setTimeout;
     const clearTimer = options.clearTimer || clearTimeout;

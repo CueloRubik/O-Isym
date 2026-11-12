@@ -364,7 +364,7 @@ const state = {
   view: 'today',
   selectedDate: localDate(),
   calendarDate: new Date(),
-  calendarMode: 'month',
+  calendarMode: window.oisym?.platform==='android' ? 'day' : 'month',
   sidebarCollapsed: false,
   taskEditorFocusField: 'title',
   taskFilter: 'active',
@@ -3519,7 +3519,7 @@ function previewFocusMusic(){
  stopFocusAlarmPlayback();
  focusAudioController.previewMusic('assets/audio/music/'+track.id+'.mp3',Math.max(0,Math.min(100,Number(state.profile.preferences.focusMusicVolume??35)))/100,20000);
 }
-function notifyFocusFinished(taskTitle,isBreak=false){if(!isBreak){stopFocusMusic();playFocusAlarm(false);}if(!window.oisym.focusAlarms&&state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='granted'){try{new Notification(isBreak?'Descanso terminado':'Focus terminado',{body:isBreak?'Tu descanso terminó. Puedes volver a concentrarte.':(taskTitle?'Terminaste tu sesión de '+taskTitle+'.':'Terminaste tu sesión de concentración.'),silent:true});}catch(error){}}}
+function notifyFocusFinished(taskTitle,isBreak=false){if(window.oisym?.platform==='android'){void window.oisym.focusAlarms.complete().catch(()=>{});return;}if(!isBreak){stopFocusMusic();playFocusAlarm(false);}if(!window.oisym.focusAlarms&&state.profile.preferences.focusNotifications!==false&&'Notification'in window&&Notification.permission==='granted'){try{new Notification(isBreak?'Descanso terminado':'Focus terminado',{body:isBreak?'Tu descanso terminó. Puedes volver a concentrarte.':(taskTitle?'Terminaste tu sesión de '+taskTitle+'.':'Terminaste tu sesión de concentración.'),silent:true});}catch(error){}}}
 function updateFocusDurationSuggestion() {
   const taskId = $('#focus-task')?.value || null;
   const activityId = $('#focus-activity')?.value || null;
@@ -3564,7 +3564,10 @@ async function finishFocus(options = {}) {
   if (session) state.profile.focusSessions.push(session);
   state.profile.activeFocus = null;
   stopFocusTicker();
-  focusAudioController.stopAll();
+  if(options.completed && window.oisym?.platform==='android'){
+    void window.oisym.focusAlarms.complete().catch(()=>{});
+    focusAudioController.stopMusic();focusAudioController.stopPreview();
+  }else focusAudioController.stopAll();
   if (!options.completed) window.oisym?.focusAlarms?.cancel().catch(() => {});
   const saved = await save();
   state.focusFinishing = false;
@@ -3783,6 +3786,7 @@ root.addEventListener('click', async event => {
     if (!board) return showToast('No se encontró el pizarrón.', 'error');
     try {
       const payload = createIdeaBoardExport(board);
+      if(window.oisym?.files){await window.oisym.files.export('oisym-pizarron.oisym',JSON.stringify(payload,null,2));return;}
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const anchor = element('a');
@@ -3935,6 +3939,7 @@ root.addEventListener('click', async event => {
     const profile = state.snapshot.profiles.find(item => item.id === id);
     if (!profile) return showToast('No se encontró el perfil.', 'error');
     const payload = { format: 'oisym-profile', version: 1, exportedAt: new Date().toISOString(), profile };
+    if(window.oisym?.files){await window.oisym.files.export('oisym-perfil.json',JSON.stringify(payload,null,2));return;}
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = element('a');
@@ -4313,6 +4318,7 @@ root.addEventListener('click', async event => {
     updateShell();
   }
   if (action === 'export-data') {
+    if(window.oisym?.files){await window.oisym.files.export('oisym-backup-'+localDate()+'.json',JSON.stringify(state.snapshot,null,2));return;}
     const blob = new Blob([JSON.stringify(state.snapshot, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = element('a');
@@ -4779,8 +4785,19 @@ async function initializeApp(snapshot) {
   }
 }
 
+async function awaitReminderProfile(profile,reminder){
+  if(!await save())return;
+  focusAudioController.stopAll();stopFocusTicker();
+  await window.oisym?.focusAlarms?.cancel();
+  state.profile=normalizeProfile(profile);state.snapshot.activeProfileId=profile.id;
+  await save();openTaskFromReminder(reminder);
+}
 function openTaskFromReminder(reminder) {
   if (!state.profile) { state.pendingTaskReminder = reminder; return; }
+  if(reminder?.profileId && reminder.profileId!==state.profile.id){
+    const owner=state.snapshot.profiles.find(p=>p.id===reminder.profileId);
+    if(owner){awaitReminderProfile(owner,reminder);return;}
+  }
   const task = reminder && taskById(reminder.taskId);
   // A reminder whose task was deleted must open the original calendar day,
   // never the unrelated Ideas/Pizarrones section.

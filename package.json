@@ -13,7 +13,13 @@
     "build:mac:universal": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dmg --universal",
     "build:mac:universal:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dir --universal",
     "build:win": "node -e \"if (!require('node:fs').existsSync('app.ico')) { console.error('Falta app.ico en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --win nsis --x64",
-    "build:win:portable": "node -e \"if (!require('node:fs').existsSync('app.ico')) { console.error('Falta app.ico en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --win portable --x64"
+    "build:win:portable": "node -e \"if (!require('node:fs').existsSync('app.ico')) { console.error('Falta app.ico en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --win portable --x64",
+    "android:doctor": "node scripts/android.cjs doctor",
+    "android:web": "node scripts/android.cjs web",
+    "android:sync": "node scripts/android.cjs sync",
+    "android:open": "node scripts/android.cjs open",
+    "android:debug": "node scripts/android.cjs debug",
+    "android:install": "node scripts/android.cjs install"
   },
   "devDependencies": {
     "electron": "28.3.3",

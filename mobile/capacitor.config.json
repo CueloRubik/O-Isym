@@ -1,0 +1,12 @@
+{
+  "appId": "com.oisym.app",
+  "appName": "O-Isym",
+  "webDir": "../build/android-web",
+  "android": {
+    "backgroundColor": "#f5f8f4",
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
