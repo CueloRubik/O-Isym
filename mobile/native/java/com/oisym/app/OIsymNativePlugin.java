@@ -43,7 +43,8 @@ public class OIsymNativePlugin extends Plugin {
  @PluginMethod public void scheduleFocus(PluginCall call){try{AlarmScheduler.focus(getContext(),new JSONObject(call.getData().toString()));call.resolve();}catch(Exception e){fail(call,e);}}
  @PluginMethod public void cancelFocus(PluginCall call){AlarmScheduler.cancelFocus(getContext());call.resolve();}
  @PluginMethod public void completeFocus(PluginCall call){AlarmScheduler.finish(getContext(),null);call.resolve();}
- @PluginMethod public void getAudioState(PluginCall call){call.resolve(FocusService.state());}\n @PluginMethod public void audio(PluginCall call){
+ @PluginMethod public void getAudioState(PluginCall call){call.resolve(FocusService.state());}
+ @PluginMethod public void audio(PluginCall call){
   try{String action=call.getString("action","");Intent intent=new Intent(getContext(),FocusService.class).setAction(action).putExtra("payload",call.getData().toString());
    if(action.equals("music")||action.equals("preview")||action.equals("alarm"))ContextCompat.startForegroundService(getContext(),intent);
    else if(FocusService.running)getContext().startService(intent);

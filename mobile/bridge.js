@@ -1,7 +1,7 @@
 'use strict';
 const rem=require('../src/platform/android-reminders.js');
 function createAndroidBridge(native,domain){
- const listeners=new Set();let last=null,saveQueue=Promise.resolve(),audioState={musicPlaying:false,previewPlaying:false,alarmPlaying:false};
+ const listeners=new Set();let last=null,focusReady=Promise.resolve(),saveQueue=Promise.resolve(),audioState={musicPlaying:false,previewPlaying:false,alarmPlaying:false};
  const validate=s=>{domain.validateSnapshot(s);s.profiles.forEach(domain.validateImportedProfile);if(JSON.stringify(s).length>5*1024*1024)throw Error('Los datos exceden 5 MB.');return s;};
  const parse=raw=>{try{return validate(JSON.parse(raw));}catch(cause){const e=Error('Los datos no son válidos: '+cause.message);e.code='OISYM_STORE_INVALID';throw e;}};
  const invoke=async(method,args={})=>{try{return await native[method](args);}catch(e){if(/OISYM_STORE_/.test(e.message||''))e.code=e.message.match(/OISYM_STORE_[A-Z]+/)[0];throw e;}};
@@ -42,7 +42,7 @@ function createAndroidBridge(native,domain){
     isAlarmPlaying:()=>Boolean(audioState.alarmPlaying)
    });
   },
-  startMusic:(src,volume)=>invoke('audio',{action:'music',src,volume}),
+  startMusic:(src,volume)=>focusReady.then(()=>invoke('audio',{action:'music',src,volume})),
   stopMusic:()=>invoke('audio',{action:'stopMusic'}),
   previewMusic:(src,volume,durationMs)=>invoke('audio',{action:'preview',src,volume,durationMs}),
   stopPreview:()=>invoke('audio',{action:'stopPreview'}),
@@ -73,7 +73,7 @@ function createAndroidBridge(native,domain){
    schedule:async payload=>{
     const profile=last?.profiles.find(p=>p.id===last.activeProfileId),focus=profile?.activeFocus,prefs=profile?.preferences||{};
     if(!focus||focus.pausedAt)return invoke('cancelFocus');
-    return invoke('scheduleFocus',{...payload,sessionId:profile.id+':'+(focus.sessionStartedAt||focus.startedAt),alarmEnabled:prefs.focusEndAlarmEnabled!==false&&!focus.isBreak,alarmTone:prefs.focusEndTone||'clock',volume:Number(prefs.focusAlarmVolume??70)/100,plays:Number(prefs.focusAlarmRepeats)||3,intervalSeconds:Number(prefs.focusAlarmIntervalSeconds)||2,maxSeconds:Number(prefs.focusAlarmMaxSeconds)||30});
+    focusReady=invoke('scheduleFocus',{...payload,sessionId:profile.id+':'+(focus.sessionStartedAt||focus.startedAt),alarmEnabled:prefs.focusEndAlarmEnabled!==false&&!focus.isBreak,alarmTone:prefs.focusEndTone||'clock',volume:Number(prefs.focusAlarmVolume??70)/100,plays:Number(prefs.focusAlarmRepeats)||3,intervalSeconds:Number(prefs.focusAlarmIntervalSeconds)||2,maxSeconds:Number(prefs.focusAlarmMaxSeconds)||30});return focusReady;
    },
    complete:()=>invoke('completeFocus'),
    cancel:()=>invoke('cancelFocus')
