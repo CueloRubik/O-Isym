@@ -4,7 +4,7 @@
 **Rama:** `oisym-5-development`  
 **Tipo:** registro histórico.
 
-Este documento conserva el resumen de la primera reconstrucción de la interfaz. Para errores vigentes, prioridades, correcciones, evidencia y próximos pasos, consulta la [auditoría técnica actual](QUALITY_AUDIT_OISYM_5.md).
+Este documento conserva el resumen de la primera reconstrucción de la interfaz. Para errores vigentes, prioridades, correcciones, evidencia y próximos pasos, consulta la [auditoría técnica actual](QUALITY_AUDIT_OISYM_1.md).
 
 ## Reconstrucción
 
@@ -23,7 +23,7 @@ La interfaz nueva sustituye al prototipo anterior desde `index.html`. Los script
 
 ## Pruebas históricas
 
-En la primera reconstrucción se añadieron pruebas de dominio y almacenamiento. La cobertura fue ampliándose posteriormente. El estado actual de pruebas se mantiene en la [auditoría técnica vigente](QUALITY_AUDIT_OISYM_5.md).
+En la primera reconstrucción se añadieron pruebas de dominio y almacenamiento. La cobertura fue ampliándose posteriormente. El estado actual de pruebas se mantiene en la [auditoría técnica vigente](QUALITY_AUDIT_OISYM_1.md).
 
 ## Decisiones conservadas
 
