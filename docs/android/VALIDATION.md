@@ -40,10 +40,10 @@ No sustituir las pruebas de teléfono real por una captura con ancho reducido. R
 | A01 | Llamada, otra app de audio o auriculares desconectados | Manejo de audio focus y pausa adecuado |
 | A02 | Vista previa, música y alarma compiten | Solo audio autorizado; detener siempre funciona |
 | A03 | Parar alarma desde pantalla bloqueada | Sonido y recursos liberados |
-| U01 | 360 px, horizontal y tablet | Todas las acciones alcanzables y sin desbordamientos generales |
+| U01 | 320/360/412 px, tablet y giro del teléfono | Acciones alcanzables, sin desbordamientos y teléfono mantenido en vertical |
 | U02 | Teclado abierto y formulario largo | Campo y guardar visibles/alcanzables; borrador conservado |
 | U03 | Atrás, rotación y notificación durante edición | Sin pérdida silenciosa ni ventanas duplicadas |
-| U04 | Pizarrón con dos dedos y cancelación de gesto | No mover nodos accidentalmente ni perder selección |
+| U04 | Pizarrón: Desplazar página / Mover pizarrón y cancelación de gesto | Scroll natural de página y movimiento deliberado del lienzo, sin mover nodos al recorrer la pantalla |
 | U05 | TalkBack y texto ampliado | Acciones identificables, lectura ordenada y contenido accesible |
 | P01 | Focus sin música durante una sesión completa | Sin wake lock permanente ni actividad de CPU cada segundo |
 | P02 | Focus con música y pantalla apagada | Consumo medido y sin reproductores duplicados |
@@ -78,3 +78,7 @@ Antes de release:
 - [ ] Builds de escritorio siguen pasando; no se mezclan ajustes Android con Electron de Catalina.
 
 No publicar claves, archivos de datos, firmas de depuración como versión final ni APK incompleto anunciado como terminado.
+
+## Evidencia automatizada de la revisión de interfaz
+
+[CI 43238674436](https://github.com/CueloRubik/O-Isym/actions/runs/43238674436), código 64e5689923fdea38ae73f76f9d9d3c1e45c4c4bb: 197 pruebas JavaScript aprobadas; Chromium táctil en anchos 320, 360, 412 y 768 px, incluyendo límites de controles, legibilidad de títulos, menú, scroll de página/editor/pizarrón, Focus a 640 px de alto y resize con un campo enfocado. APK debug 1.1.0 / 11002 compilado e inspeccionado. Capturas en el artefacto mobile-ui-screenshots, revisadas visualmente. Estas comprobaciones apoyan U01–U04 y no marcan como aprobada su prueba física. La primera APK fue abierta por el usuario; la actualización con estas correcciones aún debe instalarse y comprobarse en su dispositivo.

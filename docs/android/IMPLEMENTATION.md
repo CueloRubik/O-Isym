@@ -1,6 +1,6 @@
 # Primera adaptación Android
 
-Estado: código implementado y APK debug compilado. Validación física pendiente.
+Estado: APK debug 1.1.0 / versionCode 11002 compilado. El usuario confirmó que la primera APK abre en su dispositivo; esta revisión de interfaz aún debe probarse físicamente.
 
 ## Implementado en oisym-android
 
@@ -8,7 +8,12 @@ Estado: código implementado y APK debug compilado. Validación física pendient
 - Dependencias Android separadas en mobile para no cambiar Electron 28 ni el lockfile de escritorio.
 - Plugin nativo propio: almacenamiento AtomicFile con respaldos y recuperación; selector de exportación; estado de permisos; programación de avisos y audio.
 - Receiver de fin de Focus y servicio de música/alarma con finalización identificada por sesión y fecha límite.
-- Navegación para móvil y estilos independientes de escritorio.
+- Navegación móvil con menú vertical desplazable, bloqueo y restauración del scroll de fondo, Atrás con confirmación de cambios y avisos de errores visibles.
+- Orientación portrait en el manifiesto, incluida compatibilidad de restricciones en Android 16; sin rotación automática en teléfonos.
+- Una columna y controles táctiles de al menos 44 px para acciones principales. Títulos de tareas con ancho legible y formularios con scroll propio y ajuste al espacio del teclado.
+- Focus muestra el botón de inicio en una pantalla de 640 px de alto; tarea/actividad, música y alarma quedan en paneles plegables. Categorías de ajustes plegables.
+- Pizarrones: Desplazar página permite scroll vertical; Mover pizarrón permite arrastrar el fondo y las cabeceras. Zoom con botones, filtros y conexiones plegables.
+- Los contenedores Android conservan la clase base card y los ajustes de tema; se corrigió el selector múltiple del interruptor de alarma.
 - Pruebas de contratos del puente, captura de snapshots y recordatorios.
 
 ## Antes de considerar Android estable
@@ -22,7 +27,9 @@ Los recordatorios móviles iniciales usan las tareas del perfil activo y un máx
 ## Evidencia
 
 - Pruebas locales: 68 pruebas de puente Android, dominio, planificación y audio aprobadas con Node 26; revisión de sintaxis de los scripts.
-- [Compilación CI y APK](https://github.com/CueloRubik/O-Isym/actions/runs/43162441874): 192 pruebas aprobadas, assembleDebug correcto, versionName 1.1.0, versionCode 11001, minSdk 26 y targetSdk 36. El archivo generado está disponible como artefacto O-Isym-Android-debug.
+- [Compilación CI y APK de esta revisión](https://github.com/CueloRubik/O-Isym/actions/runs/43238674436), código 64e5689923fdea38ae73f76f9d9d3c1e45c4c4bb: 197 pruebas aprobadas, assembleDebug correcto, versionName 1.1.0, versionCode 11002, minSdk 26 y targetSdk 36. Artefactos: O-Isym-Android-debug y mobile-ui-screenshots.
 - Dependencias exactas y lockfile mobile/package-lock.json guardados después de la compilación.
 - El ejecutable JBR de Android Studio instalado en la Lenovo es Java 25; el comando de compilación detecta y solicita JDK 21 para evitar un error de Gradle.
-- Prueba física: pendiente del usuario en su Android.
+- Chromium en CI: anchos 320, 360, 412 y 768 px; límites de controles, títulos de tareas, objetivos táctiles, scroll por gestos de página/editor/pizarrón, menú visible, pantalla de Focus de 640 px de alto y cambio de viewport al enfocar un campo (simulación del espacio del teclado). Las capturas se revisaron visualmente.
+- JSDOM: navegación, retorno de foco, formulario sucio y confirmación de Atrás, gesto de cámara, interruptor de alarma y error visible.
+- Prueba física de esta revisión: pendiente del usuario en su Android. Los gestos Chromium no certifican el teclado/IME real, la rotación del sistema, Doze, audio ni la entrega nativa de alarmas.
