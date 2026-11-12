@@ -1,4 +1,4 @@
-# O-Isym 5 — Hoja de ruta y estado del proyecto
+# O-Isym 1.0.0 — Hoja de ruta y estado del proyecto
 
 **Rama de desarrollo:** `oisym-5-development`  
 **Documento de auditoría vigente:** [QUALITY_AUDIT_OISYM_5.md](QUALITY_AUDIT_OISYM_5.md)
