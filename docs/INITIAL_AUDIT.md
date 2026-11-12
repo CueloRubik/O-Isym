@@ -1,4 +1,4 @@
-# Auditoría inicial y reconstrucción — O-Isym 5
+# Auditoría inicial y reconstrucción — O-Isym 1.0.0
 
 **Fecha:** 2026-11-04  
 **Rama:** `oisym-5-development`  
