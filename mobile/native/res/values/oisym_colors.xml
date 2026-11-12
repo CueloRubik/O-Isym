@@ -1,1 +1,4 @@
-<resources><color name="oisym_icon_background">#FFFFFF</color></resources>
+<resources>
+ <color name="oisym_icon_background">#FFFFFF</color>
+ <color name="oisym_launcher">@color/oisym_icon_background</color>
+</resources>

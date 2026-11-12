@@ -26,8 +26,9 @@ with zipfile.ZipFile(apk) as archive:
         xml = dump("xmltree", apk, adaptive)
         assert resource_id("drawable/oisym_app_foreground") in xml, "Adaptive icon uses the wrong foreground"
         assert "monochrome" not in xml, "No separately drawn monochrome icon is allowed"
-        legacy = "res/mipmap-anydpi/" + name + ".xml"
-        assert resource_id("drawable/oisym_app_icon") in dump("xmltree", apk, legacy)
+        legacy_paths = [entry for entry in entries if entry.startswith("res/mipmap-anydpi") and entry.endswith("/" + name + ".xml") and entry != adaptive]
+        for legacy in legacy_paths:
+            assert resource_id("drawable/oisym_app_icon") in dump("xmltree", apk, legacy)
     assert resource_id("drawable/oisym_app_icon") in dump("xmltree", apk, foregrounds[0])
 badging = dump("badging", apk)
 assert re.search(r"application:.*icon='res/mipmap-anydpi-v26/oisym_launcher.xml'", badging), "Manifest must select the O-Isym resource family"

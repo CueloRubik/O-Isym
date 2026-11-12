@@ -49,6 +49,15 @@ jobs:
           path: mobile-ui-report/
       - name: Build debug APK
         run: npm run android:debug
+      - name: Check incremental icon resource compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          resource = Path("mobile/android/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml")
+          resource.parent.mkdir(parents=True, exist_ok=True)
+          resource.write_text('<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/oisym_launcher"/><foreground android:drawable="@drawable/ic_launcher_foreground"/></adaptive-icon>')
+          PY
+          npm run android:debug
       - name: Inspect APK
         run: |
           test -f dist-android/O-Isym-1.1.0-Android-debug.apk
