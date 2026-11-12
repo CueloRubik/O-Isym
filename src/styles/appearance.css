@@ -1,0 +1,859 @@
+/* O-Isym appearance engine. Color tokens are computed from saved profile preferences.
+   Palette overrides sit after workspace.css; no storage or canvas data is rewritten. */
+html[data-scheme] body, html[data-scheme] #app, html[data-scheme] .workspace-shell {
+  background: var(--page);
+  color: var(--text);
+}
+html[data-scheme] .workspace-sidebar,
+html[data-scheme] .workspace-topbar,
+html[data-scheme] .workspace-main .card,
+html[data-scheme] .workspace-main .form-card,
+html[data-scheme] .settings-navigation,
+html[data-scheme] .settings-panel,
+html[data-scheme] .profile-modal,
+html[data-scheme] .task-editor-panel,
+html[data-scheme] .entity-editor-panel,
+html[data-scheme] .task-editor-panel-header,
+html[data-scheme] .task-editor-actions {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .workspace-main h1,
+html[data-scheme] .workspace-main h2,
+html[data-scheme] .workspace-main h3,
+html[data-scheme] .workspace-main h4,
+html[data-scheme] .topbar-view-name,
+html[data-scheme] .brand-copy strong,
+html[data-scheme] .workspace-brand .brand-copy strong,
+html[data-scheme] .task-editor-title,
+html[data-scheme] .task-editor-section h4,
+html[data-scheme] .entity-editor-panel .profile-modal-form h2,
+html[data-scheme] .day-block-details strong {
+  color: var(--text);
+}
+html[data-scheme] .muted,
+html[data-scheme] .small-note,
+html[data-scheme] .eyebrow,
+html[data-scheme] .topbar-eyebrow,
+html[data-scheme] .field-label,
+html[data-scheme] .workspace-main .section-heading p,
+html[data-scheme] .workspace-sidebar .brand-copy span,
+html[data-scheme] .workspace-sidebar .sidebar-note,
+html[data-scheme] .task-editor-description,
+html[data-scheme] .today-metric-label,
+html[data-scheme] .today-metric-detail,
+html[data-scheme] .topbar-date,
+html[data-scheme] .topbar-inbox {
+  color: var(--muted);
+}
+html[data-scheme] .workspace-main .input,
+html[data-scheme] .profile-modal .input,
+html[data-scheme] .workspace-main textarea,
+html[data-scheme] .task-editor-panel .input,
+html[data-scheme] .entity-editor-panel .input,
+html[data-scheme] .workspace-sidebar select,
+html[data-scheme] .workspace-main .task-toolbar,
+html[data-scheme] .workspace-main .day-date-bar {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] select option { background: var(--surface); color: var(--text); }
+html[data-scheme] .workspace-main .button.secondary,
+html[data-scheme] .profile-modal .button.secondary,
+html[data-scheme] .sidebar-toggle,
+html[data-scheme] .task-menu-trigger,
+html[data-scheme] .task-menu-choices,
+html[data-scheme] .task-menu-choice {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .workspace-main .button.secondary:hover,
+html[data-scheme] .profile-modal .button.secondary:hover,
+html[data-scheme] .sidebar-toggle:hover,
+html[data-scheme] .task-menu-trigger:hover,
+html[data-scheme] .task-menu-choice:hover,
+html[data-scheme] .workspace-sidebar .nav-item:hover {
+  background: var(--ui-hover); color: var(--text);
+}
+html[data-scheme] .workspace-main .button.primary,
+html[data-scheme] .workspace-topbar .topbar-create,
+html[data-scheme] .task-editor-actions .button.primary,
+html[data-scheme] .profile-modal .button.primary {
+  background: var(--accent); color: var(--ui-accent-text); border-color: transparent;
+}
+html[data-scheme] .workspace-main .button.primary:hover,
+html[data-scheme] .workspace-topbar .topbar-create:hover { filter: brightness(1.06); }
+html[data-scheme] .workspace-sidebar .profile-switcher,
+html[data-scheme] .profile-advanced-preferences,
+html[data-scheme] .workspace-main .day-date-bar,
+html[data-scheme] .workspace-main .task-toolbar,
+html[data-scheme] .workspace-main .welcome-card,
+html[data-scheme] .workspace-main .focus-card,
+html[data-scheme] .workspace-main .note-card,
+html[data-scheme] .focus-panel,
+html[data-scheme] .focus-alarm-settings,
+html[data-scheme] .today-metric,
+html[data-scheme] .profile-stat,
+html[data-scheme] .profile-preference,
+html[data-scheme] .activity-ideas,
+html[data-scheme] .day-time-stage,
+html[data-scheme] .profile-active-label,
+html[data-scheme] .task-reminder-chip,
+html[data-scheme] .calendar-mode {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .workspace-main .welcome-card > p { color: var(--muted); }
+html[data-scheme] .workspace-main .welcome-card .progress-track,
+html[data-scheme] .progress-track { background: var(--line); }
+html[data-scheme] .today-metric-value { color: var(--accent-dark); }
+html[data-scheme] .workspace-sidebar .nav-item { color: var(--muted); }
+html[data-scheme] .workspace-sidebar .nav-item.active,
+html[data-scheme] .settings-nav-item.active { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--line); }
+html[data-scheme] .workspace-sidebar .profile-add,
+html[data-scheme] .text-button,
+html[data-scheme] .goal-summary-card > strong,
+html[data-scheme] .goal-summary-completed,
+html[data-scheme] .planner-time { color: var(--accent-dark); }
+html[data-scheme] .calendar-day,
+html[data-scheme] .week-day,
+html[data-scheme] .calendar-mode .button,
+html[data-scheme] .task-menu-choices,
+html[data-scheme] .day-visual-timeline,
+html[data-scheme] .day-time-ruler {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .calendar-day:hover,
+html[data-scheme] .week-day:hover { background: var(--ui-hover); }
+html[data-scheme] .calendar-day.is-today,
+html[data-scheme] .calendar-day.is-selected { background: var(--accent-soft); }
+html[data-scheme] .calendar-mode .button.primary {
+  color: var(--ui-accent-text); background: var(--accent);
+}
+html[data-scheme] .calendar-count,
+html[data-scheme] .meta-chip,
+html[data-scheme] .free-slot,
+html[data-scheme] .day-time-block,
+html[data-scheme] .day-time-block.day-positioned-block,
+html[data-scheme] .workspace-main .day-agenda-list .day-time-block,
+html[data-scheme] .planner-proposal,
+html[data-scheme] .template-preview,
+html[data-scheme] .ideas-library-toolbar,
+html[data-scheme] .ideas-canvas-toolbar,
+html[data-scheme] .ideas-canvas-filter-tools {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .meta-chip.priority-high { background: var(--surface-soft); color: var(--danger); }
+html[data-scheme] .meta-chip.priority-medium { background: var(--surface-soft); color: var(--warning); }
+html[data-scheme] .meta-chip.priority-low { background: var(--surface-soft); color: var(--accent-dark); }
+html[data-scheme] .day-time-block.is-locked,
+html[data-scheme] .day-time-block.day-positioned-block.is-locked {
+  border-left-color: var(--warning); background: var(--surface-soft);
+}
+html[data-scheme] .day-time-block { border-left-color: var(--accent); }
+html[data-scheme] .day-hour-guide,
+html[data-scheme] .day-time-ruler,
+html[data-scheme] .task-row,
+html[data-scheme] .inbox-row,
+html[data-scheme] .profile-modal-form .form-actions { border-color: var(--line); }
+html[data-scheme] .day-time-stage { background-image: none; }
+html[data-scheme] .task-check { background: var(--surface); border-color: var(--line); }
+html[data-scheme] .task-check.checked { background: var(--accent); border-color: var(--accent); color: var(--ui-accent-text); }
+html[data-scheme] .profile-modal-backdrop { background: rgba(9,14,22,.62); }
+html[data-scheme] .schedule-conflicts { background: var(--surface-soft); border-color: var(--warning); color: var(--text); }
+html[data-scheme] .focus-clock { color: var(--accent-dark); }
+html[data-scheme] .focus-audio-stop-control { background: var(--surface); color: var(--text); border-color: var(--line); }
+html[data-scheme] .toast { color: #ffffff; }
+
+/* High-contrast customization panel and miniature live workspace. */
+.appearance-form { display: flex; flex-direction: column; gap: 20px; }
+.appearance-section { display: flex; flex-direction: column; gap: 13px; }
+.appearance-section h3 { margin: 0; font-size: 15px; }
+.appearance-section > .small-note { margin: 0; }
+.appearance-mode-options {
+  display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px;
+}
+.appearance-mode-option {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--text); padding: 12px 8px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-weight: 700; cursor: pointer; min-height: 45px;
+}
+.appearance-mode-option input { accent-color: var(--accent); }
+.appearance-mode-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.appearance-palette-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; }
+.appearance-palette-button {
+  border: 2px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--text); cursor: pointer;
+  padding: 7px; display: flex; flex-direction: column; gap: 7px; text-align: left;
+}
+.appearance-palette-button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* Every option now previews an actual mini workspace, not just three swatches. */
+.appearance-palette-scene {
+  display: grid; grid-template-columns: 25% minmax(0,1fr);
+  width: 100%; height: 90px; border-radius: 8px;
+  background: var(--palette-page);
+  border: 1px solid var(--palette-line);
+  overflow: hidden; pointer-events: none;
+}
+.appearance-palette-scene-nav {
+  background: var(--palette-surface);
+  border-right: 1px solid var(--palette-line);
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: 8px; padding: 9px 5px;
+}
+.appearance-palette-scene-nav > span { display: block; height: 6px; border-radius: 3px; background: var(--palette-line); }
+.appearance-palette-scene-nav > span:first-child {
+  background: var(--palette-accent); color: var(--palette-accent-text);
+  width: 17px; height: 17px; display: grid; place-items: center;
+  font-size: 9px; font-weight: 800; border-radius: 5px;
+}
+.appearance-palette-scene-nav .is-current { background: var(--palette-accent); }
+.appearance-palette-scene-content { display: flex; flex-direction: column; gap: 9px; padding: 12px 9px; }
+.appearance-palette-scene-line { width: 56%; height: 7px; border-radius: 3px; background: var(--palette-ink); opacity: .82; }
+.appearance-palette-scene-card {
+  height: 27px; border-radius: 5px; background: var(--palette-surface);
+  border: 1px solid var(--palette-line);
+}
+.appearance-palette-scene-action { width: 43%; height: 9px; border-radius: 4px; background: var(--palette-accent); }
+.appearance-palette-button { transition: border-color .12s ease, transform .12s ease; gap: 9px; }
+.appearance-palette-button:hover { border-color: var(--accent); transform: translateY(-1px); }
+.appearance-palette-button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.appearance-palette-name { padding: 1px 4px 4px; font-size: 12px; }
+html[data-scheme] .appearance-preview-card .appearance-preview-button {
+  background: var(--preview-accent); color: var(--preview-accent-text);
+}
+.appearance-preview { box-shadow: 0 3px 12px rgba(0,0,0,.075); }
+.appearance-save-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex: 1; justify-content: flex-end; margin: 0;
+  color: var(--accent-dark); font-weight: 700; font-size: 12px;
+}
+.appearance-save-status::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); flex: 0 0 7px;
+}
+.appearance-save-status.is-error { color: var(--danger); }
+.appearance-save-status.is-error::before { background: var(--danger); }
+.appearance-actions { justify-content: space-between; align-items: center; }
+.appearance-color-control .field-label { color: var(--text); }
+.appearance-color-control:has(input[type="checkbox"]:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.appearance-preview-title, .appearance-preview-card strong, .appearance-preview-brand { color: var(--preview-text); }
+.appearance-preview-item:not(.is-selected) { color: var(--preview-muted); }
+.appearance-preview-card span:not(.appearance-preview-button) { color: var(--preview-muted); }
+/* Keep profile age variants within the actual active color system. */
+html[data-scheme] #app[data-audience="child"] .welcome-card,
+html[data-scheme] #app[data-audience="teen"] .welcome-card,
+html[data-scheme] #app[data-audience="adult"] .welcome-card {
+  background: var(--surface-soft); border-color: var(--line);
+}
+/* All generic panel labels, helpers and other controls use inherited tokens. */
+html[data-scheme] .settings-navigation .settings-nav-item,
+html[data-scheme] .profiles-layout .profile-admin-item,
+html[data-scheme] .profile-detail-panel,
+html[data-scheme] .activity-row,
+html[data-scheme] .goal-row,
+html[data-scheme] .metrics-grid .metric-card,
+html[data-scheme] .chart-line,
+html[data-scheme] .week-line,
+html[data-scheme] .history-row,
+html[data-scheme] .profile-row {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .settings-navigation .settings-nav-item.active,
+html[data-scheme] .profiles-layout .profile-admin-item.selected {
+  background: var(--accent-soft); color: var(--accent-dark); border-color: var(--line);
+}
+html[data-scheme] .settings-navigation .settings-nav-item:hover,
+html[data-scheme] .profiles-layout .profile-admin-item:hover {
+  background: var(--ui-hover); color: var(--text);
+}
+html[data-scheme] .profile-preference-grid .profile-preference,
+html[data-scheme] .profile-stats-grid .profile-stat,
+html[data-scheme] .workspace-main .week-line,
+html[data-scheme] .workspace-main .chart-track,
+html[data-scheme] .workspace-main .inbox-row {
+  border-color: var(--line);
+}
+html[data-scheme] .workspace-main .goal-summary-card > span,
+html[data-scheme] .workspace-main .calendar-weekday,
+html[data-scheme] .workspace-main .day-ruler-label,
+html[data-scheme] .workspace-main .topbar-view-name { color: var(--text); }
+html[data-scheme] .workspace-main .empty-state .muted,
+html[data-scheme] .workspace-main .task-description,
+html[data-scheme] .workspace-main .settings-nav-item small,
+html[data-scheme] .workspace-main .day-block-time,
+html[data-scheme] .workspace-main .day-ruler-label { color: var(--muted); }
+html[data-scheme] .ideas-canvas-toolbar .input,
+html[data-scheme] .ideas-library-toolbar .input,
+html[data-scheme] .ideas-canvas-filter-tools .input {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .ideas-canvas-toolbar .button.secondary,
+html[data-scheme] .ideas-library-header-actions .button.secondary,
+html[data-scheme] .ideas-board-actions .button.secondary {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .ideas-canvas-toolbar .button.secondary:hover,
+html[data-scheme] .ideas-library-header-actions .button.secondary:hover,
+html[data-scheme] .ideas-board-actions .button.secondary:hover {
+  background: var(--ui-hover);
+}
+/* Treat icon assets as images, not mandatory black masks, and never hide them on error. */
+html[data-scheme] .icon-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 5px; background: var(--accent-soft); color: var(--accent-dark);
+  font-size: 12px; font-weight: 800; line-height: 1;
+  width: 20px; height: 20px; flex: 0 0 20px; margin-right: 0;
+  filter: none !important;
+}
+html[data-scheme] .button.primary .icon-fallback {
+  background: transparent; color: var(--ui-accent-text);
+}
+html[data-scheme] .button-with-icon .icon-fallback { width: 16px; height: 16px; flex-basis: 16px; }
+html[data-scheme] .nav-item .icon-fallback { width: 21px; height: 21px; flex-basis: 21px; }
+html[data-scheme] .section-heading-title .icon-fallback { width: 24px; height: 24px; flex-basis: 24px; }
+@media(prefers-reduced-motion: reduce) { .appearance-palette-button { transition: none; transform: none !important; } }
+
+.appearance-palette-swatches { display: flex; gap: 0; height: 33px; overflow: hidden; border-radius: 7px; }
+.appearance-palette-swatches span { flex: 1; }
+.appearance-palette-name { font-size: 11px; font-weight: 700; }
+.appearance-custom-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.appearance-color-control {
+  display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--surface-soft);
+}
+.appearance-color-control > label { font-size: 12px; font-weight: 750; }
+.appearance-color-control input[type="color"] {
+  width: 100%; height: 36px; min-height: 36px; cursor: pointer;
+  padding: 3px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line);
+}
+.appearance-color-control .appearance-custom-toggle { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--muted); }
+.appearance-color-control input[type="checkbox"] { accent-color: var(--accent); }
+.appearance-preview {
+  border: 1px solid var(--line); padding: 0; overflow: hidden;
+  border-radius: 17px; background: var(--preview-page);
+  color: var(--preview-text);
+}
+.appearance-preview-layout { display: grid; grid-template-columns: 108px minmax(0,1fr); min-height: 196px; }
+.appearance-preview-nav {
+  padding: 15px 10px; background: var(--preview-surface);
+  border-right: 1px solid var(--preview-line);
+  display: flex; flex-direction: column; gap: 13px;
+}
+.appearance-preview-brand { color: var(--preview-text); font-size: 12px; font-weight: 800; }
+.appearance-preview-item { border-radius: 6px; padding: 7px; font-size: 10px; }
+.appearance-preview-item.is-selected { color: var(--preview-accent-text); background: var(--preview-accent); }
+.appearance-preview-main { display: flex; flex-direction: column; gap: 13px; padding: 14px; min-width: 0; }
+.appearance-preview-title { font-size: 14px; font-weight: 800; }
+.appearance-preview-card {
+  padding: 13px; display: flex; flex-direction: column; gap: 7px;
+  background: var(--preview-surface); color: var(--preview-text);
+  border: 1px solid var(--preview-line); border-radius: 10px;
+}
+.appearance-preview-card strong { color: var(--preview-text); }
+.appearance-preview-card span { color: var(--preview-muted); font-size: 11px; }
+.appearance-preview-button {
+  align-self: flex-start; display: inline-flex; padding: 7px 11px; border-radius: 7px;
+  background: var(--preview-accent); color: var(--preview-accent-text);
+  font-size: 11px; font-weight: 750;
+}
+.appearance-contrast-note { font-size: 12px; color: var(--muted); }
+.appearance-contrast-note.warning { color: var(--warning); font-weight: 700; }
+.appearance-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.appearance-actions .button { min-height: 40px; }
+html[data-scheme="dark"] .settings-nav-item,
+html[data-scheme="dark"] .profile-admin-item,
+html[data-scheme="dark"] .task-menu-choice { color: var(--text); }
+html[data-scheme="dark"] .ideas-board-open,
+html[data-scheme="dark"] .ideas-help-panel,
+html[data-scheme="dark"] .ideas-library-toolbar,
+html[data-scheme="dark"] .ideas-tool-group,
+html[data-scheme="dark"] .ideas-board-card-footer {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme="dark"] .ideas-canvas-viewport { border-color: var(--line); }
+html[data-scheme="dark"] .profile-avatar { color: var(--accent-dark); }
+html[data-scheme="dark"] .calendar-weekday,
+html[data-scheme="dark"] .day-ruler-label,
+html[data-scheme="dark"] .topbar-view-name,
+html[data-scheme="dark"] .week-day-count { color: var(--muted); }
+@media(max-width:690px) {
+  .appearance-palette-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .appearance-custom-grid { grid-template-columns: 1fr; }
+}
+@media(max-width:430px) {
+  .appearance-mode-options { grid-template-columns: 1fr; }
+  .appearance-palette-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .appearance-preview-layout { grid-template-columns: 80px minmax(0,1fr); }
+}
+
+/* Icon contrast follows the foreground chosen for bright or dark custom accents. */
+html[data-scheme] .workspace-topbar .topbar-create .button-icon,
+html[data-scheme] .workspace-main .button.primary .button-icon,
+html[data-scheme] .task-editor-actions .button.primary .button-icon {
+  filter: var(--ui-icon-filter);
+}
+
+/* Icon contrast also adapts when a user chooses a dark surface in light mode. */
+html[data-scheme] .workspace-sidebar .nav-icon-image,
+html[data-scheme] .section-heading-icon,
+html[data-scheme] .view-title-icon,
+html[data-scheme] .task-actions .action-button-icon,
+html[data-scheme] .meta-icon,
+html[data-scheme] .settings-nav-item img {
+  filter: var(--ui-content-icon-filter);
+}
+
+/* Avatar files are optional presentation, never a reason to show an empty profile. */
+html[data-scheme] .avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-weight: 800; font-size: 14px; border-radius: inherit;
+}
+
+/* Primary controls can be bright or dark, so icon and label foregrounds must agree. */
+html[data-scheme] .brand-mark,
+html[data-scheme] .boot-mark {
+  background: var(--accent); color: var(--ui-accent-text);
+}
+html[data-scheme] .button.primary .action-button-icon,
+html[data-scheme] .button.primary .button-icon,
+html[data-scheme] .topbar-create .button-icon,
+html[data-scheme] .topbar-create .action-button-icon {
+  filter: var(--ui-icon-filter);
+}
+html[data-scheme] .profile-switcher .profile-add { color: var(--accent-dark); }
+html[data-scheme] .settings-panel > .section-heading .section-heading-icon { filter: var(--ui-content-icon-filter); }
+
+/* Finish surfaces outside the standard card container. */
+html[data-scheme] .focus-music-settings,
+html[data-scheme] .focus-alarm-settings,
+html[data-scheme] .profile-focus-note,
+html[data-scheme] .notification-system-card,
+html[data-scheme] .activity-ideas,
+html[data-scheme] .profiles-count-track,
+html[data-scheme] .task-menu-choices,
+html[data-scheme] .workspace-main .calendar-mode,
+html[data-scheme] .ideas-canvas-empty-mark {
+  background: var(--surface-soft); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .activity-idea,
+html[data-scheme] .ideas-canvas-toolbar .ideas-tool-group .button,
+html[data-scheme] .week-day {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+html[data-scheme] .week-day.is-today,
+html[data-scheme] .ideas-canvas-toolbar .button.active,
+html[data-scheme] .ideas-activity-palette button.active {
+  background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent);
+}
+html[data-scheme] .profiles-count-fill,
+html[data-scheme] .chart-fill,
+html[data-scheme] .progress-fill {
+  background: var(--accent);
+}
+html[data-scheme] .task-menu-choice.danger:hover {
+  background: var(--surface-soft); color: var(--danger);
+}
+html[data-scheme] .focus-music-settings .input,
+html[data-scheme] .notification-settings-form .input {
+  background: var(--surface); color: var(--text); border-color: var(--line);
+}
+
+/* Precise thematic surfaces: no hardcoded white outer search box over a dark input. */
+html[data-scheme] .search-field,
+html[data-scheme] .ideas-library-toolbar .search-field,
+html[data-scheme] .task-toolbar .search-field,
+html[data-scheme] .ideas-search-field {
+  background:var(--ui-field);
+  border:1px solid var(--line);
+  color:var(--ui-field-text);
+  border-radius:var(--ui-radius-control,10px);
+  box-shadow:none;
+  min-height:40px;
+}
+html[data-scheme] .search-field:focus-within,
+html[data-scheme] .ideas-search-field:focus-within {
+  border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft);
+}
+html[data-scheme] .workspace-main .search-field .input,
+html[data-scheme] .ideas-library-toolbar .search-field input,
+html[data-scheme] .task-toolbar .search-field .input,
+html[data-scheme] .ideas-search-field input {
+  background:transparent;
+  color:var(--ui-field-text);
+  border:0;
+  box-shadow:none;
+  outline:none;
+  min-width:0;
+}
+html[data-scheme] input::placeholder,
+html[data-scheme] textarea::placeholder { color:var(--ui-input-placeholder); opacity:1; }
+html[data-scheme] .workspace-main input.input:not(.search-field input),
+html[data-scheme] .settings-panel select.input,
+html[data-scheme] .settings-panel input.input:not([type="color"]),
+html[data-scheme] .task-editor-section .input,
+html[data-scheme] .profile-modal .input,
+html[data-scheme] .entity-editor-panel .input,
+html[data-scheme] .ideas-library-toolbar select,
+html[data-scheme] .focus-music-settings .input,
+html[data-scheme] .notification-settings-form .input {
+  background:var(--ui-field); color:var(--ui-field-text);
+  border-color:var(--line);
+}
+html[data-scheme] .workspace-main .search-field input.input,
+html[data-scheme] .workspace-main .ideas-search-field input.input { background:transparent; border:0; }
+/* Genuine SVG strokes. Never filter the line art into a white rectangle. */
+html[data-scheme] svg.icon-glyph {
+  filter:none !important; display:inline-block; flex-shrink:0;
+  vertical-align:middle; overflow:visible;
+  color:inherit;
+}
+html[data-scheme] .nav-item .icon-glyph { width:20px; height:20px; }
+html[data-scheme] .button-with-icon .icon-glyph,
+html[data-scheme] .button .button-icon.icon-glyph { width:17px; height:17px; }
+html[data-scheme] .view-title-icon.icon-glyph,
+html[data-scheme] .section-heading-icon.icon-glyph { width:25px; height:25px; }
+html[data-scheme] .search-icon.icon-glyph {width:18px;height:18px;opacity:1; color:var(--ui-field-text);}
+html[data-scheme] .search-field .icon-glyph {color:var(--ui-field-text);}
+html[data-scheme] .button.primary .icon-glyph,
+html[data-scheme] .topbar-create .icon-glyph {color:var(--ui-accent-text);}
+html[data-scheme] .workspace-sidebar {
+  background:var(--ui-sidebar);color:var(--ui-sidebar-text);border-color:var(--line);
+}
+html[data-scheme] .workspace-sidebar .navigation-group-label,
+html[data-scheme] .workspace-sidebar .sidebar-note,
+html[data-scheme] .workspace-sidebar .eyebrow,
+html[data-scheme] .workspace-sidebar .nav-item:not(.active),
+html[data-scheme] .workspace-sidebar .brand-copy span {
+  color:var(--ui-sidebar-muted);
+}
+html[data-scheme] .workspace-sidebar .nav-item:hover {background:var(--ui-sidebar-hover);color:var(--ui-sidebar-text);}
+html[data-scheme] .workspace-sidebar .nav-item.active {
+  background:var(--ui-sidebar-active);color:var(--ui-sidebar-active-text);
+  border-color:transparent;
+}
+html[data-scheme] .workspace-sidebar .nav-item.active .nav-label {color:inherit;}
+html[data-scheme] .workspace-sidebar .profile-switcher {background:var(--ui-sidebar);border-color:var(--line);}
+html[data-scheme] .workspace-sidebar .profile-switcher select {
+  background:var(--ui-field);color:var(--ui-field-text);border-color:var(--line);
+}
+/* Keep board controls and canvas in the palette, but leave user-colored notes alone. */
+html[data-scheme] .ideas-canvas-viewport {
+  background-color:var(--page); border-color:var(--line);
+  background-image:radial-gradient(var(--line) 1px,transparent 1px);
+}
+html[data-scheme] .ideas-canvas-hint,
+html[data-scheme] .ideas-tool-group,
+html[data-scheme] .ideas-filter-summary {color:var(--muted);}
+html[data-scheme] .ideas-help-panel {
+  background:var(--surface-soft);color:var(--text);border:1px solid var(--line);
+}
+html[data-scheme] .task-editor-panel,
+html[data-scheme] .entity-editor-panel,
+html[data-scheme] .profile-modal,
+html[data-scheme] .text-dialog {background:var(--surface);color:var(--text);border-color:var(--line);}
+html[data-scheme] .form-card .field-label {color:var(--text);}
+/* The light mode is as customizable as dark, not a fixed white preset. */
+html[data-scheme] .appearance-edit-modes {display:flex;flex-wrap:wrap;gap:8px;}
+html[data-scheme] .appearance-edit-option {
+  min-height:39px;padding:8px 15px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);
+  color:var(--text);font-size:12px;font-weight:750;cursor:pointer;
+}
+html[data-scheme] .appearance-edit-option[aria-pressed="true"] {
+  background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark);
+}
+html[data-scheme] .appearance-preview-nav {
+  background:var(--preview-sidebar);
+  color:var(--preview-sidebar-text);
+  border-color:var(--preview-line);
+}
+html[data-scheme] .appearance-preview-brand,
+html[data-scheme] .appearance-preview-nav .appearance-preview-item:not(.is-selected) {
+  color:var(--preview-sidebar-text);
+}
+html[data-scheme] .appearance-preview-search {
+  padding:9px 12px;border:1px solid var(--preview-line);border-radius:8px;
+  background:var(--preview-field);color:var(--preview-field-text);font-size:11px;
+}
+html[data-radius="rounded"] {--ui-radius-control:15px;--ui-radius-card:22px;}
+html[data-radius="soft"] {--ui-radius-control:10px;--ui-radius-card:15px;}
+html[data-radius="square"] {--ui-radius-control:4px;--ui-radius-card:6px;}
+html[data-radius] .workspace-main .card,
+html[data-radius] .settings-panel,
+html[data-radius] .settings-navigation,
+html[data-radius] .appearance-preview,
+html[data-radius] .task-editor-panel,
+html[data-radius] .entity-editor-panel,
+html[data-radius] .profile-modal {border-radius:var(--ui-radius-card);}
+html[data-radius] .workspace-main .button,
+html[data-radius] .settings-panel .button,
+html[data-radius] .search-field,
+html[data-radius] .workspace-sidebar .nav-item,
+html[data-radius] input.input,
+html[data-radius] select.input {border-radius:var(--ui-radius-control);}
+html[data-density="compact"] .workspace-sidebar .nav-item {min-height:35px;padding-top:5px;padding-bottom:5px;}
+html[data-density="compact"] .workspace-main .card {padding:15px;}
+html[data-density="compact"] .settings-navigation .settings-nav-item {padding:7px 9px;}
+html[data-density="compact"] .workspace-topbar {min-height:55px;}
+html[data-density="compact"] .appearance-color-control {padding:9px;}
+@media (max-width:650px) {
+  html[data-scheme] .appearance-palette-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+  html[data-scheme] .appearance-edit-modes .appearance-edit-option {flex:1;}
+}
+
+/* Icon presentation is a per-profile preference. PNG assets preserve their
+   original artwork; SVG glyphs can be recolored without CSS image filters. */
+html[data-scheme] .icon-disabled { display:none !important; }
+html[data-scheme] img.icon-bitmap {
+  display:inline-block;object-fit:contain;filter:none !important;
+  opacity:1 !important;vertical-align:middle;flex-shrink:0;
+}
+html[data-scheme] .appearance-icon-examples {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+html[data-scheme] .appearance-icon-example {
+  background:var(--surface-soft);color:var(--text);
+  border:1px solid var(--line);border-radius:12px;min-height:65px;
+  padding:12px 8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:7px;
+  font-size:11px;font-weight:700;
+}
+html[data-scheme] .appearance-icon-example .appearance-icon-sample {
+  width:23px;height:23px;flex:0 0 23px;
+}
+html[data-scheme] .appearance-icons-settings .field {min-width:0;}
+html[data-scheme] .appearance-icons-settings .appearance-custom-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+html[data-scheme] .appearance-icons-settings .appearance-color-control {
+  min-width:0;
+}
+html[data-icon-mode="vector"][data-icon-variant="bold"] svg.icon-glyph {
+  stroke-width:2.65;
+}
+html[data-icon-mode="vector"][data-icon-variant="duotone"] svg.icon-glyph {
+  stroke-width:1.85;
+}
+html[data-icon-mode="vector"][data-icon-variant="duotone"] svg.icon-glyph > :first-child {
+  fill:currentColor;fill-opacity:.13;
+}
+html[data-icon-mode="vector"][data-icon-variant="filled"] svg.icon-glyph {
+  stroke-width:2.5;
+}
+html[data-icon-mode="vector"][data-icon-variant="filled"] svg.icon-glyph > :first-child {
+  fill:currentColor;fill-opacity:.29;
+}
+html[data-icon-tone="accent"] svg.icon-glyph,
+html[data-icon-tone="custom"] svg.icon-glyph {
+  color:var(--ui-icon-color);
+}
+html[data-icon-tone="accent"] .workspace-sidebar svg.icon-glyph,
+html[data-icon-tone="custom"] .workspace-sidebar svg.icon-glyph {
+  color:var(--ui-nav-icon-color);
+}
+html[data-icon-tone="accent"] .search-field svg.icon-glyph,
+html[data-icon-tone="custom"] .search-field svg.icon-glyph {
+  color:var(--ui-field-text);
+}
+html[data-scheme] .button.primary svg.icon-glyph,
+html[data-scheme] .topbar-create svg.icon-glyph {
+  color:var(--ui-accent-text);
+}
+html[data-icon-background="soft"] svg.icon-glyph,
+html[data-icon-background="soft"] img.icon-bitmap,
+html[data-icon-background="filled"] svg.icon-glyph,
+html[data-icon-background="filled"] img.icon-bitmap {
+  box-sizing:border-box;width:25px;height:25px;
+  padding:4px;border-radius:8px;
+  background:var(--ui-icon-tile);
+}
+html[data-icon-background="soft"] .workspace-sidebar svg.icon-glyph,
+html[data-icon-background="filled"] .workspace-sidebar svg.icon-glyph,
+html[data-icon-background="soft"] .workspace-sidebar img.icon-bitmap,
+html[data-icon-background="filled"] .workspace-sidebar img.icon-bitmap {
+  background:var(--ui-nav-icon-tile);
+}
+html[data-icon-background="filled"] svg.icon-glyph {
+  background:var(--ui-icon-tile);color:var(--ui-icon-tile-ink);
+}
+html[data-icon-background="filled"] .workspace-sidebar svg.icon-glyph {
+  background:var(--ui-nav-icon-tile);color:var(--ui-nav-icon-tile-ink);
+}
+html[data-icon-background="soft"] .appearance-icon-example .appearance-icon-sample,
+html[data-icon-background="filled"] .appearance-icon-example .appearance-icon-sample {
+  width:30px;height:30px;flex-basis:30px;padding:5px;
+}
+html[data-icon-background="filled"] .button.primary svg.icon-glyph,
+html[data-icon-background="filled"] .topbar-create svg.icon-glyph {
+  background:var(--ui-accent-text);color:var(--accent);
+}
+html[data-icon-mode="image"] .workspace-main .action-button-icon,
+html[data-icon-mode="image"] .workspace-main .button-icon,
+html[data-icon-mode="image"] .workspace-sidebar .nav-icon-image {
+  filter:none !important;
+}
+html[data-icon-mode="none"] .appearance-icon-example {gap:2px;}
+
+/* A card's visual weight is configurable. Avoid flat, opaque color blocks. */
+html[data-scheme] .workspace-main .card {
+  background:var(--surface);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+}
+html[data-card-style="elevated"] .workspace-main .card {
+  box-shadow:0 12px 30px rgba(16,35,50,.10),0 2px 7px rgba(16,35,50,.05);
+}
+html[data-scheme="dark"][data-card-style="elevated"] .workspace-main .card {
+  box-shadow:0 13px 34px rgba(0,0,0,.27),0 1px 5px rgba(0,0,0,.1);
+}
+html[data-card-style="soft"] .workspace-main .card {
+  background:var(--surface-soft);
+  box-shadow:0 3px 15px rgba(20,43,55,.055);
+}
+html[data-card-style="outlined"] .workspace-main .card {
+  background:var(--surface);
+  border:2px solid var(--line);
+  box-shadow:none;
+}
+html[data-scheme] .workspace-main .today-completed-card {
+  padding:24px;
+  border-color:var(--line);
+  background:var(--surface);
+}
+html[data-card-style="soft"] .workspace-main .today-completed-card {
+  background:var(--surface-soft);
+}
+html[data-scheme] .workspace-main .today-completed-card .section-heading {
+  gap:6px;margin-bottom:17px;
+  border-bottom:1px solid var(--line);
+  padding-bottom:14px;
+}
+html[data-scheme] .workspace-main .today-completed-card .section-heading h2 {
+  color:var(--text);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-list {
+  gap:9px;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row {
+  min-width:0;display:flex;align-items:center;
+  border:1px solid var(--line);border-radius:12px;
+  background:var(--surface-soft);
+  padding:13px 15px;
+  margin:0;gap:10px;
+  transition:background .15s,border-color .15s;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row:last-child {
+  border:1px solid var(--line);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row:hover {
+  background:var(--ui-hover);
+  border-color:var(--accent);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-content {
+  min-width:0;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-content > strong {
+  color:var(--muted);font-size:13px;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-actions {
+  margin-left:auto;display:flex;align-items:center;
+  flex-wrap:wrap;gap:6px;
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row .button.secondary,
+html[data-scheme] .workspace-main .today-completed-card .task-menu-trigger {
+  background:var(--surface);
+  color:var(--text);border-color:var(--line);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row .button.secondary:hover {
+  background:var(--accent-soft);color:var(--accent-dark);
+}
+html[data-scheme] .workspace-main .today-completed-card .meta-chip {
+  background:var(--accent-soft);color:var(--accent-dark);
+  border:1px solid var(--line);border-radius:7px;
+}
+html[data-scheme] .workspace-main .today-completed-card .completed {
+  color:var(--muted);text-decoration:line-through;
+  text-decoration-color:var(--muted);
+}
+html[data-scheme] .workspace-main .focus-card {
+  position:relative;overflow:hidden;
+  border:1px solid var(--line);
+  background:linear-gradient(130deg,var(--surface) 15%,var(--accent-soft) 100%);
+  padding:24px;
+}
+html[data-scheme] .workspace-main .focus-card::before {
+  content:'';position:absolute;pointer-events:none;
+  width:145px;height:145px;top:-65px;right:-75px;
+  border-radius:50%;border:24px solid var(--accent-soft);opacity:.7;
+}
+html[data-scheme] .workspace-main .focus-card > * {
+  position:relative;z-index:1;
+}
+html[data-scheme] .workspace-main .focus-card .eyebrow {color:var(--muted);}
+html[data-scheme] .workspace-main .focus-card .focus-teaser-heading {
+  display:flex;align-items:center;gap:11px;
+  margin:12px 0 10px;
+}
+html[data-scheme] .workspace-main .focus-card .focus-teaser-icon {
+  width:28px;height:28px;flex:0 0 28px;
+  color:var(--accent-dark);
+}
+html[data-scheme] .workspace-main .focus-card h3 {
+  margin:0;line-height:1.25;font-size:19px;color:var(--text);
+}
+html[data-scheme] .workspace-main .focus-card p {
+  color:var(--muted);font-size:12px;margin-bottom:18px;
+  max-width:32ch;
+}
+html[data-scheme] .workspace-main .focus-card .button.primary {
+  width:max-content;max-width:100%;min-height:41px;
+  background:var(--accent);color:var(--ui-accent-text);
+  border:1px solid transparent;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);
+}
+html[data-scheme] .workspace-main .focus-card .button.primary:hover {
+  filter:brightness(1.06);
+}
+html[data-card-style="outlined"] .workspace-main .focus-card {
+  background:var(--surface);border:2px solid var(--line);
+}
+html[data-card-style="outlined"] .workspace-main .focus-card::before {display:none;}
+html[data-card-style="soft"] .workspace-main .focus-card {background:var(--accent-soft);}
+html[data-card-style="soft"] .workspace-main .today-completed-card .task-row {
+  background:var(--surface);
+}
+html[data-card-style="outlined"] .workspace-main .today-completed-card .task-row {
+  border-width:1px;box-shadow:none;
+}
+@media(max-width:740px) {
+  html[data-scheme] .workspace-main .today-completed-card .task-row {
+    flex-wrap:wrap;row-gap:9px;
+  }
+  html[data-scheme] .workspace-main .today-completed-card .task-actions {
+    margin-left:0;flex:1 1 100%;
+    justify-content:flex-end;
+  }
+}
+@media(max-width:580px) {
+  html[data-scheme] .appearance-icons-settings .appearance-custom-grid {
+    grid-template-columns:1fr;
+  }
+  html[data-scheme] .appearance-icon-examples {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html[data-scheme] .today-completed-card .task-row {transition:none;}
+}
+/* The settings preview respects the exact selected card treatment. */
+html[data-card-style="elevated"] .appearance-preview-card {
+  box-shadow:0 7px 16px rgba(15,35,45,.15);
+}
+html[data-card-style="soft"] .appearance-preview-card {
+  background:var(--preview-page);
+  box-shadow:0 2px 8px rgba(15,35,45,.07);
+}
+html[data-card-style="outlined"] .appearance-preview-card {
+  border-width:2px;box-shadow:none;
+}

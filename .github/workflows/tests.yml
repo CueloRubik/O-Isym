@@ -3,10 +3,18 @@ name: O-Isym tests
 on:
   push:
     branches:
-      - oisym-5-development
+      - development
+      - main
+      - oisym-mac-intel
+      - oisym-mac-universal
+      - oisym-windows
   pull_request:
     branches:
-      - oisym-5-development
+      - development
+      - main
+      - oisym-mac-intel
+      - oisym-mac-universal
+      - oisym-windows
 
 jobs:
   test:
@@ -18,10 +26,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts
+      - name: Install UI test dependency without changing Windows packaging
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/oisym-ui-tests" --no-save --package-lock=false --ignore-scripts --no-audit --no-fund jsdom@22.1.0
+          echo "NODE_PATH=$RUNNER_TEMP/oisym-ui-tests/node_modules" >> "$GITHUB_ENV"
       - name: Run automated tests
         run: |
-          npm test
           node --check src/app.js
+          node --check src/planning.js
+          npm test
           node --check src/focus-audio.js
           node --check src/domain.js
           node --check electron/main.js
@@ -30,3 +47,27 @@ jobs:
           node --check electron/focus-notifications.js
           node --check electron/task-notifications.js
           node --check electron/storage.js
+
+
+  macos-node18-smoke:
+    name: macOS smoke (Node 18; no Catalina runtime claim)
+    runs-on: macos-15
+    if: github.ref == 'refs/heads/development' || github.ref == 'refs/heads/oisym-mac-intel' || github.ref == 'refs/heads/oisym-mac-universal'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js 18 for Electron 28 development
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - name: Install regression dependencies
+        run: npm ci --ignore-scripts
+      - name: Check Electron and planning JavaScript
+        run: |
+          node --check src/app.js
+          node --check src/planning.js
+          node --check electron/main.js
+          node --check electron/storage.js
+      - name: Run all regression tests on macOS
+        run: npm test

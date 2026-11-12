@@ -1,0 +1,749 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { renderer } = require('./helpers/renderer.cjs');
+const D = require('../src/domain');
+const settle = async r => { await r.wait(); await r.wait(); };
+function openCalendar(r, date = '2026-11-11', mode = 'day') {
+  r.app.state.view = 'calendar';
+  r.app.state.selectedDate = date;
+  r.app.state.calendarDate = new Date(date + 'T12:00:00');
+  r.app.state.calendarMode = mode;
+  r.app.updateShell();
+}
+function submit(r, selector) {
+  const form = r.query(selector);
+  assert.ok(form, 'Formulario disponible: ' + selector);
+  form.dispatchEvent(new r.w.Event('submit', { bubbles: true, cancelable: true }));
+}
+test('calendar modes remain accessible and share one selected date', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  assert.ok(r.query('.day-timeline-card'));
+  assert.ok(r.query('[data-action="calendar-mode-month"]'));
+  r.click('[data-action="calendar-mode-week"]');
+  assert.ok(r.query('.week-calendar'));
+  r.click('[data-action="calendar-mode-month"]');
+  assert.ok(r.query('.calendar-grid'));
+  r.click('[data-action="calendar-mode-agenda"]');
+  assert.ok(r.query('.unified-planner-card'));
+  r.click('[data-action="calendar-mode-day"]');
+  assert.ok(r.query('.day-timeline-card'));
+  r.click('[data-action="calendar-day-next"]');
+  assert.equal(r.app.state.selectedDate, '2026-11-12');
+  assert.deepEqual(r.errors, []);
+});
+test('task created and edited from Calendar stays canonical, survives persistence and updates Today', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const date = D.localDate();
+  openCalendar(r, date);
+  r.click('[data-action="calendar-add-task"]');
+  assert.ok(r.query('.task-form'));
+  r.query('.task-form input[name="title"]').value = 'Practicar violín';
+  r.query('.task-form input[name="startTime"]').value = '09:00';
+  r.query('.task-form input[name="endTime"]').value = '09:45';
+  submit(r, '.task-form'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  const id = r.app.state.profile.tasks[0].id;
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, date);
+  assert.equal(r.saved().profiles[0].tasks[0].id, id);
+  assert.ok(r.query('.day-time-block'));
+  r.click('[data-action="edit-task"]');
+  assert.equal(r.app.state.editingTaskId, id);
+  r.query('.task-form input[name="title"]').value = 'Practicar música';
+  submit(r, '.task-form'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  assert.equal(r.app.state.profile.tasks[0].title, 'Practicar música');
+  r.app.state.view = 'today'; r.app.updateShell();
+  assert.ok(r.query('.today-agenda-card'));
+  r.click('[data-action="toggle-task"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].status, 'done');
+  assert.equal(r.saved().profiles[0].tasks[0].status, 'done');
+  assert.deepEqual(r.errors, []);
+});
+test('rejected planning proposals do not mutate tasks; accepted ones persist once', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  const task = D.createTask({ title: 'Lectura', estimatedMinutes: 30 });
+  r.app.state.profile.tasks.push(task);
+  r.app.updateShell();
+  r.click('[data-action="generate-plan"]'); await settle(r);
+  assert.ok(r.app.state.plannerAnalysis.proposals.length > 0);
+  r.click('[data-action="discard-plan"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '');
+  r.click('[data-action="generate-plan"]'); await settle(r);
+  r.click('[data-action="apply-plan"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '2026-11-11');
+  assert.equal(r.saved().profiles[0].tasks[0].id, task.id);
+  assert.deepEqual(r.errors, []);
+});
+test('day templates are previewed, saved and applied once through the UI', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  r.query('.day-template-form input[name="name"]').value = 'Mañana';
+  r.query('.day-template-form input[name="title"]').value = 'Leer';
+  submit(r, '.day-template-form'); await settle(r);
+  assert.equal(r.app.state.profile.dayTemplates.length, 1);
+  assert.equal(r.app.state.profile.tasks.length, 0);
+  assert.equal(r.saved().profiles[0].dayTemplates.length, 1);
+  r.click('[data-action="template-preview"]'); await settle(r);
+  assert.ok(r.query('[data-action="template-apply"]'));
+  r.click('[data-action="template-apply"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  r.click('[data-action="template-preview"]'); await settle(r);
+  assert.equal(r.query('[data-action="template-apply"]'), null);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  assert.deepEqual(r.errors, []);
+});
+test('failed planning write restores in-memory profile and keeps editor usable', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  const task = D.createTask({ title: 'Sin planificar' });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.updateShell();
+  r.fail(true);
+  r.click('[data-action="schedule-inbox-task"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '');
+  assert.equal(r.saved().profiles[0].tasks[0].scheduledDate, '');
+  r.fail(false);
+  r.click('[data-action="schedule-inbox-task"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '2026-11-11');
+  assert.equal(r.saved().profiles[0].tasks[0].scheduledDate, '2026-11-11');
+  assert.deepEqual(r.errors, []);
+});
+test('board canvas and Focus remain usable after navigating unified Calendar', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  r.app.state.view = 'planner';
+  r.app.state.plannerSection = 'board';
+  r.app.updateShell();
+  assert.ok(r.query('.ideas-canvas-viewport'));
+  r.click('[data-action="ideas-note-create"]'); await settle(r);
+  assert.equal(r.current().nodes.length, 5);
+  r.app.state.view = 'focus'; r.app.updateShell();
+  assert.ok(r.query('[data-action="focus-start"]'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('editing a template rule preserves its identity and leaves existing tasks intact', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  r.query('.day-template-form input[name="name"]').value = 'Plan original';
+  r.query('.day-template-form input[name="title"]').value = 'Práctica';
+  submit(r, '.day-template-form'); await settle(r);
+  const id = r.app.state.profile.dayTemplates[0].id;
+  r.click('[data-action="template-preview"]'); await settle(r);
+  r.click('[data-action="template-apply"]'); await settle(r);
+  const taskId = r.app.state.profile.tasks[0].id;
+  r.click('[data-action="template-edit"]');
+  assert.ok(r.query('.template-edit-form'));
+  r.query('.template-edit-form input[name="name"]').value = 'Plan modificado';
+  const wednesday = r.query('.template-edit-form input[name="weekday"][value="3"]');
+  wednesday.checked = false;
+  submit(r, '.template-edit-form'); await settle(r);
+  assert.equal(r.app.state.profile.dayTemplates[0].id, id);
+  assert.equal(r.app.state.profile.dayTemplates[0].name, 'Plan modificado');
+  assert.equal(r.app.state.profile.dayTemplates[0].recurrence.weekdays.includes(3), false);
+  assert.equal(r.app.state.profile.tasks[0].id, taskId);
+  assert.equal(r.saved().profiles[0].tasks[0].id, taskId);
+  assert.deepEqual(r.errors, []);
+});
+test('keyboard Tab while a task dialog is open does not throw or break navigation', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r);
+  r.click('[data-action="calendar-add-task"]');
+  const modal = r.query('[data-profile-modal]');
+  assert.ok(modal);
+  const e = new r.w.KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Tab' });
+  r.w.document.dispatchEvent(e);
+  assert.equal(e.defaultPrevented, true);
+  assert.deepEqual(r.errors, []);
+});
+
+test('a reminder for a deleted task opens its calendar date rather than Pizarrones', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  r.w.eval('openTaskFromReminder({ taskId: "deleted-task", scheduledDate: "2026-11-12" })');
+  assert.equal(r.app.state.view, 'calendar');
+  assert.equal(r.app.state.calendarMode, 'day');
+  assert.equal(r.app.state.selectedDate, '2026-11-12');
+  assert.ok(r.query('.day-timeline-card'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('a reminder with an invalid date safely falls back to the local day', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  r.w.eval('openTaskFromReminder({ taskId: "deleted-task", scheduledDate: "invalid-date" })');
+  assert.equal(r.app.state.view, 'calendar');
+  assert.equal(r.app.state.selectedDate, D.localDate());
+  assert.ok(r.query('.day-timeline-card'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('a reminder for an existing task still opens the shared task editor', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Tarea recordada', scheduledDate: '2026-11-12' });
+  r.app.state.profile.tasks.push(task);
+  r.w.eval('openTaskFromReminder(' + JSON.stringify({ taskId: task.id, scheduledDate: '2026-11-12' }) + ')');
+  assert.equal(r.app.state.view, 'tasks');
+  assert.equal(r.app.state.editingTaskId, task.id);
+  assert.ok(r.query('.task-form'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('workspace groups its navigation and keeps quick capture available outside Today', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  openCalendar(r, '2026-11-11', 'day');
+  assert.ok(r.query('.workspace-shell'));
+  assert.equal(r.queryAll?.('.navigation-group')?.length || r.w.document.querySelectorAll('.navigation-group').length, 3);
+  assert.ok(r.query('.topbar-create'));
+  assert.equal(r.query('#topbar-view-name').textContent, 'Calendario');
+  r.click('[data-action="toggle-sidebar"]');
+  assert.equal(r.app.state.sidebarCollapsed, true);
+  assert.equal(r.query('.workspace-shell').classList.contains('is-sidebar-collapsed'), true);
+  r.click('[data-action="toggle-sidebar"]');
+  assert.equal(r.app.state.sidebarCollapsed, false);
+  r.click('.topbar-create');
+  assert.ok(r.query('.task-editor-panel'));
+  assert.ok(r.query('.task-form input[name="title"]'));
+  assert.deepEqual(r.errors, []);
+});
+
+test('task inspector reuses the same record and protects unsaved changes', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Plan pendiente' });
+  r.app.state.profile.tasks.push(task);
+  r.app.state.view = 'tasks'; r.app.updateShell();
+  r.click('[data-action="plan-task"]');
+  assert.equal(r.app.state.editingTaskId, task.id);
+  assert.equal(r.w.document.activeElement.name, 'scheduledDate');
+  const field = r.query('.task-form input[name="scheduledDate"]');
+  field.value = '2026-11-15';
+  field.dispatchEvent(new r.w.Event('input', { bubbles: true }));
+  r.w.confirm = () => false;
+  r.click('.task-editor-close');
+  assert.ok(r.query('.task-editor-panel'));
+  assert.equal(r.app.state.editingTaskId, task.id);
+  r.w.confirm = () => true;
+  r.click('.task-editor-close');
+  assert.equal(r.query('.task-editor-panel'), null);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '');
+  assert.deepEqual(r.errors, []);
+});
+
+test('calendar day draws real time blocks and keeps overlapping entries editable', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const first = D.createTask({ title: 'Bloque A', scheduledDate: '2026-11-11', startTime: '09:00', endTime: '10:00' });
+  const second = D.createTask({ title: 'Bloque B', scheduledDate: '2026-11-11', startTime: '09:30', endTime: '10:30' });
+  r.app.state.profile.tasks.push(first, second);
+  openCalendar(r, '2026-11-11', 'day');
+  const blocks = Array.from(r.w.document.querySelectorAll('.day-positioned-block'));
+  assert.equal(blocks.length, 2);
+  assert.notEqual(blocks[0].style.left, blocks[1].style.left);
+  assert.equal(r.w.document.querySelectorAll('.day-ruler-label').length > 0, true);
+  assert.ok(r.query('.schedule-conflicts'));
+  assert.ok(blocks[0].querySelector('[data-action="edit-task"]'));
+  r.click('[data-action="calendar-mode-agenda"]');
+  assert.equal(r.w.document.querySelectorAll('.day-positioned-block').length, 0);
+  assert.equal(r.w.document.querySelectorAll('.day-agenda-list .day-time-block').length, 2);
+  assert.deepEqual(r.errors, []);
+});
+
+test('locked scheduled task asks for explicit permission before moving in shared editor', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Compromiso fijo', scheduledDate: '2026-11-11',
+    startTime: '09:00', endTime: '10:00', locked: true });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  openCalendar(r, '2026-11-11', 'day');
+  r.click('[data-action="edit-task"]');
+  r.query('.task-form input[name="startTime"]').value = '10:00';
+  r.query('.task-form input[name="endTime"]').value = '11:00';
+  r.w.confirm = () => false;
+  submit(r, '.task-form'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].startTime, '09:00');
+  r.w.confirm = () => true;
+  submit(r, '.task-form'); await settle(r);
+  assert.equal(r.app.state.profile.tasks[0].startTime, '10:00');
+  assert.equal(r.saved().profiles[0].tasks[0].startTime, '10:00');
+  assert.deepEqual(r.errors, []);
+});
+
+test('task options use explicit controls and safely move the same task to the next day', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Estudiar', scheduledDate: '2026-11-11',
+    startTime: '09:00', endTime: '10:00' });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.state.view = 'tasks'; r.app.updateShell();
+  const details = r.query('.task-action-menu');
+  assert.ok(details);
+  details.open = true;
+  assert.ok(r.query('[data-action="task-action-lock"]'));
+  assert.ok(r.query('[data-action="task-action-postpone"]'));
+  assert.ok(r.query('[data-action="task-action-delete"]'));
+  r.click('[data-action="task-action-postpone"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  assert.equal(r.app.state.profile.tasks[0].id, task.id);
+  assert.equal(r.app.state.profile.tasks[0].scheduledDate, '2026-11-12');
+  assert.equal(r.app.state.profile.tasks[0].startTime, '09:00');
+  assert.equal(r.saved().profiles[0].tasks[0].scheduledDate, '2026-11-12');
+  assert.deepEqual(r.errors, []);
+});
+
+test('task action menu requires confirmation before deleting a protected task', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  const task = D.createTask({ title: 'Cita importante', locked: true });
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.state.view = 'tasks'; r.app.updateShell();
+  r.w.confirm = () => false;
+  r.click('[data-action="task-action-delete"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 1);
+  r.w.confirm = () => true;
+  r.click('[data-action="task-action-delete"]'); await settle(r);
+  assert.equal(r.app.state.profile.tasks.length, 0);
+  assert.equal(r.saved().profiles[0].tasks.length, 0);
+  assert.deepEqual(r.errors, []);
+});
+
+test('activity and goal editors use the same side panel layout without changing data flows', async t => {
+  const r = await renderer(); t.after(r.dispose);
+  r.app.state.view = 'activities'; r.app.updateShell();
+  r.click('[data-action="new-activity"]');
+  assert.ok(r.query('.entity-editor-backdrop .entity-editor-panel'));
+  r.click('[data-action="close-activity-form"]');
+  r.app.state.view = 'goals'; r.app.updateShell();
+  r.click('[data-action="new-goal"]');
+  assert.ok(r.query('.entity-editor-backdrop .entity-editor-panel'));
+  r.click('[data-action="close-goal-form"]');
+  assert.equal(r.query('.entity-editor-panel'), null);
+  assert.deepEqual(r.errors, []);
+});
+
+test('appearance gallery previews full themes and immediately updates the workspace', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  assert.equal(r.w.document.querySelectorAll('.appearance-palette-button').length,18);
+  assert.equal(r.w.document.querySelectorAll('.appearance-palette-scene').length,18);
+  const initialAccent=r.w.document.documentElement.style.getPropertyValue('--accent');
+  r.click('[data-action="appearance-palette"][data-palette="orchid"]');
+  const currentAccent=r.w.document.documentElement.style.getPropertyValue('--accent');
+  const livePreviewAccent=r.query('.appearance-preview').style.getPropertyValue('--preview-accent');
+  assert.notEqual(initialAccent,currentAccent);
+  assert.equal(currentAccent,livePreviewAccent);
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'orchid');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.match(r.query('.appearance-save-status').textContent,/Guardando/);
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'orchid');
+  assert.match(r.query('.appearance-save-status').textContent,/guardados/);
+  assert.deepEqual(r.errors,[]);
+});
+test('dark mode immediately applies everywhere and persists without clicking Save', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  assert.equal(r.query('button[data-action="submit-form"]'),null);
+  const dark=r.query('input[name="appearanceMode"][value="dark"]');
+  dark.checked=true;dark.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'dark');
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'midnight');
+  const token=r.w.document.documentElement.style.getPropertyValue('--surface');
+  assert.equal(token,r.query('.appearance-preview').style.getPropertyValue('--preview-surface'));
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'dark');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'midnight');
+  r.app.updateShell();
+  assert.equal(r.query('input[name="appearanceMode"][value="dark"]').checked,true);
+  assert.equal(r.query('.appearance-palette-button[data-palette="midnight"]').getAttribute('aria-pressed'),'true');
+  assert.deepEqual(r.errors,[]);
+});
+test('custom colors apply instantly, are previewed and corrected for low contrast', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const text=r.query('[name="appearance-text"]');
+  const surface=r.query('[name="appearance-surface"]');
+  surface.value='#101010';surface.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  text.value='#101010';text.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.query('[name="custom-surface"]').checked,true);
+  assert.equal(r.query('[name="custom-text"]').checked,true);
+  assert.ok(r.query('.appearance-contrast-note.warning'));
+  assert.equal(r.w.document.documentElement.style.getPropertyValue('--surface'),'#101010');
+  assert.notEqual(r.w.document.documentElement.style.getPropertyValue('--text'),'#101010');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceColors.text,'#101010');
+  assert.equal(r.saved().profiles[0].preferences.appearanceColors.surface,'#101010');
+  assert.deepEqual(r.errors,[]);
+});
+test('failed appearance autosave reverts only the theme, keeping tasks safe', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const original=D.createTask({title:'Se conserva'});
+  r.app.state.profile.tasks.push(original);
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.fail(true);
+  const dark=r.query('input[name="appearanceMode"][value="dark"]');
+  dark.checked=true;dark.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  assert.equal(await r.app.flushAppearanceChanges(),false);
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'light');
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(r.saved().profiles[0].tasks[0].id,original.id);
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'light');
+  assert.match(r.query('.appearance-save-status').textContent,/No se pudo guardar/);
+  assert.deepEqual(r.errors,[]);
+});
+test('reset affects the selected scheme while preserving the other scheme', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.profile.preferences.appearanceMode='dark';
+  r.app.state.profile.preferences.appearancePalettes={light:'ocean',dark:'orchid'};
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  assert.equal(r.query('[name="appearanceEditScheme"]').value,'dark');
+  r.click('[data-action="appearance-reset"]');
+  assert.equal(r.query('input[name="appearanceMode"][value="dark"]').checked,true);
+  assert.equal(r.app.state.profile.preferences.appearancePalettes.dark,'forest');
+  assert.equal(r.app.state.profile.preferences.appearancePalettes.light,'ocean');
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalettes.dark,'forest');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalettes.light,'ocean');
+  assert.deepEqual(r.errors,[]);
+});
+test('automatic appearance responds instantly to OS changes without losing saved preferences', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const system=r.query('input[name="appearanceMode"][value="system"]');
+  system.checked=true;system.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceMode,'system');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  r.setSystemDark(true);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.setSystemDark(false);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  const light=r.query('input[name="appearanceMode"][value="light"]');
+  light.checked=true;light.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  r.setSystemDark(true);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceMode,'light');
+  assert.deepEqual(r.errors,[]);
+});
+test('appearance is isolated between profiles when switching spaces', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const first=r.app.state.profile;
+  first.preferences.appearanceMode='dark';
+  first.preferences.appearancePalette='midnight';
+  const second=D.createProfile('Espacio B');
+  second.preferences.appearanceMode='light';
+  second.preferences.appearancePalette='rose';
+  r.app.state.snapshot.profiles.push(second);
+  await r.app.save();r.app.updateShell();
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  const selector=r.query('#profile-select');
+  selector.value=second.id;selector.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  await settle(r);
+  assert.equal(r.app.state.profile.id,second.id);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'rose');
+  assert.equal(r.saved().profiles.find(p=>p.id===first.id).preferences.appearanceMode,'dark');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('profile creation wizard transfers its selected legacy theme into the new palette', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.click('[data-action="new-profile"]');
+  const wizard=r.query('form[data-form="profile-create"]');
+  assert.ok(wizard);
+  wizard.querySelector('input[name="name"]').value='Segundo perfil';
+  r.click('[data-action="profile-wizard-next"]');
+  r.click('[data-action="profile-wizard-next"]');
+  wizard.querySelector('select[name="theme"]').value='sky';
+  wizard.querySelector('input[name="color"]').value='#225588';
+  submit(r,'form[data-form="profile-create"]');await settle(r);
+  assert.equal(r.app.state.profile.name,'Segundo perfil');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'ocean');
+  assert.equal(r.app.state.profile.preferences.appearanceColors.accent,'#225588');
+  assert.equal(r.saved().profiles.length,2);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('autosave persists color without any manual submit after a short idle interval', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="citrus"]');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  await new Promise(resolve=>setTimeout(resolve,500));
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'citrus');
+  assert.match(r.query('.appearance-save-status').textContent,/guardados/);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('changing section flushes appearance changes instead of losing them on rerender', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="ocean"]');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  r.click('[data-action="settings-section"][data-section="planning"]');
+  await settle(r);
+  assert.equal(r.app.state.settingsSection,'planning');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'ocean');
+  r.click('[data-action="settings-section"][data-section="appearance"]');
+  await settle(r);
+  assert.equal(r.query('.appearance-palette-button[data-palette="ocean"]').getAttribute('aria-pressed'),'true');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('navigation uses colored line SVGs, with a fallback for an unavailable image', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const nav=r.query('[data-action="navigate"][data-view="calendar"]');
+  const icon=nav.querySelector('svg.nav-icon-image.icon-glyph');
+  assert.ok(icon);
+  assert.ok(icon.querySelector('path'));
+  assert.equal(icon.getAttribute('stroke'),'currentColor');
+  const unavailable=r.app.iconImage('missing/unsupported.png','','button-icon');
+  nav.prepend(unavailable);
+  unavailable.dispatchEvent(new r.w.Event('error'));
+  assert.ok(nav.querySelector('.icon-fallback'));
+  assert.equal(nav.textContent.includes('Calendario'),true);
+  nav.click();await settle(r);
+  assert.equal(r.app.state.view,'calendar');
+  assert.deepEqual(r.errors,[]);
+});
+test('Focus and boards remain available when the active theme is dark', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.profile.preferences.appearanceMode='dark';
+  r.app.updateShell();
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  r.app.state.view='focus';r.app.updateShell();
+  assert.ok(r.query('.focus-panel'));
+  r.app.state.view='planner';r.app.state.plannerSection='board';r.app.updateShell();
+  assert.ok(r.query('.ideas-canvas-viewport'));
+  assert.equal(r.app.state.profile.ideaBoards.length,1);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('changing palettes rapidly saves only the latest choice, without altering task data', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const task=D.createTask({title:'No perder'});
+  r.app.state.profile.tasks.push(task);
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="rose"]');
+  r.click('[data-action="appearance-palette"][data-palette="slate"]');
+  r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+  assert.equal(r.app.state.profile.preferences.appearancePalette,'midnight');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'midnight');
+  assert.equal(r.saved().profiles[0].tasks.length,1);
+  assert.equal(r.saved().profiles[0].tasks[0].id,task.id);
+  assert.deepEqual(r.errors,[]);
+});
+
+test('closing the app flushes a pending appearance change before finishing the board save', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="aurora"]');
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'forest');
+  assert.equal(await r.close(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearancePalette,'aurora');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('primary task action keeps a visible SVG icon and remains clickable', async t => {
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='tasks';r.app.updateShell();
+  const add=r.query('.topbar-create');
+  const icon=add.querySelector('svg.icon-glyph');
+  assert.ok(icon);
+  assert.ok(icon.querySelector('path'));
+  assert.equal(icon.getAttribute('stroke'),'currentColor');
+  assert.match(add.textContent,/Nueva tarea/);
+  add.click();await settle(r);
+  assert.ok(r.query('.task-editor-panel'));
+  assert.deepEqual(r.errors,[]);
+});
+test('switching profiles flushes the last theme and restores the destination appearance', async t => {
+  const r=await renderer();t.after(r.dispose);
+  const original=r.app.state.profile;
+  const other=D.createProfile('Segundo espacio');
+  other.preferences.appearanceMode='dark';
+  other.preferences.appearancePalette='midnight';
+  r.app.state.snapshot.profiles.push(other);
+  await r.app.save();
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  r.click('[data-action="appearance-palette"][data-palette="lavender"]');
+  const selector=r.query('#profile-select');
+  selector.value=other.id;
+  selector.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  await settle(r);
+  assert.equal(r.app.state.profile.id,other.id);
+  assert.equal(r.w.document.documentElement.dataset.scheme,'dark');
+  assert.equal(r.saved().profiles.find(p=>p.id===original.id).preferences.appearancePalette,'lavender');
+  assert.equal(r.saved().profiles.find(p=>p.id===other.id).preferences.appearancePalette,'midnight');
+  assert.deepEqual(r.errors,[]);
+});
+
+test('light and dark palettes and eight colors persist independently',async t=>{
+ const r=await renderer();t.after(r.dispose);
+ r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+ assert.equal(r.query('.appearance-custom-grid').querySelectorAll('.appearance-color-control').length,8);
+ r.click('[data-action="appearance-palette"][data-palette="rose"]');
+ const page=r.query('[name="appearance-page"]');
+ page.value='#f4f1e8';page.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+ assert.equal(r.app.state.profile.preferences.appearanceColorsByMode.light.page,'#f4f1e8');
+ assert.equal(r.app.state.profile.preferences.appearancePalettes.light,'rose');
+ r.click('[data-action="appearance-edit-scheme"][data-scheme="dark"]');
+ r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+ const darkPage=r.query('[name="appearance-page"]');
+ darkPage.value='#111b2b';darkPage.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+ assert.equal(r.app.state.profile.preferences.appearanceColorsByMode.dark.page,'#111b2b');
+ assert.equal(r.app.state.profile.preferences.appearanceColorsByMode.light.page,'#f4f1e8');
+ assert.equal(r.app.state.profile.preferences.appearancePalettes.dark,'midnight');
+ assert.equal(r.app.state.profile.preferences.appearancePalettes.light,'rose');
+ assert.equal(r.w.document.documentElement.dataset.scheme,'light');
+ r.click('[data-action="appearance-edit-scheme"][data-scheme="light"]');
+ assert.equal(r.query('[name="appearance-page"]').value,'#f4f1e8');
+ assert.equal(r.query('[name="appearancePalette"]').value,'rose');
+ assert.equal(await r.app.flushAppearanceChanges(),true);
+ const persisted=r.saved().profiles[0].preferences;
+ assert.equal(persisted.appearanceColorsByMode.light.page,'#f4f1e8');
+ assert.equal(persisted.appearanceColorsByMode.dark.page,'#111b2b');
+ assert.deepEqual(r.errors,[]);
+});
+test('mode change applies the correct saved palette without copying colors across modes',async t=>{
+ const r=await renderer();t.after(r.dispose);
+ r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+ r.click('[data-action="appearance-palette"][data-palette="rose"]');
+ r.click('[data-action="appearance-edit-scheme"][data-scheme="dark"]');
+ r.click('[data-action="appearance-palette"][data-palette="midnight"]');
+ const lightBackground=r.w.document.documentElement.style.getPropertyValue('--page');
+ const radio=r.query('input[name="appearanceMode"][value="dark"]');
+ radio.checked=true;radio.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+ assert.equal(r.app.state.profile.preferences.appearanceMode,'dark');
+ assert.equal(r.query('[name="appearanceEditScheme"]').value,'dark');
+ assert.equal(r.query('[name="appearancePalette"]').value,'midnight');
+ assert.notEqual(r.w.document.documentElement.style.getPropertyValue('--page'),lightBackground);
+ const currentColor=r.w.document.documentElement.style.getPropertyValue('--page');
+ assert.equal(r.query('.appearance-preview').style.getPropertyValue('--preview-page'),currentColor);
+ assert.equal(await r.app.flushAppearanceChanges(),true);
+ assert.equal(r.saved().profiles[0].preferences.appearancePalettes.light,'rose');
+ assert.equal(r.saved().profiles[0].preferences.appearancePalettes.dark,'midnight');
+ assert.deepEqual(r.errors,[]);
+});
+test('appearance density and corners update instantly and survive persistence',async t=>{
+ const r=await renderer();t.after(r.dispose);
+ r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+ const density=r.query('[name="appearanceDensity"]');
+ density.value='compact';density.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+ const radius=r.query('[name="appearanceRadius"]');
+ radius.value='square';radius.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+ assert.equal(r.w.document.documentElement.dataset.density,'compact');
+ assert.equal(r.w.document.documentElement.dataset.radius,'square');
+ assert.equal(await r.app.flushAppearanceChanges(),true);
+ assert.equal(r.saved().profiles[0].preferences.appearanceDensity,'compact');
+ assert.equal(r.saved().profiles[0].preferences.appearanceRadius,'square');
+ assert.deepEqual(r.errors,[]);
+});
+
+test('original PNG icons and vector icons switch instantly without recreating the appearance form', async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const form=r.query('.appearance-form');
+  const field=form.querySelector('[name="appearanceIconMode"]');
+  const nav=r.query('[data-action="navigate"][data-view="calendar"]');
+  assert.ok(nav.querySelector('svg.icon-glyph'));
+  field.value='image';
+  field.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceIconMode,'image');
+  assert.equal(r.query('.appearance-form'),form);
+  const bitmap=nav.querySelector('img.icon-bitmap');
+  assert.ok(bitmap);
+  assert.match(bitmap.getAttribute('src'),/assets\/icons\/navigation\/calendar\.png/);
+  assert.ok(r.query('.appearance-icon-examples img.icon-bitmap'));
+  field.value='vector';
+  field.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  assert.ok(nav.querySelector('svg.icon-glyph'));
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceIconMode,'vector');
+  assert.deepEqual(r.errors,[]);
+});
+test('icons can be hidden while navigation labels and actions still work',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const type=r.query('[name="appearanceIconMode"]');
+  type.value='none';type.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  const nav=r.query('[data-action="navigate"][data-view="calendar"]');
+  assert.ok(nav.querySelector('.icon-disabled'));
+  assert.match(nav.textContent,/Calendario/);
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  nav.click();await settle(r);
+  assert.equal(r.app.state.view,'calendar');
+  assert.equal(r.saved().profiles[0].preferences.appearanceIconMode,'none');
+  assert.deepEqual(r.errors,[]);
+});
+test('custom icon colors and background shades are retained for each light and dark scheme',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  const color=r.query('[name="appearanceIconColor"]');
+  color.value='#216c83';color.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.query('[name="appearanceIconTone"]').value,'custom');
+  const background=r.query('[name="appearanceIconBackgroundColor"]');
+  background.value='#cde7eb';background.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.query('[name="appearanceIconBackgroundCustom"]').checked,true);
+  assert.equal(r.app.state.profile.preferences.appearanceIconColorsByMode.light,'#216c83');
+  assert.equal(r.app.state.profile.preferences.appearanceIconBackgroundColorsByMode.light,'#cde7eb');
+  r.click('[data-action="appearance-edit-scheme"][data-scheme="dark"]');
+  const dark=r.query('[name="appearanceIconColor"]');
+  dark.value='#accadd';dark.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+  assert.equal(r.app.state.profile.preferences.appearanceIconColorsByMode.dark,'#accadd');
+  assert.equal(r.app.state.profile.preferences.appearanceIconColorsByMode.light,'#216c83');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  const saved=r.saved().profiles[0].preferences;
+  assert.equal(saved.appearanceIconColorsByMode.light,'#216c83');
+  assert.equal(saved.appearanceIconColorsByMode.dark,'#accadd');
+  r.click('[data-action="appearance-edit-scheme"][data-scheme="light"]');
+  assert.equal(r.query('[name="appearanceIconColor"]').value,'#216c83');
+  assert.deepEqual(r.errors,[]);
+});
+test('filled icons, colorful backgrounds and card depth persist and update root attributes',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();
+  for(const [name,value] of [
+    ['appearanceIconVariant','filled'],['appearanceIconTone','accent'],
+    ['appearanceIconBackground','filled'],['appearanceCardStyle','soft']
+  ]){
+    const select=r.query('[name="'+name+'"]');
+    select.value=value;select.dispatchEvent(new r.w.Event('change',{bubbles:true}));
+  }
+  const doc=r.w.document.documentElement;
+  assert.equal(doc.dataset.iconVariant,'filled');
+  assert.equal(doc.dataset.iconTone,'accent');
+  assert.equal(doc.dataset.iconBackground,'filled');
+  assert.equal(doc.dataset.cardStyle,'soft');
+  assert.equal(await r.app.flushAppearanceChanges(),true);
+  assert.equal(r.saved().profiles[0].preferences.appearanceIconVariant,'filled');
+  assert.equal(r.saved().profiles[0].preferences.appearanceCardStyle,'soft');
+  assert.deepEqual(r.errors,[]);
+});
+test('today completed tasks and Focus use structured themed card markup',async t=>{
+  const r=await renderer();t.after(r.dispose);
+  const task=D.createTask({title:'Terminada'});
+  task.status='done';task.completedAt=D.localDate()+'T12:00:00.000Z';
+  r.app.state.profile.tasks.push(task);
+  r.app.state.view='today';r.app.updateShell();
+  const completed=r.query('.today-completed-card');
+  assert.ok(completed);
+  assert.ok(completed.querySelector('.task-row'));
+  assert.ok(completed.querySelector('.section-heading-title svg.icon-glyph'));
+  const focus=r.query('.focus-card');
+  assert.ok(focus.querySelector('.focus-teaser-heading svg.icon-glyph'));
+  const action=focus.querySelector('[data-action="navigate"][data-view="focus"]');
+  assert.ok(action);
+  action.click();await settle(r);
+  assert.equal(r.app.state.view,'focus');
+  assert.deepEqual(r.errors,[]);
+});

@@ -1,0 +1,846 @@
+/*
+ * O-Isym surface system
+ * Loaded last. One family of corner radii, relief and safe insets for
+ * enclosing UI. It does not change task logic, freeform node positions,
+ * selection overlays, drag handles or floating menus.
+ */
+html[data-radius="square"] {
+  --ui-radius-card: 4px;
+  --ui-radius-control: 3px;
+  --ui-radius-nested: 3px;
+  --ui-radius-tiny: 2px;
+  --ui-radius-pill: 4px;
+}
+html[data-radius="soft"] {
+  --ui-radius-card: 15px;
+  --ui-radius-control: 10px;
+  --ui-radius-nested: 11px;
+  --ui-radius-tiny: 7px;
+  --ui-radius-pill: 10px;
+}
+html[data-radius="rounded"] {
+  --ui-radius-card: 24px;
+  --ui-radius-control: 15px;
+  --ui-radius-nested: 18px;
+  --ui-radius-tiny: 11px;
+  --ui-radius-pill: 20px;
+}
+html[data-scheme] {
+  --ui-surface-raised: 0 11px 30px rgba(23,42,59,.085), 0 2px 7px rgba(23,42,59,.05), inset 0 1px 0 rgba(255,255,255,.25);
+  --ui-surface-contained: 0 4px 15px rgba(23,42,59,.055), inset 0 1px 0 rgba(255,255,255,.23);
+  --ui-surface-sunken: inset 0 1px 3px rgba(19,39,53,.065), 0 1px 0 rgba(255,255,255,.13);
+  --ui-outer-padding: 22px;
+  --ui-inner-padding: 14px;
+  --ui-small-padding: 10px;
+}
+html[data-scheme="dark"] {
+  --ui-surface-raised: 0 13px 32px rgba(0,0,0,.27),0 3px 8px rgba(0,0,0,.11),inset 0 1px 0 rgba(255,255,255,.065);
+  --ui-surface-contained: 0 5px 16px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.055);
+  --ui-surface-sunken: inset 0 1px 4px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.05);
+}
+html[data-density="compact"] {
+  --ui-outer-padding: 17px;
+  --ui-inner-padding: 11px;
+  --ui-small-padding: 9px;
+}
+
+/* The outer sheet has its own safe interior. No generic clipping on cards:
+   task options menus must remain able to open past a card boundary. */
+html[data-scheme] .workspace-main .card,
+html[data-scheme] .workspace-main .form-card,
+html[data-scheme] .settings-navigation,
+html[data-scheme] .workspace-sidebar .profile-switcher {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-card);
+  background: var(--surface);
+  padding: var(--ui-outer-padding);
+  box-shadow: var(--ui-surface-raised);
+}
+html[data-scheme] .settings-navigation,
+html[data-scheme] .workspace-sidebar .profile-switcher {
+  padding: var(--ui-inner-padding);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme][data-card-style="elevated"] .workspace-main .card,
+html[data-scheme][data-card-style="elevated"] .workspace-main .form-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--ui-surface-raised);
+}
+html[data-scheme][data-card-style="soft"] .workspace-main .card,
+html[data-scheme][data-card-style="soft"] .workspace-main .form-card {
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme][data-card-style="outlined"] .workspace-main .card,
+html[data-scheme][data-card-style="outlined"] .workspace-main .form-card {
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 6px rgba(0,0,0,.045);
+}
+html[data-scheme] .workspace-main .card > *,
+html[data-scheme] .workspace-main .form-card > *,
+html[data-scheme] .settings-layout > *,
+html[data-scheme] .dashboard-grid > *,
+html[data-scheme] .planner-layout > *,
+html[data-scheme] .calendar-layout > *,
+html[data-scheme] .insights-grid > *,
+html[data-scheme] .profiles-layout > * {
+  min-width: 0;
+}
+html[data-scheme] .workspace-main .card :is(h1,h2,h3,h4,p,strong),
+html[data-scheme] .settings-navigation :is(span,strong,small) {
+  overflow-wrap: anywhere;
+}
+
+/* The main hero and Focus teaser retain their own visual identity but no
+   longer flatten their outer frame or touch the frame with their contents. */
+html[data-scheme] .workspace-main .welcome-card,
+html[data-scheme] .workspace-main .focus-card,
+html[data-scheme] .workspace-main .today-completed-card,
+html[data-scheme] .workspace-main .ideas-board-card {
+  padding: calc(var(--ui-outer-padding) + 2px);
+  border-radius: var(--ui-radius-card);
+  border-color: var(--line);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-list {
+  gap: var(--ui-small-padding);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row {
+  padding: var(--ui-inner-padding);
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-nested);
+  box-shadow: var(--ui-surface-contained);
+  background: var(--surface-soft);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row:last-child {
+  border: 1px solid var(--line);
+}
+html[data-scheme] .workspace-main .today-completed-card .task-row .task-content {
+  min-width: 0;
+}
+html[data-scheme] .workspace-main .focus-card .focus-teaser-heading {
+  gap: 12px;
+  margin: 12px 0;
+}
+html[data-scheme] .workspace-main .focus-card .button.primary {
+  padding: 10px 16px;
+  border-radius: var(--ui-radius-control);
+}
+
+/* KPI tiles, activity boxes, statistics, planning and suggestion panels. */
+html[data-scheme] :is(
+  .today-metric, .profile-stat, .profile-preference, .focus-stat,
+  .focus-music-settings, .focus-alarm-settings, .profile-focus-note,
+  .profile-advanced-preferences, .activity-ideas, .planner-proposal,
+  .template-preview, .settings-info-card, .notification-system-card,
+  .ideas-help-panel, .ideas-board-open, .ideas-canvas-toolbar,
+  .ideas-library-toolbar, .ideas-canvas-filter-tools, .task-toolbar,
+  .day-date-bar, .schedule-conflicts, .day-time-block, .day-time-stage,
+  .task-menu-choices, .calendar-mode, .weekday-picker
+) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-nested);
+  background-color: var(--surface-soft);
+  color: var(--text);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] :is(
+  .today-metric, .profile-stat, .profile-preference, .focus-stat,
+  .focus-music-settings, .focus-alarm-settings, .profile-focus-note,
+  .profile-advanced-preferences, .activity-ideas, .planner-proposal,
+  .template-preview, .settings-info-card, .notification-system-card,
+  .ideas-help-panel, .ideas-board-open, .ideas-canvas-toolbar,
+  .ideas-library-toolbar, .ideas-canvas-filter-tools, .task-toolbar,
+  .day-date-bar, .schedule-conflicts, .weekday-picker
+) {
+  padding: var(--ui-inner-padding);
+}
+html[data-scheme] .today-metric {
+  padding: calc(var(--ui-inner-padding) + 2px);
+  gap: 7px;
+}
+html[data-scheme] .today-metric-value {
+  line-height: 1.25;
+}
+html[data-scheme] .profile-stat,
+html[data-scheme] .profile-preference,
+html[data-scheme] .focus-stat {
+  gap: 8px;
+}
+html[data-scheme] .profile-stat :is(strong,span),
+html[data-scheme] .profile-preference :is(strong,span),
+html[data-scheme] .focus-stat :is(strong,span) {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-scheme] .focus-alarm-settings,
+html[data-scheme] .focus-music-settings {
+  align-self: center;
+  padding: max(16px, var(--ui-inner-padding));
+  background: var(--surface);
+  overflow: visible;
+}
+html[data-scheme] .focus-panel {
+  min-width: 0;
+  max-width: 100%;
+  border-radius: var(--ui-radius-nested);
+  border: 1px solid var(--line);
+  padding: var(--ui-outer-padding);
+  background: var(--surface-soft);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] .ideas-canvas-toolbar,
+html[data-scheme] .ideas-library-toolbar,
+html[data-scheme] .task-toolbar,
+html[data-scheme] .day-date-bar {
+  background: var(--surface);
+  padding: 12px var(--ui-inner-padding);
+  gap: 10px;
+}
+html[data-scheme] .ideas-canvas-toolbar,
+html[data-scheme] .ideas-library-toolbar,
+html[data-scheme] .task-toolbar {
+  flex-wrap: wrap;
+}
+html[data-scheme] .ideas-library-toolbar .search-field {
+  flex: 1 1 230px;
+  min-width: min(230px, 100%);
+}
+html[data-scheme] .ideas-library-toolbar select {
+  flex: 1 1 180px;
+  min-width: min(180px, 100%);
+}
+html[data-scheme] .day-time-block:not(.day-positioned-block) {
+  padding: 12px var(--ui-inner-padding);
+  gap: 10px;
+}
+html[data-scheme] .day-time-block.day-positioned-block {
+  padding: 6px 9px; /* Short time slots have fixed pixel heights. */
+  border-radius: var(--ui-radius-tiny);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] .day-time-stage {
+  border-radius: 0; /* Calendar grids must retain continuous hour lines. */
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+html[data-scheme] .calendar-mode {
+  padding: 5px;
+  gap: 4px;
+  box-shadow: var(--ui-surface-sunken);
+}
+html[data-scheme] .calendar-mode .button {
+  min-height: 34px;
+  padding: 7px 12px;
+}
+
+/* Calendar cells and timeline elements share the selected shape. No edge
+   collisions for day numbers and badges at narrow window widths. */
+html[data-scheme] .calendar-day,
+html[data-scheme] .week-day {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 12px;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-nested);
+  background: var(--surface);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] .calendar-day.is-selected,
+html[data-scheme] .week-day.is-selected {
+  padding: 11px;
+  border: 2px solid var(--accent);
+}
+html[data-scheme] .calendar-day :is(strong,span),
+html[data-scheme] .week-day :is(strong,span) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-scheme] .calendar-count,
+html[data-scheme] .week-day-task,
+html[data-scheme] .meta-chip,
+html[data-scheme] .task-reminder-chip,
+html[data-scheme] .free-slot,
+html[data-scheme] .profile-active-label {
+  border-radius: var(--ui-radius-tiny);
+  padding: 5px 9px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+html[data-scheme] .week-day-task {
+  min-height: 24px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-scheme] .calendar-card { padding: var(--ui-inner-padding); }
+
+/* Buttons and inputs have a real inset and do not place icons against
+   the painted border. The floating task menu remains positioned. */
+html[data-scheme] :is(
+  .workspace-main .button, .workspace-topbar .button,
+  .settings-navigation .settings-nav-item, .workspace-sidebar .nav-item,
+  .task-menu-trigger, .task-menu-choice, .ideas-board-actions .button,
+  .ideas-tool-group .button, .activity-idea,
+  .appearance-mode-option, .appearance-palette-button,
+  .appearance-edit-option, .appearance-icon-example
+) {
+  box-sizing: border-box;
+  border-radius: var(--ui-radius-control);
+  min-width: 0;
+}
+html[data-scheme] .workspace-main .button,
+html[data-scheme] .workspace-topbar .button {
+  padding: 9px 13px;
+  min-height: 36px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html[data-scheme] .workspace-main .button.small { padding: 6px 10px; min-height: 31px; }
+html[data-scheme] .workspace-main .button-with-icon {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+}
+html[data-scheme] .workspace-main .button-with-icon > .action-button-icon,
+html[data-scheme] .workspace-main .button-with-icon > .icon-glyph {
+  flex: 0 0 auto;
+}
+html[data-scheme] .workspace-main .button-with-icon > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-scheme] :is(
+  .workspace-main .input, .profile-modal .input,
+  .task-editor-panel .input, .entity-editor-panel .input,
+  .settings-panel .input, .ideas-canvas-toolbar .input,
+  .ideas-library-toolbar .input
+) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: var(--ui-radius-control);
+  border: 1px solid var(--line);
+  color: var(--ui-field-text);
+  background: var(--ui-field);
+  box-shadow: var(--ui-surface-sunken);
+}
+html[data-scheme] .search-field,
+html[data-scheme] .ideas-search-field {
+  padding: 8px 11px;
+  min-width: 0;
+  min-height: 41px;
+  gap: 9px;
+  box-sizing: border-box;
+  border-radius: var(--ui-radius-control);
+  box-shadow: var(--ui-surface-sunken);
+}
+html[data-scheme] .search-field .input,
+html[data-scheme] .ideas-search-field input {
+  padding: 2px 4px;
+  min-height: 26px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-scheme] .task-menu-choices {
+  z-index: 8;
+  width: min(205px, 88vw);
+  padding: 7px;
+  border-radius: var(--ui-radius-nested);
+  background: var(--surface);
+  box-shadow: var(--ui-surface-raised);
+}
+html[data-scheme] .task-menu-choice {
+  padding: 10px 12px;
+  min-height: 35px;
+  text-align: left;
+}
+html[data-scheme] .task-menu-trigger {
+  min-height: 33px;
+  padding: 6px 11px;
+}
+html[data-scheme] .workspace-sidebar .nav-item {
+  min-height: 41px;
+  padding: 7px 12px;
+  gap: 11px;
+}
+html[data-scheme] .workspace-shell.is-sidebar-collapsed .nav-item {
+  width: 48px;
+  min-width: 48px;
+  padding: 8px;
+}
+html[data-scheme] .settings-nav-item {
+  padding: 11px 12px;
+}
+html[data-scheme] .settings-navigation .settings-nav-item:focus-visible,
+html[data-scheme] .workspace-sidebar .nav-item:focus-visible,
+html[data-scheme] .button:focus-visible {
+  outline-color: var(--accent);
+  outline-offset: 2px;
+}
+
+/* Independently editable note cards retain their custom colors and draggable
+   geometry; only the surrounding frame and safe interior are harmonized. */
+html[data-scheme] .ideas-board-card {
+  min-width: 0;
+  padding: var(--ui-inner-padding);
+}
+html[data-scheme] .ideas-board-open {
+  padding: var(--ui-inner-padding);
+  min-height: 115px;
+  gap: 11px;
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] .ideas-board-card-footer,
+html[data-scheme] .ideas-board-card-title {
+  min-width: 0;
+}
+html[data-scheme] .ideas-board-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+html[data-scheme] .ideas-board-actions .button {
+  padding: 9px 11px;
+  min-width: min(105px, 100%);
+}
+html[data-scheme] .ideas-note-card,
+html[data-scheme] .ideas-activity-card {
+  border-radius: var(--ui-radius-nested);
+  box-shadow: var(--ui-surface-contained);
+  /* Canvas colors and connections must not inherit the general theme. */
+}
+html[data-scheme] .ideas-note-card .ideas-note-header {
+  padding: 7px 10px;
+  gap: 6px;
+}
+html[data-scheme] .ideas-note-card .ideas-note-title {
+  min-width: 0;
+  padding: 5px 7px;
+  border-radius: var(--ui-radius-tiny);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html[data-scheme] .ideas-note-editor {
+  box-sizing: border-box;
+  padding: 10px 12px;
+}
+html[data-scheme] .ideas-note-footer {
+  padding: 6px 10px;
+  gap: 7px;
+}
+html[data-scheme] .ideas-note-icon-button {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border-radius: var(--ui-radius-tiny);
+}
+html[data-scheme] .ideas-note-resize { right: 4px; bottom: 4px; }
+html[data-scheme] .ideas-activity-card { padding: 13px; gap: 10px; }
+html[data-scheme] .ideas-activity-title,
+html[data-scheme] .ideas-activity-description,
+html[data-scheme] .ideas-activity-fields .input {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--ui-radius-tiny);
+  padding: 8px;
+}
+html[data-scheme] .ideas-activity-fields { min-width: 0; gap: 9px; }
+html[data-scheme] .ideas-group-header {
+  padding: 7px 9px;
+  border-radius: var(--ui-radius-control);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] .ideas-group-small-action { padding: 5px 9px; border-radius: var(--ui-radius-tiny); }
+html[data-scheme] .ideas-canvas-viewport {
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-surface-contained);
+  /* Overflow is intentionally hidden here: this is a panning viewport. */
+}
+html[data-scheme] .ideas-canvas-empty { padding: var(--ui-outer-padding); }
+
+/* Appearance editor: swatches, color pickers and miniature previews are
+   controls with a genuine inset, not borderless rectangles. */
+html[data-scheme] .appearance-color-control,
+html[data-scheme] .appearance-palette-button,
+html[data-scheme] .appearance-icon-example,
+html[data-scheme] .appearance-preview,
+html[data-scheme] .appearance-preview-card {
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-nested);
+  padding: var(--ui-inner-padding);
+  background: var(--surface-soft);
+  box-shadow: var(--ui-surface-contained);
+}
+html[data-scheme] .appearance-preview {
+  padding: 0; /* Its mock window draws its own nested panels and frames. */
+  overflow: hidden;
+  background: var(--preview-page);
+}
+html[data-scheme] .appearance-preview-card {
+  padding: 12px;
+  background: var(--preview-surface);
+  color: var(--preview-text);
+  border-color: var(--preview-line);
+}
+html[data-scheme] .appearance-palette-button {
+  padding: 8px;
+  gap: 9px;
+  text-align: left;
+  background: var(--surface);
+}
+html[data-scheme] .appearance-palette-button[aria-pressed="true"] {
+  border: 2px solid var(--accent);
+  padding: 7px;
+}
+html[data-scheme] .appearance-palette-scene {
+  border-radius: var(--ui-radius-tiny);
+  min-width: 0;
+}
+html[data-scheme] .appearance-color-control { gap: 9px; }
+html[data-scheme] .appearance-icon-example { min-height: 66px; padding: 10px; }
+html[data-scheme] .appearance-mode-option,
+html[data-scheme] .appearance-edit-option {
+  padding: 11px 12px;
+  min-height: 42px;
+  border-radius: var(--ui-radius-control);
+  box-shadow: var(--ui-surface-contained);
+}
+
+/* The edges of modal/sheet containers stay flush to the desktop; form content
+   itself always has padding. This avoids a clipped button in narrow windows. */
+html[data-scheme] .profile-modal,
+html[data-scheme] .task-editor-panel,
+html[data-scheme] .entity-editor-panel,
+html[data-scheme] .text-dialog {
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-card);
+  background: var(--surface);
+  box-shadow: var(--ui-surface-raised);
+  max-width: 100%;
+}
+html[data-scheme] .profile-modal-form {
+  padding: var(--ui-outer-padding);
+  min-width: 0;
+  max-width: 100%;
+}
+html[data-scheme] .task-editor-panel .task-editor-form {
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: none;
+  padding: var(--ui-outer-padding) var(--ui-outer-padding) 0;
+}
+html[data-scheme] .task-editor-panel-header,
+html[data-scheme] .task-editor-actions {
+  padding: 14px var(--ui-outer-padding);
+  min-width: 0;
+}
+html[data-scheme] .task-editor-actions {
+  margin-left: calc(0px - var(--ui-outer-padding));
+  margin-right: calc(0px - var(--ui-outer-padding));
+  gap: 9px;
+  flex-wrap: wrap;
+}
+html[data-scheme] .task-editor-section { min-width: 0; padding: 18px 0 20px; }
+html[data-scheme] .entity-editor-panel .profile-modal-form {
+  padding: var(--ui-outer-padding);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+html[data-scheme] .task-editor-panel {
+  border-radius: var(--ui-radius-card) 0 0 var(--ui-radius-card);
+}
+html[data-scheme] .entity-editor-panel {
+  border-radius: var(--ui-radius-card) 0 0 var(--ui-radius-card);
+}
+html[data-scheme] .form-grid,
+html[data-scheme] .profile-editor-preference-grid,
+html[data-scheme] .appearance-custom-grid,
+html[data-scheme] .appearance-icons-settings .appearance-custom-grid {
+  min-width: 0;
+  gap: 12px;
+}
+html[data-scheme] .field,
+html[data-scheme] .form-grid > *,
+html[data-scheme] .appearance-custom-grid > * {
+  min-width: 0;
+}
+
+/* Mobile widths should preserve the inner insets rather than put icons or
+   controls flush against a card boundary. */
+@media (max-width: 700px) {
+  html[data-scheme] { --ui-outer-padding: 18px; --ui-inner-padding: 12px; }
+  html[data-scheme] .workspace-main .card,
+  html[data-scheme] .workspace-main .form-card {
+    padding: var(--ui-outer-padding);
+  }
+  html[data-scheme] .workspace-main .today-completed-card .task-row {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+  html[data-scheme] .workspace-main .today-completed-card .task-actions {
+    margin-left: 0;
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+  html[data-scheme] .workspace-main .day-date-bar {
+    flex-wrap: wrap;
+  }
+  html[data-scheme] .ideas-library-toolbar > * { min-width: 0; max-width: 100%; }
+}
+@media (max-width: 620px) {
+  html[data-scheme] .task-editor-panel,
+  html[data-scheme] .entity-editor-panel {
+    width: 100vw;
+    border-radius: 0; /* Full-screen sheet, padding stays inside. */
+  }
+  html[data-scheme] .task-editor-actions { padding: 13px var(--ui-outer-padding); }
+  html[data-scheme] .entity-editor-panel .profile-modal-form,
+  html[data-scheme] .task-editor-panel .task-editor-form {
+    padding-left: var(--ui-outer-padding);
+    padding-right: var(--ui-outer-padding);
+  }
+  html[data-scheme] .ideas-library-toolbar { flex-direction: column; align-items: stretch; }
+  html[data-scheme] .ideas-library-toolbar .search-field,
+  html[data-scheme] .ideas-library-toolbar select { flex: 0 0 auto; width: 100%; }
+  html[data-scheme] .day-visual-timeline .day-positioned-block { padding: 5px 7px; }
+}
+@media (max-width: 440px) {
+  html[data-scheme] { --ui-outer-padding: 15px; --ui-inner-padding: 11px; }
+  html[data-scheme] .appearance-palette-grid,
+  html[data-scheme] .appearance-icon-examples {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  html[data-scheme] .workspace-main .card,
+  html[data-scheme] .workspace-main .form-card { padding: var(--ui-outer-padding); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-scheme] .calendar-day,
+  html[data-scheme] .week-day,
+  html[data-scheme] .workspace-main .button { transition: none; }
+}
+
+/* Rows were historically separated by flat horizontal rules. The same inset
+   tiles now work in task lists, activity/goal catalogues, history and planning,
+   with enough room for buttons and their associated popovers. */
+html[data-scheme] .workspace-main .task-list {
+  display:flex;
+  flex-direction:column;
+  gap:var(--ui-small-padding);
+  min-width:0;
+}
+html[data-scheme] .workspace-main .card .task-row,
+html[data-scheme] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) {
+  box-sizing:border-box;
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  border:1px solid var(--line);
+  border-radius:var(--ui-radius-nested);
+  background:var(--surface-soft);
+  padding:var(--ui-inner-padding);
+  box-shadow:var(--ui-surface-contained);
+  margin:0;
+  gap:11px;
+}
+html[data-scheme] .workspace-main .card .task-row:last-child,
+html[data-scheme] .workspace-main :is(
+  .inbox-row:last-child,.activity-row:last-child,.goal-row:last-child,
+  .history-row:last-child,.profile-row:last-child,.suggestion:last-child,
+  .template-row:last-child,.week-line:last-child,.chart-line:last-child
+) {
+  border:1px solid var(--line);
+}
+html[data-scheme] .workspace-main .card .task-row {
+  display:flex;
+  align-items:center;
+  overflow:visible;
+}
+html[data-scheme] .workspace-main .card .task-row > .task-content {
+  flex:1 1 120px;
+  min-width:0;
+}
+html[data-scheme] .workspace-main .card .task-row .task-actions {
+  display:flex;
+  flex:0 1 auto;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:7px;
+  min-width:0;
+  max-width:100%;
+  margin-left:auto;
+}
+html[data-scheme] .workspace-main .card .task-row .task-actions .button {
+  min-width:0;
+  max-width:100%;
+}
+html[data-scheme] .workspace-main .card .task-row .task-check {
+  flex:0 0 21px;
+  margin:0;
+}
+html[data-scheme] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) > * { min-width:0; }
+html[data-scheme] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) :is(span,strong,p,h3) {
+  overflow-wrap:anywhere;
+}
+html[data-scheme] .workspace-main .task-row .meta-chip {
+  padding:5px 8px;
+  min-height:23px;
+}
+html[data-scheme] .workspace-main .task-row .task-meta {
+  column-gap:7px;
+  row-gap:7px;
+}
+html[data-scheme] .workspace-main .card .inbox-row,
+html[data-scheme] .workspace-main .card .suggestion,
+html[data-scheme] .workspace-main .card .template-row,
+html[data-scheme] .workspace-main .card .week-line,
+html[data-scheme] .workspace-main .card .history-row {
+  margin-bottom:var(--ui-small-padding);
+}
+html[data-scheme] .workspace-main .card .inbox-row:last-child,
+html[data-scheme] .workspace-main .card .suggestion:last-child,
+html[data-scheme] .workspace-main .card .template-row:last-child,
+html[data-scheme] .workspace-main .card .week-line:last-child,
+html[data-scheme] .workspace-main .card .history-row:last-child {
+  margin-bottom:0;
+}
+html[data-scheme] .workspace-main .card .activity-row,
+html[data-scheme] .workspace-main .card .goal-row {
+  flex-wrap:wrap;
+  gap:9px 13px;
+}
+html[data-scheme] .workspace-main .card .activity-row > :first-child,
+html[data-scheme] .workspace-main .card .goal-row > :first-child {
+  flex:1 1 170px;
+  min-width:0;
+}
+html[data-scheme] .workspace-main .card .chart-line {
+  grid-template-columns:minmax(70px,90px) minmax(0,1fr) 30px;
+}
+html[data-scheme] .workspace-main .card .chart-line > * { min-width:0; }
+html[data-scheme] .workspace-main .card .profile-admin-item {
+  min-width:0;
+  padding:11px;
+  border:1px solid var(--line);
+  border-radius:var(--ui-radius-nested);
+  box-shadow:var(--ui-surface-contained);
+}
+html[data-scheme] .workspace-main .card .profile-admin-item:not(.selected) {
+  background:var(--surface-soft);
+}
+html[data-scheme][data-card-style="outlined"] .workspace-main .card .task-row,
+html[data-scheme][data-card-style="outlined"] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) {
+  border:2px solid var(--line);
+  background:var(--surface);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+}
+html[data-scheme][data-card-style="soft"] .workspace-main .card .task-row,
+html[data-scheme][data-card-style="soft"] .workspace-main :is(
+  .inbox-row,.activity-row,.goal-row,.history-row,.profile-row,
+  .suggestion,.template-row,.week-line,.chart-line,.shortcut-row
+) {
+  background:var(--surface);
+  box-shadow:0 2px 9px rgba(0,0,0,.035);
+}
+
+/* Empty states and module headers also have breathing room, but not a
+   second border around content already inside a card. */
+html[data-scheme] .workspace-main .empty-state {
+  box-sizing:border-box;
+  min-width:0;
+  padding:24px max(15px,var(--ui-inner-padding));
+}
+html[data-scheme] .workspace-main .section-heading {
+  min-width:0;
+  gap:8px;
+}
+html[data-scheme] .workspace-main .section-heading-title {
+  min-width:0;
+  gap:11px;
+}
+html[data-scheme] .workspace-main .section-heading-icon,
+html[data-scheme] .workspace-main .view-title-icon {
+  flex-shrink:0;
+}
+html[data-scheme] .workspace-main .focus-status,
+html[data-scheme] .workspace-main .focus-settings-heading {
+  max-width:100%;
+  box-sizing:border-box;
+}
+html[data-scheme] .workspace-main .focus-stat,
+html[data-scheme] .workspace-main .today-metric {
+  box-shadow:var(--ui-surface-contained);
+}
+@media(max-width:700px) {
+  html[data-scheme] .workspace-main .card .task-row {
+    flex-wrap:wrap;
+    row-gap:9px;
+  }
+  html[data-scheme] .workspace-main .card .task-row .task-actions {
+    flex:1 1 100%;
+    margin-left:0;
+    justify-content:flex-end;
+  }
+  html[data-scheme] .workspace-main .card .chart-line {
+    grid-template-columns:minmax(60px,78px) minmax(0,1fr) 26px;
+  }
+}
+
+/* The modal frame carries the elevation. Its contained form must not draw a
+   second full-size shadow or flatten the margin around the fields. */
+html[data-scheme] .profile-modal .profile-modal-form {
+  box-shadow:none;
+  border:0;
+  border-radius:0;
+  background:var(--surface);
+  padding:var(--ui-outer-padding);
+}
+html[data-scheme] .profile-modal .profile-modal-form > * {
+  min-width:0;
+  max-width:100%;
+}
+html[data-scheme] .workspace-main :is(.inbox-row,.history-row,.profile-row,.week-line,.shortcut-row) {
+  flex-wrap:wrap;
+  row-gap:9px;
+}
+html[data-scheme] .ideas-group-header {
+  left:8px;
+  top:8px;
+  width:min(calc(100% - 16px),320px);
+}

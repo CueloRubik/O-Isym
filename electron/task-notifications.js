@@ -5,6 +5,8 @@ const path = require('node:path');
 
 const ALLOWED_LEAD_MINUTES = [0, 5, 10, 15, 30, 60];
 const MISSED_GRACE_MS = 12 * 60 * 60 * 1000;
+// Allow ordinary event-loop delays without treating an on-time reminder as missed.
+const ON_TIME_TOLERANCE_MS = 60 * 1000;
 
 function localDateTime(dateKey, timeKey) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateKey || '')) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(timeKey || ''))) return NaN;
@@ -129,7 +131,7 @@ function createTaskNotificationScheduler({
     for (const reminder of reminders) {
       if (sent.has(reminder.key) || reminder.triggerAt > current) continue;
       const missedBy = current - reminder.triggerAt;
-      if (missedBehavior === 'notify' && missedBy <= MISSED_GRACE_MS) {
+      if (missedBy <= ON_TIME_TOLERANCE_MS || missedBehavior === 'notify' && missedBy <= MISSED_GRACE_MS) {
         if (showReminder(reminder)) markSent(reminder.key);
       } else {
         markSent(reminder.key);

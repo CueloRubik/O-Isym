@@ -131,6 +131,32 @@ test('omite avisos vencidos cuando esa es la preferencia elegida', () => {
   h.dispose();
 });
 
+for (const delay of [0, 250, 30000]) {
+  test('omitir vencidos conserva los avisos puntuales con retraso normal de ' + delay + ' ms', () => {
+    const h = makeHarness();
+    h.scheduler.scheduleSnapshot(h.snapshot('09:00', { preferences: { taskNotificationMissed: 'skip' } }));
+    h.advance(60 * 60 * 1000 + delay);
+    assert.equal(h.notifications.length, 1);
+    h.resume();
+    assert.equal(h.notifications.length, 1);
+    h.dispose();
+  });
+}
+
+test('omitir vencidos descarta el aviso perdido durante suspensión pero conserva el siguiente', () => {
+  const h = makeHarness();
+  const snapshot = h.snapshot('09:00', { preferences: { taskNotificationMissed: 'skip' } });
+  snapshot.profiles[0].tasks.push({ ...snapshot.profiles[0].tasks[0], id: 'task-2', startTime: '10:00', endTime: '10:30' });
+  h.scheduler.scheduleSnapshot(snapshot);
+  h.advance(65 * 60 * 1000);
+  h.resume();
+  assert.equal(h.notifications.length, 0);
+  h.advance(55 * 60 * 1000);
+  assert.equal(h.notifications.length, 1);
+  assert.equal(h.openNotification().taskId, 'task-2');
+  h.dispose();
+});
+
 test('al hacer clic en una notificación entrega el recordatorio correspondiente', () => {
   const h = makeHarness();
   const start = new Date(h.now() + 5 * 60 * 1000);

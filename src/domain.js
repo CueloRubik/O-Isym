@@ -6,6 +6,44 @@ const SCHEMA_VERSION = 1;
 const AUTONOMY_MODES = ['manual', 'suggested', 'hybrid', 'automatic'];
 const AVATAR_IDS = ['initials', 'leaf', 'book', 'compass', 'spark', 'wave', ...Array.from({ length: 18 }, (_, index) => 'profile-' + (index + 1))];
 const THEME_IDS = ['classic', 'warm', 'sky', 'playful'];
+const APPEARANCE_MODES = ['light', 'dark', 'system'];
+const APPEARANCE_PALETTES = ['forest','ocean','midnight','aurora','orchid','lavender','rose','ember','sand','citrus','slate','graphite','cobalt','sage','coral','amber','plum','glacier'];
+const APPEARANCE_COLOR_KEYS = ['accent','page','surface','text','sidebar','field','border','muted'];
+const APPEARANCE_DENSITIES = ['comfortable','compact'];
+const APPEARANCE_RADII = ['soft','rounded','square'];
+const ICON_MODES = ['vector','image','none'];
+const ICON_VARIANTS = ['outline','bold','duotone','filled'];
+const ICON_TONES = ['automatic','accent','custom'];
+const ICON_BACKGROUNDS = ['none','soft','filled'];
+const CARD_STYLES = ['elevated','soft','outlined'];
+const normalizeModeHex = (value) => {
+  const src = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return Object.fromEntries(['light','dark'].map(mode => [mode,hexColor(src[mode]) ? src[mode].toLowerCase() : '']));
+};
+const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+function normalizeAppearanceColors(colors, legacyColor = '') {
+  const source = colors && typeof colors === 'object' && !Array.isArray(colors) ? colors : {};
+  const normalized = {};
+  for (const key of APPEARANCE_COLOR_KEYS) normalized[key] =
+    hexColor(source[key]) ? source[key].toLowerCase() : '';
+  if (colors === undefined && hexColor(legacyColor) && legacyColor.toLowerCase() !== '#27856b') {
+    normalized.accent = legacyColor.toLowerCase();
+  }
+  return normalized;
+}
+const legacyPalette = theme => theme === 'sky' ? 'ocean' : theme === 'warm' ? 'sand' : theme === 'playful' ? 'aurora' : 'forest';
+function normalizePalettes(palettes, fallback) {
+  const source=palettes && typeof palettes==='object' && !Array.isArray(palettes) ? palettes : {};
+  return Object.fromEntries(['light','dark'].map(mode=>[mode,
+    APPEARANCE_PALETTES.includes(source[mode]) ? source[mode] : fallback]));
+}
+function normalizeColorsByMode(allColors, previousColors, avatarColor) {
+  const source=allColors && typeof allColors==='object' && !Array.isArray(allColors) ? allColors : {};
+  const legacy=normalizeAppearanceColors(previousColors,avatarColor);
+  return Object.fromEntries(['light','dark'].map(mode=>[
+    mode,normalizeAppearanceColors(Object.prototype.hasOwnProperty.call(source,mode) ? source[mode] : legacy)
+  ]));
+}
 const FOCUS_ALARM_TONES = ['clock', 'digital', 'funny', 'ringtone1', 'ringtone2', 'ringtone3', 'ringtone4', 'ringtone5', 'ringtone6', 'tititi'];
 const FOCUS_MUSIC_TRACKS = ['focus1', 'focus2', 'focus3', 'focus4', 'focus5', 'focus6', 'focus7', 'focus8', 'focus9', 'focus10', 'focus11', 'focus12', 'focus13', 'focus14'];
 const FOCUS_REMINDER_INTERVALS = [0, 5, 10, 15, 20, 25, 30, 45, 60];
@@ -66,12 +104,28 @@ function createProfile(name, color = '#27856b', age = null) {
       focusMusicTrack: '',
       focusMusicVolume: 35,
       theme: getDefaultThemeForAge(age),
+      appearanceMode: 'light',
+      appearancePalette: legacyPalette(getDefaultThemeForAge(age)),
+      appearanceColors: normalizeAppearanceColors(undefined, color),
+      appearancePalettes: normalizePalettes(null,legacyPalette(getDefaultThemeForAge(age))),
+      appearanceColorsByMode: normalizeColorsByMode(null,undefined,color),
+      appearanceDensity: 'comfortable',
+      appearanceRadius: 'soft',
+      appearanceIconMode: 'vector',
+      appearanceIconVariant: 'outline',
+      appearanceIconTone: 'automatic',
+      appearanceIconBackground: 'none',
+      appearanceIconColorsByMode: normalizeModeHex(null),
+      appearanceIconBackgroundColorsByMode: normalizeModeHex(null),
+      appearanceCardStyle: 'elevated',
       ageBand: getAgeBand(age),
       motionEnabled: true,
       workingDayStart: '09:00',
       workingDayEnd: '17:00'
     },
     activities: [],
+    ideaBoards: [],
+    dayTemplates: [],
     tasks: [],
     goals: [],
     focusSessions: [],
@@ -114,10 +168,27 @@ function normalizeProfile(profile) {
       focusMusicTrack: FOCUS_MUSIC_TRACKS.includes(preferences.focusMusicTrack) ? preferences.focusMusicTrack : '',
       focusMusicVolume: clampNumber(preferences.focusMusicVolume, 0, 100, 35),
       theme: THEME_IDS.includes(preferences.theme) ? preferences.theme : getDefaultThemeForAge(value.age),
+      appearanceMode: APPEARANCE_MODES.includes(preferences.appearanceMode) ? preferences.appearanceMode : 'light',
+      appearancePalette: APPEARANCE_PALETTES.includes(preferences.appearancePalette) ? preferences.appearancePalette : legacyPalette(preferences.theme),
+      appearanceColors: normalizeAppearanceColors(preferences.appearanceColors, value.color),
+      appearancePalettes: normalizePalettes(preferences.appearancePalettes,
+        APPEARANCE_PALETTES.includes(preferences.appearancePalette) ? preferences.appearancePalette : legacyPalette(preferences.theme)),
+      appearanceColorsByMode: normalizeColorsByMode(preferences.appearanceColorsByMode, preferences.appearanceColors, value.color),
+      appearanceDensity: APPEARANCE_DENSITIES.includes(preferences.appearanceDensity) ? preferences.appearanceDensity : 'comfortable',
+      appearanceRadius: APPEARANCE_RADII.includes(preferences.appearanceRadius) ? preferences.appearanceRadius : 'soft',
+      appearanceIconMode: ICON_MODES.includes(preferences.appearanceIconMode) ? preferences.appearanceIconMode : 'vector',
+      appearanceIconVariant: ICON_VARIANTS.includes(preferences.appearanceIconVariant) ? preferences.appearanceIconVariant : 'outline',
+      appearanceIconTone: ICON_TONES.includes(preferences.appearanceIconTone) ? preferences.appearanceIconTone : 'automatic',
+      appearanceIconBackground: ICON_BACKGROUNDS.includes(preferences.appearanceIconBackground) ? preferences.appearanceIconBackground : 'none',
+      appearanceIconColorsByMode: normalizeModeHex(preferences.appearanceIconColorsByMode),
+      appearanceIconBackgroundColorsByMode: normalizeModeHex(preferences.appearanceIconBackgroundColorsByMode),
+      appearanceCardStyle: CARD_STYLES.includes(preferences.appearanceCardStyle) ? preferences.appearanceCardStyle : 'elevated',
       ageBand: getAgeBand(value.age),
       motionEnabled: preferences.motionEnabled !== false
     },
     activities: Array.isArray(value.activities) ? value.activities : [],
+    ideaBoards: normalizeIdeaBoards(value.ideaBoards),
+    dayTemplates: Array.isArray(value.dayTemplates) ? value.dayTemplates : [],
     tasks: Array.isArray(value.tasks) ? value.tasks : [],
     goals: Array.isArray(value.goals) ? value.goals : [],
     focusSessions: Array.isArray(value.focusSessions) ? value.focusSessions : [],
@@ -130,6 +201,52 @@ function validateImportedProfile(profile) {
   if (typeof profile.name !== 'string' || !profile.name.trim() || profile.name.length > 60) throw new TypeError('El nombre del perfil importado no es válido.');
   if (profile.preferences !== undefined && (!profile.preferences || typeof profile.preferences !== 'object' || Array.isArray(profile.preferences))) throw new TypeError('Las preferencias del perfil no son válidas.');
 
+  const appearance = profile.preferences || {};
+  if (appearance.appearanceMode !== undefined && !APPEARANCE_MODES.includes(appearance.appearanceMode)) throw new TypeError('Modo de apariencia no válido.');
+  if (appearance.appearancePalette !== undefined && !APPEARANCE_PALETTES.includes(appearance.appearancePalette)) throw new TypeError('Paleta de apariencia no válida.');
+  if (appearance.appearanceColors !== undefined) {
+    const colors = appearance.appearanceColors;
+    if (!colors || typeof colors !== 'object' || Array.isArray(colors) ||
+      Object.keys(colors).some(key => !APPEARANCE_COLOR_KEYS.includes(key) || colors[key] !== '' && !hexColor(colors[key])))
+      throw new TypeError('Los colores personalizados no son válidos.');
+  }
+  if (appearance.appearancePalettes !== undefined) {
+    const values=appearance.appearancePalettes;
+    if (!values || typeof values!=='object' || Array.isArray(values) ||
+      Object.keys(values).some(mode=>!['light','dark'].includes(mode) || !APPEARANCE_PALETTES.includes(values[mode])))
+      throw new TypeError('Las paletas de cada modo no son válidas.');
+  }
+  if (appearance.appearanceColorsByMode !== undefined) {
+    const colors=appearance.appearanceColorsByMode;
+    if (!colors || typeof colors!=='object' || Array.isArray(colors) ||
+      Object.entries(colors).some(([mode,values])=>!['light','dark'].includes(mode) ||
+        !values || typeof values!=='object' || Array.isArray(values) ||
+        Object.entries(values).some(([key,value])=>!APPEARANCE_COLOR_KEYS.includes(key) || value!=='' && !hexColor(value))))
+      throw new TypeError('Los colores por modo no son válidos.');
+  }
+  if (appearance.appearanceDensity !== undefined && !APPEARANCE_DENSITIES.includes(appearance.appearanceDensity))
+    throw new TypeError('Densidad de interfaz no válida.');
+  if (appearance.appearanceRadius !== undefined && !APPEARANCE_RADII.includes(appearance.appearanceRadius))
+    throw new TypeError('Estilo de esquinas no válido.');
+  for (const [key, options] of [
+    ['appearanceIconMode', ICON_MODES],
+    ['appearanceIconVariant', ICON_VARIANTS],
+    ['appearanceIconTone', ICON_TONES],
+    ['appearanceIconBackground', ICON_BACKGROUNDS],
+    ['appearanceCardStyle', CARD_STYLES]
+  ]) {
+    if (appearance[key] !== undefined && !options.includes(appearance[key]))
+      throw new TypeError('Preferencia visual no válida: ' + key);
+  }
+  for (const key of ['appearanceIconColorsByMode','appearanceIconBackgroundColorsByMode']) {
+    if (appearance[key] !== undefined) {
+      const colors=appearance[key];
+      if (!colors || typeof colors !== 'object' || Array.isArray(colors) ||
+        Object.entries(colors).some(([mode,color])=> !['light','dark'].includes(mode) ||
+          (color !== '' && !hexColor(color))))
+        throw new TypeError('Los colores de iconos no son válidos.');
+    }
+  }
   const limits = { tasks: 10000, activities: 1000, goals: 1000, focusSessions: 10000 };
   const collections = ['tasks', 'activities', 'goals', 'focusSessions'];
   for (const key of collections) {
@@ -152,6 +269,33 @@ function validateImportedProfile(profile) {
         if (item.dueDate && !isValidDateKey(item.dueDate)) throw new TypeError('Un objetivo importado tiene una fecha inválida.');
       } else {
         if (!isValidTimestamp(item.startedAt) || !isValidTimestamp(item.endedAt) || !Number.isFinite(Number(item.durationSeconds)) || Number(item.durationSeconds) < 0) throw new TypeError('Una sesión Focus importada no es válida.');
+      }
+    }
+  }
+  normalizeIdeaBoards(profile.ideaBoards);
+  if (profile.dayTemplates !== undefined) {
+    if (!Array.isArray(profile.dayTemplates) || profile.dayTemplates.length > 100) throw new TypeError('La colección de plantillas no es válida.');
+    const templateIds = new Set();
+    for (const template of profile.dayTemplates) {
+      if (!template || typeof template.id !== 'string' || !template.id || templateIds.has(template.id) ||
+          typeof template.name !== 'string' || !template.name.trim() || template.name.length > 90 ||
+          !Array.isArray(template.entries) || template.entries.length < 1 || template.entries.length > 30 ||
+          !template.recurrence || !Array.isArray(template.recurrence.weekdays)) throw new TypeError('La plantilla de día no es válida.');
+      templateIds.add(template.id);
+      if (!template.recurrence.weekdays.length || template.recurrence.weekdays.some(day => !Number.isInteger(day) || day < 0 || day > 6) ||
+          (template.recurrence.startDate && !isValidDateKey(template.recurrence.startDate)) ||
+          (template.recurrence.endDate && !isValidDateKey(template.recurrence.endDate)) ||
+          (template.recurrence.startDate && template.recurrence.endDate && template.recurrence.endDate < template.recurrence.startDate) ||
+          !Array.isArray(template.recurrence.exceptions) ||
+          template.recurrence.exceptions.length > 500 ||
+          template.recurrence.exceptions.some(date => !isValidDateKey(date))) throw new TypeError('La recurrencia de plantilla no es válida.');
+      const entryIds = new Set();
+      for (const entry of template.entries) {
+        if (!entry || typeof entry.id !== 'string' || !entry.id || entryIds.has(entry.id) ||
+            typeof entry.title !== 'string' || !entry.title.trim() || entry.title.length > 140 ||
+            !isValidTimeKey(entry.startTime) || !entry.startTime || !isValidTimeKey(entry.endTime) ||
+            !entry.endTime || entry.endTime <= entry.startTime) throw new TypeError('La plantilla contiene un bloque inválido.');
+        entryIds.add(entry.id);
       }
     }
   }
@@ -294,6 +438,9 @@ function createTask(input) {
     reminderEnabled: input.reminderEnabled !== false,
     locked: Boolean(input.locked),
     activityId: input.activityId || null,
+    templateId: typeof input.templateId === 'string' && input.templateId ? input.templateId : null,
+    templateEntryId: typeof input.templateEntryId === 'string' && input.templateEntryId ? input.templateEntryId : null,
+    templateOccurrenceDate: typeof input.templateOccurrenceDate === 'string' && input.templateOccurrenceDate ? input.templateOccurrenceDate : null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     completedAt: null
@@ -460,16 +607,16 @@ function analyzeSchedule(profile, dateKey) {
     const dueB = b.dueDate || '9999-12-31';
     return dueA.localeCompare(dueB) ||
       (priorityRank[a.priority] ?? 1) - (priorityRank[b.priority] ?? 1) ||
-      clampNumber(a.estimatedMinutes, 5, 600, 30) - clampNumber(b.estimatedMinutes, 5, 600, 30) ||
+      clampNumber(a.estimatedMinutes, 5, 1440, 30) - clampNumber(b.estimatedMinutes, 5, 1440, 30) ||
       String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
   });
   const proposals = [];
   for (const task of eligible) {
-    const duration = clampNumber(task.estimatedMinutes, 5, 600, 30);
+    const duration = clampNumber(task.estimatedMinutes, 5, 1440, 30);
     let cursor = fromMinutes;
     let chosenStart = null;
     for (const slot of occupied) {
-      if (cursor + duration <= slot[0]) {
+      if (cursor + duration <= Math.min(slot[0], untilMinutes)) {
         chosenStart = cursor;
         break;
       }
@@ -515,6 +662,197 @@ function analyzeSchedule(profile, dateKey) {
 function suggestSchedule(profile, dateKey) {
   return analyzeSchedule(profile, dateKey).proposals;
 }
+
+const IDEA_BOARD_LIMITS = Object.freeze({ boards: 100, nodes: 2000, connections: 5000, coordinate: 1000000 });
+
+function validateIdeaBoard(board) {
+  const fail = message => { throw new TypeError('Pizarrón no válido: ' + message); };
+  const timestamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+  if (!board || typeof board !== 'object' || Array.isArray(board)) fail('se esperaba un objeto.');
+  if (typeof board.id !== 'string' || !board.id || board.id.length > 100) fail('el identificador no es válido.');
+  if (typeof board.title !== 'string' || !board.title.trim() || board.title.length > 100) fail('el nombre debe tener entre 1 y 100 caracteres.');
+  if (typeof board.description !== 'string' || board.description.length > 500) fail('la descripción no es válida.');
+  if (!timestamp(board.createdAt) || !timestamp(board.modifiedAt)) fail('las fechas de modificación no son válidas.');
+  const viewport = board.viewport;
+  if (!viewport || !Number.isFinite(viewport.x) || !Number.isFinite(viewport.y) || !Number.isFinite(viewport.zoom) ||
+      Math.abs(viewport.x) > IDEA_BOARD_LIMITS.coordinate || Math.abs(viewport.y) > IDEA_BOARD_LIMITS.coordinate ||
+      viewport.zoom < 0.1 || viewport.zoom > 4) fail('la vista del lienzo no es válida.');
+  if (!Array.isArray(board.nodes) || board.nodes.length > IDEA_BOARD_LIMITS.nodes) fail('la lista de elementos supera el límite permitido.');
+  if (!Array.isArray(board.connections) || board.connections.length > IDEA_BOARD_LIMITS.connections) fail('la lista de conexiones supera el límite permitido.');
+  const ids = new Set();
+  for (const node of board.nodes) {
+    if (!node || typeof node !== 'object' || Array.isArray(node) || typeof node.id !== 'string' || !node.id || ids.has(node.id)) fail('hay elementos con identificadores inválidos o repetidos.');
+    ids.add(node.id);
+    if (!['note', 'activity', 'group'].includes(node.type)) fail('hay un tipo de elemento desconocido.');
+    if (!Number.isFinite(node.x) || !Number.isFinite(node.y) || Math.abs(node.x) > IDEA_BOARD_LIMITS.coordinate || Math.abs(node.y) > IDEA_BOARD_LIMITS.coordinate) fail('hay posiciones fuera de los límites permitidos.');
+    if (!Number.isFinite(node.width) || !Number.isFinite(node.height) || node.width < 120 || node.width > 2000 || node.height < 80 || node.height > 2000) fail('hay dimensiones no válidas.');
+    if (typeof node.title !== 'string' || node.title.length > 160 || typeof node.body !== 'string' || node.body.length > 10000) fail('el contenido de una tarjeta no es válido.');
+    if (typeof node.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(node.color)) fail('hay un color no válido.');
+    if (typeof node.category !== 'string' || node.category.length > 50) fail('hay una categoría no válida.');
+    if (!timestamp(node.createdAt) || !timestamp(node.modifiedAt)) fail('hay fechas de elemento no válidas.');
+    if (node.type === 'activity') {
+      if (!isValidDateKey(node.startDate) || !isValidDateKey(node.dueDate)) fail('una actividad tiene una fecha no válida.');
+      if (node.startDate && node.dueDate && node.dueDate < node.startDate) fail('la fecha límite de una actividad no puede ser anterior a su inicio.');
+      if (!['pending', 'in-progress', 'done'].includes(node.status)) fail('una actividad tiene un estado no válido.');
+      if (!['low', 'medium', 'high'].includes(node.priority)) fail('una actividad tiene una prioridad no válida.');
+      if (!Number.isFinite(node.estimatedMinutes) || node.estimatedMinutes < 0 || node.estimatedMinutes > 1440) fail('la duración de una actividad no es válida.');
+    }
+    if (node.type === 'group') {
+      if (!Array.isArray(node.childrenIds) || node.childrenIds.length > IDEA_BOARD_LIMITS.nodes || new Set(node.childrenIds).size !== node.childrenIds.length || node.childrenIds.some(id => typeof id !== 'string' || !id)) fail('un grupo contiene referencias no válidas.');
+    }
+  }
+  const nodeById = new Map(board.nodes.map(node => [node.id, node]));
+  for (const node of board.nodes) {
+    if (node.type === 'group' && node.childrenIds.some(id => !nodeById.has(id) || id === node.id || nodeById.get(id).type === 'group')) fail('un grupo apunta a un elemento inexistente, a sí mismo o a otro grupo.');
+  }
+  const connectionIds = new Set();
+  for (const connection of board.connections) {
+    if (!connection || typeof connection !== 'object' || Array.isArray(connection) ||
+        typeof connection.id !== 'string' || !connection.id || connectionIds.has(connection.id) || ids.has(connection.id)) fail('hay conexiones con identificadores inválidos o repetidos.');
+    connectionIds.add(connection.id);
+    if (!ids.has(connection.from) || !ids.has(connection.to) || connection.from === connection.to) fail('una conexión apunta a elementos inexistentes o iguales.');
+    if (typeof connection.label !== 'string' || connection.label.length > 100) fail('la etiqueta de una conexión no es válida.');
+    if (!['straight', 'curved'].includes(connection.style)) fail('el estilo de una conexión no es válido.');
+    if (typeof connection.directed !== 'boolean') fail('la dirección de una conexión no es válida.');
+  }
+  return true;
+}
+
+function normalizeIdeaBoards(boards) {
+  if (boards === undefined || boards === null) return [];
+  if (!Array.isArray(boards)) throw new TypeError('La colección de pizarrones no es válida.');
+  if (boards.length > IDEA_BOARD_LIMITS.boards) throw new RangeError('Has alcanzado el máximo de pizarrones.');
+  const ids = new Set();
+  boards.forEach(board => {
+    validateIdeaBoard(board);
+    if (ids.has(board.id)) throw new TypeError('Hay pizarrones con identificadores repetidos.');
+    ids.add(board.id);
+  });
+  return boards;
+}
+
+function createIdeaBoardExport(board, exportedAt = new Date().toISOString()) {
+  validateIdeaBoard(board);
+  if (typeof exportedAt !== 'string' || !Number.isFinite(Date.parse(exportedAt))) {
+    throw new TypeError('La fecha de exportación no es válida.');
+  }
+  return {
+    format: 'oisym',
+    formatVersion: '1.0.0',
+    exportedAt,
+    board: JSON.parse(JSON.stringify(board))
+  };
+}
+
+function prepareIdeaBoardImport(payload, existingBoards = [], options = {}) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+      payload.format !== 'oisym' || payload.formatVersion !== '1.0.0' ||
+      !payload.board || typeof payload.board !== 'object' || Array.isArray(payload.board)) {
+    throw new TypeError('El archivo no es un pizarrón .oisym compatible.');
+  }
+  if (payload.exportedAt !== undefined && (typeof payload.exportedAt !== 'string' || !Number.isFinite(Date.parse(payload.exportedAt)))) {
+    throw new TypeError('La fecha de exportación del archivo no es válida.');
+  }
+  if (!Array.isArray(existingBoards)) throw new TypeError('La biblioteca actual no es válida.');
+  if (existingBoards.length >= IDEA_BOARD_LIMITS.boards) throw new RangeError('Has alcanzado el máximo de 100 pizarrones.');
+  const imported = JSON.parse(JSON.stringify(payload.board));
+  validateIdeaBoard(imported);
+  const makeUniqueId = typeof options.makeId === 'function' ? options.makeId : makeId;
+  const now = options.now || new Date().toISOString();
+  if (typeof now !== 'string' || !Number.isFinite(Date.parse(now))) throw new TypeError('La fecha de importación no es válida.');
+  const nodeIds = new Map(imported.nodes.map(node => [node.id, makeUniqueId('idea')]));
+  imported.id = makeUniqueId('board');
+  imported.nodes = imported.nodes.map(node => ({
+    ...node,
+    id: nodeIds.get(node.id),
+    ...(node.type === 'group' ? { childrenIds: node.childrenIds.map(childId => nodeIds.get(childId)) } : {})
+  }));
+  imported.connections = imported.connections.map(connection => ({
+    ...connection,
+    id: makeUniqueId('connection'),
+    from: nodeIds.get(connection.from),
+    to: nodeIds.get(connection.to)
+  }));
+  imported.createdAt = imported.modifiedAt = now;
+  const existingNames = new Set(existingBoards.map(board => String(board.title || '').toLocaleLowerCase('es')));
+  const baseTitle = imported.title;
+  let title = baseTitle;
+  let suffix = 2;
+  while (existingNames.has(title.toLocaleLowerCase('es'))) {
+    const ending = ' (' + suffix++ + ')';
+    title = baseTitle.slice(0, 100 - ending.length) + ending;
+  }
+  imported.title = title;
+  validateIdeaBoard(imported);
+  return imported;
+}
+
+function createIdeaBoard(input = {}) {
+  const now = new Date().toISOString();
+  const title = String(input.title || '').trim();
+  if (!title) throw new Error('Escribe un nombre para el pizarrón.');
+  const board = {
+    id: makeId('board'),
+    title: title.slice(0, 100),
+    description: String(input.description || '').trim().slice(0, 500),
+    createdAt: now,
+    modifiedAt: now,
+    viewport: { x: 0, y: 0, zoom: 1 },
+    nodes: [],
+    connections: []
+  };
+  validateIdeaBoard(board);
+  return board;
+}
+
+function createIdeaNode(type, input = {}) {
+  if (!['note', 'activity', 'group'].includes(type)) throw new Error('El tipo de elemento no es válido.');
+  const now = new Date().toISOString();
+  const node = {
+    id: makeId('idea'),
+    type,
+    x: clampNumber(input.x, -IDEA_BOARD_LIMITS.coordinate, IDEA_BOARD_LIMITS.coordinate, 0),
+    y: clampNumber(input.y, -IDEA_BOARD_LIMITS.coordinate, IDEA_BOARD_LIMITS.coordinate, 0),
+    width: clampNumber(input.width, 120, 2000, type === 'group' ? 420 : 260),
+    height: clampNumber(input.height, 80, 2000, type === 'group' ? 300 : 190),
+    title: String(input.title || (type === 'note' ? 'Nueva nota' : type === 'activity' ? 'Nueva actividad' : 'Nuevo grupo')).trim().slice(0, 160),
+    body: String(input.body || '').slice(0, 10000),
+    color: /^#[0-9a-f]{6}$/i.test(input.color || '') ? input.color : '#fff2bf',
+    category: String(input.category || '').trim().slice(0, 50),
+    createdAt: now,
+    modifiedAt: now
+  };
+  if (type === 'activity') Object.assign(node, {
+    startDate: input.startDate || '',
+    dueDate: input.dueDate || '',
+    status: ['pending', 'in-progress', 'done'].includes(input.status) ? input.status : 'pending',
+    priority: ['low', 'medium', 'high'].includes(input.priority) ? input.priority : 'medium',
+    estimatedMinutes: clampNumber(input.estimatedMinutes, 0, 1440, 0)
+  });
+  if (type === 'group') node.childrenIds = Array.isArray(input.childrenIds) ? [...new Set(input.childrenIds.filter(id => typeof id === 'string'))] : [];
+  validateIdeaNode(node);
+  return node;
+}
+
+function validateIdeaNode(node) {
+  const now = new Date().toISOString();
+  const board = {
+    id: 'validation-board', title: 'Validación', description: '', createdAt: now, modifiedAt: now,
+    viewport: { x: 0, y: 0, zoom: 1 }, nodes: [node.type === 'group' ? { ...node, childrenIds: [] } : node], connections: []
+  };
+  return validateIdeaBoard(board);
+}
+
+function updateIdeaNode(node, patch = {}) {
+  const next = { ...node, ...patch, modifiedAt: new Date().toISOString() };
+  if (patch.title !== undefined) { next.title = String(patch.title).trim().slice(0, 160); if (!next.title) throw new Error('El título no puede quedar vacío.'); }
+  if (patch.body !== undefined) next.body = String(patch.body).slice(0, 10000);
+  if (patch.category !== undefined) next.category = String(patch.category || '').trim().slice(0, 50);
+  if (patch.color !== undefined && !/^#[0-9a-f]{6}$/i.test(patch.color)) throw new Error('El color no es válido.');
+  validateIdeaNode(next);
+  return next;
+}
+
 function validateSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object' || snapshot.schemaVersion !== SCHEMA_VERSION) {
     throw new Error('El archivo no tiene una versión de O-Isym compatible.');
@@ -538,5 +876,5 @@ function validateSnapshot(snapshot) {
   return true;
 }
 
-return { SCHEMA_VERSION, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, validateImportedProfile, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
+return { SCHEMA_VERSION, IDEA_BOARD_LIMITS, AUTONOMY_MODES, AVATAR_IDS, THEME_IDS, APPEARANCE_MODES, APPEARANCE_PALETTES, normalizeAppearanceColors, FOCUS_ALARM_TONES, FOCUS_MUSIC_TRACKS, FOCUS_REMINDER_INTERVALS, makeId, localDate, shiftDate, createProfile, normalizeProfile, getAgeBand, getDefaultThemeForAge, clampNumber, normalizeActiveFocus, getSuggestedFocusMinutes, getFocusElapsedSeconds, getFocusRemainingSeconds, createFocusSession, validateImportedProfile, createActivity, updateActivity, createTask, updateTask, createGoal, updateGoal, createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard, normalizeIdeaBoards, createIdeaBoardExport, prepareIdeaBoardImport, getRecommendations, suggestSchedule, analyzeSchedule, validateSnapshot };
 });

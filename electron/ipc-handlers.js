@@ -20,31 +20,41 @@ function registerIpcHandlers({ ipcMain, BrowserWindow, storage, indexPath, focus
     }
   };
 
+  // Electron invoke rejections do not preserve custom Error properties such as code.
+  const storageResult = async operation => {
+    try { return { ok: true, value: await operation() }; }
+    catch (error) {
+      return { ok: false, error: { message: error.message || 'No se pudo acceder a los datos.', code: error.code || null } };
+    }
+  };
+
   ipcMain.handle('oisym:storage:read', async event => {
     assertTrusted(event);
-    return storage.read();
+    return storageResult(() => storage.read());
   });
 
   ipcMain.handle('oisym:storage:save', async (event, snapshot) => {
     assertTrusted(event);
-    const saved = await storage.save(snapshot);
-    if (taskNotifications) taskNotifications.scheduleSnapshot(saved);
-    return saved;
+    return storageResult(async () => {
+      const saved = await storage.save(snapshot);
+      if (taskNotifications) taskNotifications.scheduleSnapshot(saved);
+      return saved;
+    });
   });
 
   ipcMain.handle('oisym:storage:recovery:list', async event => {
     assertTrusted(event);
-    return storage.recovery.listBackups();
+    return storageResult(() => storage.recovery.listBackups());
   });
 
   ipcMain.handle('oisym:storage:recovery:overwrite', async event => {
     assertTrusted(event);
-    return storage.recovery.overwriteWithFreshData();
+    return storageResult(() => storage.recovery.overwriteWithFreshData());
   });
 
   ipcMain.handle('oisym:storage:recovery:restore', async (event, name) => {
     assertTrusted(event);
-    return storage.recovery.restoreBackup(name);
+    return storageResult(() => storage.recovery.restoreBackup(name));
   });
 
   ipcMain.handle('oisym:notifications:status', event => {

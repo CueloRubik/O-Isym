@@ -363,3 +363,177 @@ test('task notification preferences normalize safely and preserve legacy profile
   assert.equal(normalized.preferences.taskNotificationMissed, 'notify');
   assert.equal(normalized.preferences.launchAtLogin, false);
 });
+
+
+test('idea boards start empty and normalize older profiles without changing their data', () => {
+  const { createProfile, normalizeProfile } = require('../src/domain.js');
+  const fresh = createProfile('Ideas');
+  assert.deepEqual(fresh.ideaBoards, []);
+  const old = normalizeProfile({ id: 'old', name: 'Anterior', tasks: [], activities: [], goals: [] });
+  assert.deepEqual(old.ideaBoards, []);
+});
+
+test('idea board domain creates and validates notes, activities, and groups', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard, updateIdeaNode } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Proyecto', description: 'Plan inicial' });
+  const note = createIdeaNode('note', { title: 'Idea', x: 120, y: -80 });
+  const activity = createIdeaNode('activity', { title: 'Preparar entrega', dueDate: '2026-12-01', status: 'in-progress', priority: 'high' });
+  const group = createIdeaNode('group', { title: 'Investigación' });
+  board.nodes.push(note, activity, group);
+  group.childrenIds.push(note.id, activity.id);
+  assert.equal(validateIdeaBoard(board), true);
+  assert.throws(() => validateIdeaBoard({ ...board, nodes: [note, { ...activity, id: note.id }] }), /identificadores inválidos o repetidos/);
+  assert.equal(updateIdeaNode(note, { title: 'Idea revisada' }).title, 'Idea revisada');
+  assert.throws(() => updateIdeaNode(note, { title: ' ' }), /vacío/);
+});
+
+test('idea boards reject invalid dates, dangling links, duplicate IDs, and unsafe viewports', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Validación' });
+  const activity = createIdeaNode('activity', { title: 'Actividad' });
+  activity.dueDate = '2026-02-30';
+  board.nodes.push(activity);
+  assert.throws(() => validateIdeaBoard(board), /fecha no válida/);
+  board.nodes = [];
+  const note = createIdeaNode('note');
+  board.nodes.push(note);
+  board.connections.push({ id: 'edge-1', from: note.id, to: 'missing', label: '', style: 'curved', directed: false });
+  assert.throws(() => validateIdeaBoard(board), /inexistentes/);
+  board.connections = [];
+  board.viewport.zoom = 9;
+  assert.throws(() => validateIdeaBoard(board), /vista/);
+});
+
+test('imported profiles validate ideas board collections and reject malformed boards', () => {
+  const { createProfile, createIdeaBoard, validateImportedProfile } = require('../src/domain.js');
+  const profile = createProfile('Importación');
+  profile.ideaBoards.push(createIdeaBoard({ title: 'Tablero importado' }));
+  assert.equal(validateImportedProfile(profile), true);
+  profile.ideaBoards[0].nodes = [{ id: 'bad', type: 'unknown' }];
+  assert.throws(() => validateImportedProfile(profile), /Pizarrón no válido/);
+});
+
+
+test('idea board activities preserve editable planning fields and reject reversed dates', () => {
+  const { createIdeaBoard, createIdeaNode, updateIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Actividades' });
+  const activity = createIdeaNode('activity', {
+    title: 'Preparar presentación',
+    body: 'Reunir fuentes y organizar las diapositivas.',
+    startDate: '2026-11-10',
+    dueDate: '2026-11-14',
+    status: 'in-progress',
+    priority: 'high',
+    category: 'Escuela',
+    estimatedMinutes: 90
+  });
+  board.nodes.push(activity);
+  assert.equal(validateIdeaBoard(board), true);
+  const revised = updateIdeaNode(activity, {
+    startDate: '2026-11-11',
+    dueDate: '2026-11-15',
+    status: 'done',
+    priority: 'low',
+    category: 'Personal',
+    estimatedMinutes: 45
+  });
+  assert.equal(revised.status, 'done');
+  assert.equal(revised.priority, 'low');
+  assert.equal(revised.category, 'Personal');
+  assert.equal(revised.estimatedMinutes, 45);
+  assert.throws(() => updateIdeaNode(activity, { startDate: '2026-11-16' }), /anterior a su inicio/);
+  assert.throws(() => updateIdeaNode(activity, { estimatedMinutes: 1500 }), /duración/);
+});
+
+
+test('idea board connections require distinct existing endpoints and valid metadata', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Mapa de ideas' });
+  const first = createIdeaNode('note', { title: 'Pregunta' });
+  const second = createIdeaNode('activity', { title: 'Investigar' });
+  board.nodes.push(first, second);
+  const connection = {
+    id: 'connection-test-1',
+    from: first.id,
+    to: second.id,
+    label: 'Se relaciona con',
+    style: 'straight',
+    directed: true
+  };
+  board.connections.push(connection);
+  assert.equal(validateIdeaBoard(board), true);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, to: 'missing-node' }] }), /elementos inexistentes/);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, to: first.id }] }), /elementos inexistentes o iguales/);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, label: 'x'.repeat(101) }] }), /etiqueta de una conexión/);
+  assert.throws(() => validateIdeaBoard({ ...board, connections: [{ ...connection, directed: 'yes' }] }), /dirección de una conexión/);
+});
+
+
+test('idea groups reject missing and nested group references', () => {
+  const { createIdeaBoard, createIdeaNode, validateIdeaBoard } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Grupos' });
+  const note = createIdeaNode('note');
+  const group = createIdeaNode('group', { childrenIds: [note.id] });
+  board.nodes.push(note, group);
+  assert.equal(validateIdeaBoard(board), true);
+  assert.throws(() => validateIdeaBoard({ ...board, nodes: [group] }), /inexistente/);
+  const nested = createIdeaNode('group', { childrenIds: [group.id] });
+  assert.throws(() => validateIdeaBoard({ ...board, nodes: [note, group, nested] }), /otro grupo/);
+});
+
+
+test('idea board export creates a versioned portable file without exposing unrelated data', () => {
+  const { createIdeaBoard, createIdeaNode, createIdeaBoardExport } = require('../src/domain.js');
+  const board = createIdeaBoard({ title: 'Proyecto portátil', description: 'Descripción' });
+  board.nodes.push(createIdeaNode('note', { title: 'Una idea' }));
+  const payload = createIdeaBoardExport(board, '2026-11-08T12:00:00.000Z');
+  assert.equal(payload.format, 'oisym');
+  assert.equal(payload.formatVersion, '1.0.0');
+  assert.equal(payload.exportedAt, '2026-11-08T12:00:00.000Z');
+  assert.deepEqual(payload.board, board);
+  assert.notEqual(payload.board, board);
+  assert.throws(() => createIdeaBoardExport(board, 'fecha inválida'), /fecha de exportación/);
+});
+
+test('idea board import regenerates every id and preserves internal references', () => {
+  const { createIdeaBoard, createIdeaNode, createIdeaBoardExport, prepareIdeaBoardImport } = require('../src/domain.js');
+  const source = createIdeaBoard({ title: 'Mapa compartido' });
+  const note = createIdeaNode('note', { title: 'Pregunta' });
+  const activity = createIdeaNode('activity', { title: 'Investigar' });
+  const group = createIdeaNode('group', { title: 'Grupo', childrenIds: [note.id, activity.id] });
+  source.nodes.push(note, activity, group);
+  source.connections.push({ id: 'edge-original', from: note.id, to: activity.id, label: 'Relacionado', style: 'curved', directed: true });
+  const payload = createIdeaBoardExport(source, '2026-11-08T12:00:00.000Z');
+  let nextId = 0;
+  const imported = prepareIdeaBoardImport(payload, [], {
+    now: '2026-11-09T12:00:00.000Z',
+    makeId: prefix => prefix + '-fresh-' + (++nextId)
+  });
+  assert.notEqual(imported.id, source.id);
+  assert.ok(imported.nodes.every(node => !source.nodes.some(original => original.id === node.id)));
+  assert.ok(imported.connections.every(connection => connection.id !== 'edge-original'));
+  const importedNote = imported.nodes.find(node => node.title === 'Pregunta');
+  const importedActivity = imported.nodes.find(node => node.title === 'Investigar');
+  const importedGroup = imported.nodes.find(node => node.type === 'group');
+  assert.deepEqual(importedGroup.childrenIds, [importedNote.id, importedActivity.id]);
+  assert.equal(imported.connections[0].from, importedNote.id);
+  assert.equal(imported.connections[0].to, importedActivity.id);
+  assert.equal(imported.createdAt, '2026-11-09T12:00:00.000Z');
+  assert.equal(imported.modifiedAt, '2026-11-09T12:00:00.000Z');
+  assert.equal(imported.title, source.title);
+});
+
+test('idea board import avoids name collisions and rejects unsupported or malformed files', () => {
+  const { createIdeaBoard, createIdeaBoardExport, prepareIdeaBoardImport } = require('../src/domain.js');
+  const source = createIdeaBoard({ title: 'Proyecto' });
+  const payload = createIdeaBoardExport(source);
+  let nextId = 0;
+  const options = { makeId: prefix => prefix + '-collision-' + (++nextId), now: '2026-11-09T12:00:00.000Z' };
+  const existing = [createIdeaBoard({ title: 'Proyecto' }), createIdeaBoard({ title: 'Proyecto (2)' })];
+  const imported = prepareIdeaBoardImport(payload, existing, options);
+  assert.equal(imported.title, 'Proyecto (3)');
+  assert.throws(() => prepareIdeaBoardImport({ ...payload, formatVersion: '2.0.0' }), /compatible/);
+  assert.throws(() => prepareIdeaBoardImport({ ...payload, exportedAt: 'no-es-fecha' }), /fecha de exportación/);
+  assert.throws(() => prepareIdeaBoardImport({ ...payload, board: { ...source, nodes: [{ id: 'bad', type: 'unknown' }] } }), /Pizarrón no válido/);
+  assert.throws(() => prepareIdeaBoardImport(payload, Array(100).fill(existing[0])), /máximo de 100/);
+});
