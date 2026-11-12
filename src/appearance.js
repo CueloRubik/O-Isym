@@ -1,0 +1,136 @@
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.OIsymAppearance = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : window, function () {
+  'use strict';
+  // Each palette works in both light and dark mode. These are color schemes,
+  // not copies of tasks, profile data or preference collections.
+  const PALETTES = [
+    { id: 'forest', name: 'Bosque', light: '#27856b', dark: '#74d9b3', base: '#15251e' },
+    { id: 'ocean', name: 'Océano', light: '#236da8', dark: '#75baff', base: '#121f35' },
+    { id: 'midnight', name: 'Medianoche', light: '#39578a', dark: '#95b7ff', base: '#121827' },
+    { id: 'aurora', name: 'Aurora', light: '#168c86', dark: '#6de0d6', base: '#11292c' },
+    { id: 'orchid', name: 'Orquídea', light: '#8054af', dark: '#c5a0f5', base: '#26182d' },
+    { id: 'lavender', name: 'Lavanda', light: '#6c6cae', dark: '#b4b8ff', base: '#202036' },
+    { id: 'rose', name: 'Rosa', light: '#b45180', dark: '#f7a3ca', base: '#2b1a26' },
+    { id: 'ember', name: 'Cobre', light: '#ac5c33', dark: '#f5ae7a', base: '#291e19' },
+    { id: 'sand', name: 'Arena', light: '#91652f', dark: '#e8c080', base: '#29251c' },
+    { id: 'citrus', name: 'Lima', light: '#547b26', dark: '#b4dc70', base: '#1c2719' },
+    { id: 'slate', name: 'Pizarra', light: '#526d83', dark: '#acc6da', base: '#17232c' },
+    { id: 'graphite', name: 'Grafito', light: '#525c70', dark: '#b9c5de', base: '#181c24' },
+    { id: 'cobalt', name: 'Cobalto', light: '#365ab2', dark: '#9fb7ff', base: '#17203d' },
+    { id: 'sage', name: 'Salvia', light: '#4a8068', dark: '#a2d4b5', base: '#182a24' },
+    { id: 'coral', name: 'Coral', light: '#b35454', dark: '#ffaaa2', base: '#322025' },
+    { id: 'amber', name: 'Ámbar', light: '#977122', dark: '#f1cd73', base: '#31291a' },
+    { id: 'plum', name: 'Ciruela', light: '#80456c', dark: '#e3a3cc', base: '#2c1b2c' },
+    { id: 'glacier', name: 'Glaciar', light: '#347f9e', dark: '#87d4ee', base: '#152733' }
+  ];
+  const findPalette = id => PALETTES.find(p => p.id === id) || PALETTES[0];
+  const validHex = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+  const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const hex = values => '#' + values.map(value => Math.round(Math.min(255, Math.max(0, value))).toString(16).padStart(2, '0')).join('');
+  const blend = (a, b, weight = .5) => hex(rgb(a).map((v, i) => v * (1 - weight) + rgb(b)[i] * weight));
+  const luminance = value => {
+    const channels = rgb(value).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4));
+    return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+  };
+  const contrast = (a, b) => {
+    const one = luminance(a), two = luminance(b);
+    return (Math.max(one, two) + .05) / (Math.min(one, two) + .05);
+  };
+  // Black or white always provides at least 4.5:1 on an opaque sRGB color.
+  const chooseText = background => contrast(background, '#ffffff') >= contrast(background, '#000000') ? '#ffffff' : '#000000';
+  const readable = (desired, background, lightText, darkText, ratio = 4.5) => {
+    if (validHex(desired) && contrast(desired, background) >= ratio) return desired;
+    const light = lightText || '#f5f8fb', dark = darkText || '#132432';
+    const preferred = contrast(light, background) >= contrast(dark, background) ? light : dark;
+    return contrast(preferred, background) >= ratio ? preferred : chooseText(background);
+  };
+  const makeTokens = (preferences = {}, systemDark = false) => {
+    const mode = ['light', 'dark', 'system'].includes(preferences.appearanceMode) ? preferences.appearanceMode : 'light';
+    const dark = mode === 'dark' || mode === 'system' && Boolean(systemDark);
+    const scheme = dark ? 'dark' : 'light';
+    const palette = findPalette(preferences.appearancePalettes?.[scheme] || preferences.appearancePalette);
+    const custom = preferences.appearanceColorsByMode?.[scheme] || preferences.appearanceColors || {};
+    const override = (field, fallback) => validHex(custom[field]) ? custom[field].toLowerCase() : fallback;
+    const pageBase = dark ? blend(palette.base, '#080e19', .28) : blend('#f6f9fc', palette.light, .028);
+    const page = override('page', pageBase);
+    const surface = override('surface', dark ? blend(palette.base, '#263444', .34) : '#ffffff');
+    const text = readable(custom.text, surface, '#f5f8fb', '#172735');
+    const contrastAdjusted = validHex(custom.text) && text.toLowerCase() !== custom.text.toLowerCase();
+    const accent = override('accent', dark ? palette.dark : palette.light);
+    const accentText = chooseText(accent);
+    const emphasis = readable(accent, surface, '#f5f8fb', '#203447');
+    const soft = blend(surface, accent, dark ? .19 : .115);
+    const line = override('border',blend(surface, text, dark ? .20 : .115));
+    const muted = readable(custom.muted || blend(text, surface, dark ? .27 : .35), surface, '#d1e0ed', '#4c5d6e', 4.5);
+    const alt = blend(surface, page, .46);
+    const nav = override('sidebar',blend(surface, page, dark ? .48 : .40));
+    const sidebarText = readable(text,nav,'#f5f8fb','#172735',4.5);
+    const sidebarMuted = readable(blend(sidebarText,nav,.23),nav,'#d0dbe6','#405268',4.5);
+    const sidebarActive=blend(nav,accent,dark?.26:.15);
+    const sidebarActiveText=readable(sidebarText,sidebarActive,'#f5f8fb','#172735',4.5);
+    const sidebarHover=blend(nav,accent,dark?.10:.065);
+    const field=override('field',surface);
+    const fieldText=readable(text,field,'#f5f8fb','#172735',4.5);
+    const hover = blend(surface, accent, dark ? .11 : .065);
+    const iconTone = ['automatic','accent','custom'].includes(preferences.appearanceIconTone)
+      ? preferences.appearanceIconTone : 'automatic';
+    const requestedIcon = preferences.appearanceIconColorsByMode?.[scheme];
+    const requestedIconTile = preferences.appearanceIconBackgroundColorsByMode?.[scheme];
+    const iconSource = iconTone === 'custom' && validHex(requestedIcon) ? requestedIcon : accent;
+    const iconColor = readable(iconSource,surface,'#f5f8fb','#172735',4.5);
+    const navIconColor = readable(iconSource,nav,'#f5f8fb','#172735',4.5);
+    const iconTile = validHex(requestedIconTile) ? requestedIconTile : blend(surface,iconSource,dark?.24:.13);
+    const navIconTile = validHex(requestedIconTile) ? requestedIconTile : blend(nav,iconSource,dark?.25:.17);
+    const iconTileColor = readable(iconSource,iconTile,'#f5f8fb','#172735',4.5);
+    const navIconTileColor = readable(iconSource,navIconTile,'#f5f8fb','#172735',4.5);
+    return {
+      dark, mode, palette: palette.id, contrastAdjusted,
+      vars: {
+        '--page': page, '--surface': surface, '--surface-soft': alt, '--text': text,
+        '--muted': muted, '--line': line,
+        '--accent': accent, '--accent-dark': emphasis, '--accent-soft': soft,
+        '--blue': blend(surface, dark ? '#4c8dc3' : '#7ba9e9', dark ? .21 : .17),
+        '--warning': dark ? '#e6b06b' : '#926122',
+        '--danger': dark ? '#f09297' : '#b3424b',
+        '--shadow': dark ? '0 8px 28px rgba(0, 0, 0, .20)' : '0 8px 28px rgba(40, 72, 58, .055)',
+        '--workspace-ink': text, '--workspace-muted': muted,
+        '--workspace-border': line, '--workspace-backdrop': page,
+        '--workspace-shadow': dark ? '0 5px 20px rgba(0,0,0,.17)' : '0 4px 22px rgba(35,68,97,.045)',
+        '--ui-accent-text': accentText, '--ui-icon-filter': accentText === '#ffffff' ? 'brightness(0) invert(1)' : 'brightness(0)',
+        // Preserve the colorful icon artwork in light schemes. Dark panels
+        // need a monochrome, readable treatment.
+        '--ui-content-icon-filter': chooseText(surface) === '#ffffff' ? 'brightness(0) invert(.92)' : 'none',
+        '--ui-navigation': nav, '--ui-sidebar': nav, '--ui-sidebar-text': sidebarText,
+        '--ui-sidebar-muted': sidebarMuted, '--ui-sidebar-active':sidebarActive,
+        '--ui-sidebar-active-text':sidebarActiveText,'--ui-sidebar-hover':sidebarHover,
+        '--ui-field': field, '--ui-field-text':fieldText,
+        '--ui-input-placeholder': readable(blend(fieldText,field,.26),field,'#c6d6e2','#5a6476',4.5),
+        '--ui-hover': hover, '--ui-tile': alt,
+        '--ui-icon-color': iconColor, '--ui-nav-icon-color': navIconColor,
+        '--ui-icon-tile': iconTile, '--ui-nav-icon-tile': navIconTile,
+        '--ui-icon-tile-ink':iconTileColor, '--ui-nav-icon-tile-ink':navIconTileColor,
+        '--ui-accent-contrast': emphasis, '--ui-contrast-border': line
+      }
+    };
+  };
+  function apply(target, documentRoot, preferences, systemDark) {
+    const result = makeTokens(preferences, systemDark);
+    for (const el of [documentRoot, target]) {
+      if (!el) continue;
+      for (const [name, value] of Object.entries(result.vars)) el.style.setProperty(name, value);
+      el.dataset.scheme = result.dark ? 'dark' : 'light';
+      el.dataset.density = preferences.appearanceDensity === 'compact' ? 'compact' : 'comfortable';
+      el.dataset.radius = ['soft','rounded','square'].includes(preferences.appearanceRadius) ? preferences.appearanceRadius : 'soft';
+      el.dataset.iconMode = ['vector','image','none'].includes(preferences.appearanceIconMode) ? preferences.appearanceIconMode : 'vector';
+      el.dataset.iconVariant = ['outline','bold','duotone','filled'].includes(preferences.appearanceIconVariant) ? preferences.appearanceIconVariant : 'outline';
+      el.dataset.iconTone = ['automatic','accent','custom'].includes(preferences.appearanceIconTone) ? preferences.appearanceIconTone : 'automatic';
+      el.dataset.iconBackground = ['none','soft','filled'].includes(preferences.appearanceIconBackground) ? preferences.appearanceIconBackground : 'none';
+      el.dataset.cardStyle = ['elevated','soft','outlined'].includes(preferences.appearanceCardStyle) ? preferences.appearanceCardStyle : 'elevated';
+      el.style.colorScheme = result.dark ? 'dark' : 'light';
+    }
+    return result;
+  }
+  return { PALETTES, findPalette, validHex, contrast, makeTokens, apply };
+});

@@ -1,6 +1,6 @@
 {
   "name": "o-isym",
-  "version": "5.0.0",
+  "version": "1.1.0",
   "description": "O-Isym — sistema personal de organización y planificación",
   "main": "electron/main.js",
   "private": true,
@@ -8,14 +8,17 @@
     "start": "electron .",
     "dev": "electron .",
     "test": "node --test",
-    "build:mac": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto. Coloca ahí tu icono y vuelve a ejecutar npm run build:mac.'); process.exit(1); }\" && electron-builder --mac dmg --x64",
-    "build:mac:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto. Coloca ahí tu icono y vuelve a ejecutar npm run build:mac:dir.'); process.exit(1); }\" && electron-builder --mac dir --x64",
-    "build:mac:universal": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto. Coloca ahí tu icono y vuelve a ejecutar npm run build:mac:universal.'); process.exit(1); }\" && electron-builder --mac dmg --universal",
-    "build:mac:universal:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto. Coloca ahí tu icono y vuelve a ejecutar npm run build:mac:universal:dir.'); process.exit(1); }\" && electron-builder --mac dir --universal"
+    "build:mac": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dmg --x64",
+    "build:mac:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dir --x64",
+    "build:mac:universal": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dmg --universal",
+    "build:mac:universal:dir": "node -e \"if (!require('node:fs').existsSync('app.icns')) { console.error('Falta app.icns en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --mac dir --universal",
+    "build:win": "node -e \"if (!require('node:fs').existsSync('app.ico')) { console.error('Falta app.ico en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --win nsis --x64",
+    "build:win:portable": "node -e \"if (!require('node:fs').existsSync('app.ico')) { console.error('Falta app.ico en la raíz del proyecto.'); process.exit(1); }\" && electron-builder --win portable --x64"
   },
   "devDependencies": {
     "electron": "28.3.3",
-    "electron-builder": "24.13.3"
+    "electron-builder": "24.13.3",
+    "jsdom": "22.1.0"
   },
   "build": {
     "appId": "com.oisym.app",
@@ -40,6 +43,17 @@
         }
       ],
       "hardenedRuntime": false
+    },
+    "win": {
+      "icon": "app.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     }
   }
 }

@@ -1,71 +1,52 @@
-# O-Isym 5
+# O-Isym
 
-O-Isym es un espacio personal para organizar tareas, actividades, calendario, planificación y concentración. La construcción principal se realiza en \`oisym-5-development\`; \`main\` permanece separada.
+O-Isym es una aplicación de organización personal con perfiles, tareas, calendario, actividades, metas, Focus y pizarrones de ideas.
 
-## Instalar y ejecutar
+## Estado del repositorio
 
-Requisitos: Node.js 18.x, npm 10.x y Electron 28.3.3 (instalado con npm).
+- **`development`**: base de código en desarrollo, compartida por macOS y Windows.
+- **`main`**: todavía conserva documentación de una organización anterior; está pendiente su migración controlada a rama estable de código.
+- **`oisym-website`**: página de descargas, desplegada por separado.
+- **`oisym-mac-intel`, `oisym-mac-universal`, `oisym-windows`**: instantáneas sincronizadas con `development` a petición del proyecto; conservan los recursos y ajustes propios de cada plataforma. El desarrollo compartido continúa en `development`. Consulta [el alcance de esta sincronización](docs/PLATFORM-SYNC.md).
 
-\`\`\`bash
-npm install
+Consulta [la estrategia de Releases](docs/RELEASE-STRATEGY.md) antes de fusionar ramas o publicar una versión.
+
+## Instalar y probar
+
+Node.js 18.x y npm. Instala desde la raíz del proyecto:
+
+```bash
+npm ci
 npm test
 npm start
-\`\`\`
-
-## Crear la aplicación para macOS
-
-La build está preparada para macOS Intel (x64), incluido el MacBook Pro Intel. Antes de compilar, coloca tu archivo **`app.icns`** directamente en la raíz del proyecto, al mismo nivel que `package.json`. No hace falta añadirlo al repositorio: Git lo ignora, pero el empaquetador lo encuentra en tu copia local.
-
-Desde la carpeta del proyecto, ejecuta:
-
-```bash
-npm install
-npm run build:mac
 ```
 
-El resultado será un instalador **`O-Isym-5.0.0.dmg`** dentro de `dist/`. El icono de la aplicación se toma de `app.icns`. Si el archivo no está en la raíz, el comando se detiene y muestra un aviso claro en lugar de generar una aplicación sin el icono esperado.
+## Compilar desde el mismo código
 
-Para generar solamente la carpeta de la aplicación sin crear el DMG:
+Los instaladores se crean desde esta misma rama. Los iconos deben estar disponibles localmente en la raíz: `app.icns` para macOS y `app.ico` para Windows.
 
-```bash
-npm run build:mac:dir
-```
+| Destino | Comando |
+| --- | --- |
+| Mac Intel x64 | `npm run build:mac` |
+| Mac universal (Intel y Apple Silicon) | `npm run build:mac:universal` |
+| Windows x64 NSIS | `npm run build:win` |
+| Windows x64 portable | `npm run build:win:portable` |
 
-La compilación de DMG para macOS debe ejecutarse en macOS. Esta configuración apunta a Intel x64; no cambia la versión de Electron ni las dependencias de ejecución de la aplicación. La aplicación usa firma local *ad-hoc* (sin certificado de Apple Developer ni notarización) para habilitar las notificaciones nativas de macOS en una instalación local. macOS puede seguir mostrando una advertencia de seguridad al abrirla por primera vez; esta firma no convierte el DMG en una distribución notarizada.
+Las compilaciones se guardan en `dist/`. La existencia de un comando **no certifica** que el instalador haya pasado pruebas. Windows requiere validar el error anterior de permisos de winCodeSign. Para macOS, compilar en Mac; para Windows, preferir un runner Windows. La compilación universal y las notificaciones requieren validación en los dispositivos destino.
 
-## Funciones implementadas en esta versión de desarrollo
+## Desarrollo y recursos
 
-- Perfiles independientes y preferencias por perfil.
-- Catálogo de actividades reutilizables.
-- Tareas con prioridad, fechas, horarios visibles, duración, notas, estado, bloqueo y recordatorios individuales.
-- Panel Hoy, calendario mensual y agenda diaria.
-- Planificador con propuestas de horarios; no modifica compromisos bloqueados.
-- Temporizador Focus con pausa, reanudación e historial persistente.
-- Alarmas configurables de Focus y recordatorios nativos de tareas, programados en el proceso principal y persistentes mientras O-Isym permanece en segundo plano.
-- Icono de la propia aplicación O-Isym en la barra de menús de macOS. Al entrar por primera vez al Planificador, ofrece activarse al iniciar sesión; cerrar la ventana la oculta sin detener recordatorios. La app debe permanecer ejecutándose en segundo plano: salir por completo detiene los avisos.
-- Objetivos con progreso e Insights semanales.
-- Recomendaciones locales, configurables y descartables.
-- Exportación e importación de copias JSON.
-- Importación opcional de registros del prototipo sin borrar el localStorage original.
+- `electron/`: proceso principal, almacenamiento, IPC y notificaciones.
+- `src/`: interfaz, reglas de aplicación y Focus.
+- `assets/avatars/`: avatares.
+- `assets/icons/`: iconos de navegación, acciones e ideas.
+- `assets/audio/`: música y alarmas.
+- `tests/`: pruebas.
+- `docs/`: documentación funcional y técnica.
+- `docs/RELEASE-STRATEGY.md`: ramas, instaladores y publicación.
 
-## Datos y seguridad
+La aplicación guarda datos localmente y mantiene copias de respaldo. Antes de probar instaladores nuevos, exporta una copia de tus datos.
 
-Los datos nuevos se guardan en el directorio de usuario de Electron, en \`oisym-data.json\`, con copias de seguridad rotativas. El renderer no tiene acceso directo a Node.js. El almacenamiento valida el esquema y protege archivos dañados. La aplicación no envía datos a servicios externos. Los recordatorios se calculan localmente; en macOS usan el sonido de sistema «Ping» cuando el sonido está activado. macOS debe permitir las notificaciones de O-Isym. La opción de inicio automático depende de que macOS acepte el elemento de inicio de sesión; la compilación local ad-hoc puede tener restricciones frente a una app firmada y notarizada. Salir por completo desde el menú de la barra detiene los recordatorios hasta que la app vuelva a iniciarse.
+## Descargas públicas
 
-La importación del prototipo es manual y no elimina sus claves antiguas. Exporta una copia antes de importar archivos externos.
-
-## Desarrollo
-
-- \`electron/\`: proceso principal, preload, IPC y almacenamiento.
-- \`src/domain.js\`: modelos y reglas de dominio.
-- \`src/app.js\`: interfaz y flujos de aplicación.
-- \`src/styles/app.css\`: sistema visual.
-- \`assets/avatars/\`: avatares de perfiles.
-- \`assets/icons/\`: iconografía de navegación, Focus, tareas e interfaz; incluye un catálogo en \`assets/icons/README.md\`.
-- \`assets/audio/\`: música y sonidos de Focus.
-- \`tests/\`: pruebas automatizadas.
-- `docs/INDEX.md`: índice de documentación.
-- `docs/QUALITY_AUDIT_OISYM_5.md`: auditoría técnica vigente, errores resueltos, riesgos y prioridades.
-- `docs/ROADMAP_OISYM_5.md`: hoja de ruta de producto.
-
-Los archivos antiguos de \`src/scripts/\` se conservan como referencia y ya no se cargan desde la nueva interfaz.
+La página de O-Isym está en https://polite-caramel-67d540.netlify.app/ . Las nuevas versiones deben publicarse mediante una GitHub Release con instaladores comprobados; solo entonces se actualizan los enlaces del sitio. No anunciar una versión de `development` como estable.

@@ -1,19 +1,33 @@
-# Documentación de O-Isym 5
+# Documentación de O-Isym
 
-La rama de desarrollo es `oisym-5-development`. La rama `main` se mantiene separada.
+## Organización y distribución
 
-## Documentos vigentes
+- [Estrategia de ramas, compilaciones y Releases](RELEASE-STRATEGY.md) — fuente actual para las ramas `development` y futura `main`, builds multiplataforma y página oficial.
 
-- [Auditoría técnica, registro de errores y prioridades](QUALITY_AUDIT_OISYM_5.md) — documento principal y fuente vigente para riesgos, correcciones, pruebas y backlog.
-- [Hoja de ruta](ROADMAP_OISYM_5.md) — estado de producto y orden recomendado de trabajo.
-- [Especificación de perfiles e interfaz](PROFILE_AND_UI_SPEC_OISYM_5.md) — comportamiento esperado de perfiles y pantallas.
-- [Auditoría inicial](INITIAL_AUDIT.md) — registro histórico de la primera reconstrucción; no sustituye la auditoría técnica vigente.
+## Próxima etapa de producto
+
+- [Organización Unificada: planificación diaria y calendario avanzado](UNIFIED-PLANNING.md) — especificación y bloques de trabajo.
+- [Implementación de Organización Unificada](UNIFIED-PLANNING-IMPLEMENTATION.md) — arquitectura incorporada en `development`, validación automatizada y lista de comprobaciones en Catalina.
+- [Rediseño del espacio de trabajo y ventanas](UNIFIED-UI-REDESIGN.md) — navegación, calendario visual, paneles laterales y pruebas de la nueva interfaz.
+- [Temas claros, oscuros y colores personalizados](APPEARANCE-SYSTEM.md) — paletas por perfil, vista previa, contraste y compatibilidad.
+- [Auditoría de superficies, bordes y espaciado](UI-SURFACE-AUDIT.md) — relieve, esquinas configurables, márgenes interiores y excepciones del lienzo.
+
+## Desarrollo y revisión
+
+- [Correcciones de la revisión del 11 de noviembre de 2026](AUDIT-FIXES-2026-11-11.md) — recuperación, instancia única, Focus, recordatorios y límites del planificador.
+- [Auditoría técnica y prioridades](QUALITY_AUDIT_OISYM_5.md).
+- [Hoja de ruta del producto](ROADMAP_OISYM_5.md).
+- [Especificaciones de perfiles e interfaz](PROFILE_AND_UI_SPEC_OISYM_5.md).
+- [Plan de implementación de pizarrones](IDEAS-PLANNER-IMPLEMENTATION.md).
+- [Formato de archivos .oisym](OISYM-FILE-FORMAT.md).
+- [Revisión de pizarrones](PIZARRONES-REVISION.md).
+- [Auditoría inicial (histórica)](INITIAL_AUDIT.md).
 
 ## Convenciones
 
-- **Resuelto:** corrección incorporada y acompañada de prueba cuando es viable.
-- **Confirmado / pendiente:** comportamiento reproducible o visible en el código que todavía no se corrige.
-- **Por verificar:** sospecha que necesita reproducción antes de llamarse error.
-- **Mejora:** trabajo de calidad que no implica que la función actual esté rota.
+- **Resuelto:** incorporado y acompañado de prueba cuando es viable.
+- **Confirmado / pendiente:** reproducido o visible en el código y todavía sin corregir.
+- **Por verificar:** necesita reproducción.
+- **Mejora:** oportunidad de calidad sin implicar un error existente.
 
-No se deben borrar hallazgos resueltos: se conservan en el historial para conocer qué se arregló y evitar repetir trabajo.
+Conservar el historial de hallazgos y no confundir código en desarrollo con instaladores listos para distribuir.
