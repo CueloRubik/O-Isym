@@ -11,11 +11,24 @@ function run(exe,args,cwd=mobile){
 }
 function node(script,args=[]){run(process.execPath,[script,...args]);}
 function javaHome(){
- if(process.env.JAVA_HOME && fs.existsSync(path.join(process.env.JAVA_HOME,'bin','java.exe')))return;
- if(process.platform==='win32'){
-  const studio=path.join(process.env.ProgramFiles||'C:/Program Files','Android','Android Studio','jbr');
-  if(fs.existsSync(path.join(studio,'bin','java.exe')))process.env.JAVA_HOME=studio;
+ const roots=process.platform==='win32'
+  ? [path.join(process.env.ProgramFiles||'C:/Program Files','Eclipse Adoptium'),path.join(process.env.LOCALAPPDATA||'','Programs','Eclipse Adoptium')]
+  : [];
+ const candidates=[process.env.JAVA_HOME];
+ for(const directory of roots)if(fs.existsSync(directory))for(const item of fs.readdirSync(directory))if(item.startsWith('jdk-21'))candidates.push(path.join(directory,item));
+ if(process.platform==='win32')candidates.push(path.join(process.env.ProgramFiles||'C:/Program Files','Android','Android Studio','jbr'));
+ for(const candidate of candidates.filter(Boolean)){
+  const executable=path.join(candidate,'bin',process.platform==='win32'?'java.exe':'java');
+  if(!fs.existsSync(executable))continue;
+  const check=spawnSync(executable,['-version'],{encoding:'utf8'});
+  const match=((check.stderr||'')+(check.stdout||'')).match(/version "([0-9]+)/);
+  if(match && Number(match[1])===21){process.env.JAVA_HOME=candidate;return true;}
  }
+ if(process.platform!=='win32'){
+  const check=spawnSync('java',['-version'],{encoding:'utf8'});
+  if(/version "21[."]/.test((check.stderr||'')+(check.stdout||'')))return true;
+ }
+ return false;
 }
 function copy(from,to){fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(from,to);}
 async function buildWeb(){
@@ -46,14 +59,15 @@ function installNative(){
 }
 (async()=>{
  if(!['web','sync','open','debug','install','doctor'].includes(mode))throw Error('Modo Android desconocido.');
- javaHome();
+ const javaReady=javaHome();
  if(mode==='doctor'){
   console.log('Node: '+process.version);
-  console.log('JAVA_HOME: '+(process.env.JAVA_HOME||'sin configurar'));
+  console.log('Java 21: '+(javaReady?(process.env.JAVA_HOME||'disponible en PATH'):'no encontrado; instala Temurin 21 antes de compilar'));
   console.log('SDK: '+(process.env.ANDROID_HOME||process.env.ANDROID_SDK_ROOT||(process.env.LOCALAPPDATA?path.join(process.env.LOCALAPPDATA,'Android','Sdk'):'sin configurar')));
   console.log('Capacitor: '+(fs.existsSync(path.join(mobile,'node_modules','@capacitor','cli'))?'instalado':'ejecuta npm.cmd --prefix mobile install'));
   return;
  }
+ if(!javaReady&&mode!=='web')throw Error('Se necesita JDK 21. En Windows instala EclipseAdoptium.Temurin.21.JDK y vuelve a ejecutar el comando. El JBR 25 de Android Studio no es compatible con este Gradle.');
  await buildWeb();if(mode==='web')return;
  const cli=path.join(mobile,'node_modules','@capacitor','cli','bin','capacitor');
  if(!fs.existsSync(path.join(mobile,'android','gradlew')))node(cli,['add','android']);

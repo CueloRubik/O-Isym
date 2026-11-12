@@ -1,7 +1,7 @@
 # Android — preparación e índice
 
-Estado: planificación lista; adaptación nativa todavía pendiente.
-Rama de trabajo: `feature/android-capacitor`.
+Estado: adaptación inicial implementada; APK debug compilado y 192 pruebas aprobadas en GitHub. Validación física pendiente.
+Rama de trabajo: `oisym-android`.
 Base de código: `development`, commit `4adc205810d8511ba4d958ec5656ce82e49107d0`.
 
 ## Objetivo
@@ -19,9 +19,13 @@ Llevar O-Isym a Android con Capacitor, conservando perfiles, tareas, planificaci
 | [Pruebas y distribución](VALIDATION.md) | Matriz de dispositivos, escenarios y publicación |
 | [Decisiones y pendientes](DECISIONS.md) | Estado real, decisiones abiertas y fuentes oficiales |
 
-## Primera tarea ejecutable
+## Implementación disponible
 
-A0 del plan: fijar y comprobar la combinación de Node, Capacitor, Android Studio, JDK, Gradle y SDK; revisar las diferencias de Windows y cualquier prototipo Android anterior disponible antes de reutilizarlo. Después integrar un primer APK de arranque, sin anunciar todavía soporte de alarmas o música en suspensión.
+Consulta [el resultado y sus límites](IMPLEMENTATION.md) y el README de la raíz para descargar, compilar e instalar. El código nativo y los scripts ya están en esta rama. Los documentos de arquitectura y el plan contienen además criterios aún pendientes de comprobar en un dispositivo real.
+
+## Próximas tareas
+
+Instalar el APK debug en un Android real y ejecutar la matriz de teclado, navegación, guardado, suspensión, audio y permisos. Usar JDK 21, Capacitor 8.0.0 y SDK 36, como en la compilación comprobada.
 
 ## Reglas de esta rama
 
@@ -30,4 +34,4 @@ A0 del plan: fijar y comprobar la combinación de Node, Capacitor, Android Studi
 - Conservar las mejoras específicas de Windows al diseñar el puente compartido; revisarlas antes de integrar.
 - Electron sigue siendo la implementación de escritorio. Android no carga Node, IPC ni archivos de Electron.
 - Cada etapa pendiente se marca terminada únicamente con evidencia de su criterio de aceptación.
-- Esta entrega añade organización y especificaciones. No contiene todavía Capacitor instalado, proyecto Gradle, servicio nativo ni APK Android nuevo.
+- Esta entrega contiene código y APK debug de prueba. El proyecto Gradle se genera con android:sync; los servicios, el puente y los recursos editables están en mobile/native.

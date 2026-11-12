@@ -1,6 +1,6 @@
 # Primera adaptación Android
 
-Estado: código implementado; compilación CI y validación física se anotan después de ejecutarse.
+Estado: código implementado y APK debug compilado. Validación física pendiente.
 
 ## Implementado en oisym-android
 
@@ -21,6 +21,8 @@ Los recordatorios móviles iniciales usan las tareas del perfil activo y un máx
 
 ## Evidencia
 
-- Pruebas locales: pendiente de registrar.
-- Compilación CI: pendiente de registrar.
+- Pruebas locales: 68 pruebas de puente Android, dominio, planificación y audio aprobadas con Node 26; revisión de sintaxis de los scripts.
+- [Compilación CI y APK](https://github.com/CueloRubik/O-Isym/actions/runs/43162441874): 192 pruebas aprobadas, assembleDebug correcto, versionName 1.1.0, versionCode 11001, minSdk 26 y targetSdk 36. El archivo generado está disponible como artefacto O-Isym-Android-debug.
+- Dependencias exactas y lockfile mobile/package-lock.json guardados después de la compilación.
+- El ejecutable JBR de Android Studio instalado en la Lenovo es Java 25; el comando de compilación detecta y solicita JDK 21 para evitar un error de Gradle.
 - Prueba física: pendiente del usuario en su Android.

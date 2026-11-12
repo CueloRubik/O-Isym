@@ -9,7 +9,7 @@ Abre PowerShell en una carpeta de trabajo y ejecuta:
 ```powershell
 git clone --single-branch --branch oisym-android https://github.com/CueloRubik/O-Isym.git O-Isym-Android
 cd O-Isym-Android
-npm.cmd --prefix mobile install
+npm.cmd --prefix mobile ci
 npm.cmd run android:doctor
 npm.cmd run android:debug
 ```
@@ -34,14 +34,20 @@ No es necesario descargar imágenes de emulador para compilar ni para probar en 
 
 - Node 22 o superior.
 - Android Studio Otter 2025.2.1 o superior, con Android SDK Platform 36, Build Tools 36.0.0, Platform Tools y Command-Line Tools.
-- Java 21 recomendado. En Windows el script utiliza el JBR de Android Studio si JAVA_HOME no está definido. Si JAVA_HOME apunta a Java 25 y Gradle informa incompatibilidad, usa el JBR o JDK 21 en esa terminal.
+- JDK 21. El script detecta Temurin 21 en Windows o un JAVA_HOME compatible. Android Studio Rabbit 2 incluye JBR 25; ese JBR no sirve para el Gradle de Capacitor 8.0.0. No hace falta desinstalar Java 25.
 - Capacitor core/android/cli 8.0.0 y esbuild 0.25.12 en `mobile/package.json`.
 - Android 8.0/API 26 o superior para esta adaptación.
 
-Si necesitas seleccionar Java para esta terminal:
+Si todavía no tienes JDK 21, instálalo desde PowerShell:
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+winget install --id EclipseAdoptium.Temurin.21.JDK --exact --source winget
+```
+
+El script lo detecta en la siguiente compilación. Para configurar rutas manualmente en esta terminal:
+
+```powershell
+$env:JAVA_HOME = (Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-21*' | Select-Object -First 1).FullName
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 npm.cmd run android:debug
 ```
