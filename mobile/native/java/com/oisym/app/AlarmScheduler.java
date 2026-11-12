@@ -53,7 +53,8 @@ final class AlarmScheduler {
  static synchronized void focus(Context c,JSONObject item)throws Exception{
   String token=item.getString("sessionId")+":"+item.getString("endsAt");
   JSONObject previous=new JSONObject(prefs(c).getString("focus","{}"));
-  if(token.equals(prefs(c).getString("focusDone",""))||token.equals(previous.optString("token")))return;
+  if(token.equals(prefs(c).getString("focusDone","")))return;
+  if(token.equals(previous.optString("token"))){schedule(c,"focus",previous.getLong("dueElapsed"),true);return;}
   manager(c).cancel(alarmIntent(c,"focus"));
   long at=java.time.Instant.parse(item.getString("endsAt")).toEpochMilli();
   item.put("token",token).put("dueElapsed",SystemClock.elapsedRealtime()+Math.max(0,at-System.currentTimeMillis()));
@@ -92,7 +93,7 @@ final class AlarmScheduler {
     if(System.currentTimeMillis()-item.getLong("time")>12*60*60*1000L)return;
     if(notify(c,key,item.optString("title","O-Isym"),item.optString("body",""),item.optBoolean("sound",true),item)){
      sent.put(id,System.currentTimeMillis());
-     if(sent.length()>500){Iterator<String> it=sent.keys();while(sent.length()>500&&it.hasNext())sent.remove(it.next());}
+     while(sent.length()>500){String oldest=null;long oldestTime=Long.MAX_VALUE;Iterator<String> it=sent.keys();while(it.hasNext()){String candidate=it.next();long stamp=sent.optLong(candidate);if(stamp<oldestTime){oldest=candidate;oldestTime=stamp;}}if(oldest==null)break;sent.remove(oldest);}
      prefs(c).edit().putString("sent",sent.toString()).commit();
     }
    }

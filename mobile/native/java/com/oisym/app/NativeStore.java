@@ -30,7 +30,14 @@ final class NativeStore {
  }
  static synchronized String read(Context c)throws Exception{
   if(!file(c).exists()&&!new File(file(c)+".bak").exists()){String raw=initial();write(c,raw);return raw;}
-  String raw=readRaw(c);try{validate(raw);}catch(Exception e){throw new IOException("OISYM_STORE_INVALID: "+e.getMessage());}return raw;
+  String raw=readRaw(c);JSONObject snapshot;
+  try{snapshot=validate(raw);}catch(Exception e){throw new IOException("OISYM_STORE_INVALID: "+e.getMessage());}
+  if(AlarmScheduler.prefs(c).getBoolean("focusInterrupted",false)){
+   JSONArray profiles=snapshot.getJSONArray("profiles");String now=java.time.Instant.now().toString();
+   for(int i=0;i<profiles.length();i++){JSONObject focus=profiles.getJSONObject(i).optJSONObject("activeFocus");if(focus!=null&&focus.isNull("pausedAt")){focus.put("pausedAt",now).put("startedAt",now);}}
+   backup(c,"oisym-data");raw=snapshot.toString();write(c,raw);AlarmScheduler.prefs(c).edit().remove("focusInterrupted").commit();
+  }
+  return raw;
  }
  static void write(Context c,String raw)throws Exception{
   validate(raw);AtomicFile atomic=new AtomicFile(file(c));FileOutputStream out=null;

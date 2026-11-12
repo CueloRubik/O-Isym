@@ -3162,11 +3162,11 @@ function renderSettings(main) {
     const status=element('p','notification-system-status small-note','Comprobando disponibilidad de notificaciones…');
     status.dataset.notificationStatus='true';
     const info=card('settings-info-card notification-system-card');
-    info.append(element('h3','','Notificaciones del sistema'),status,element('p','muted','macOS puede ocultar o silenciar avisos si O-Isym no tiene permiso en Ajustes del Sistema → Notificaciones. El botón de prueba permite comprobarlo.'));
+    info.append(element('h3','','Notificaciones del sistema'),status,element('p','muted',(window.oisym?.platform==='android'?'Activa los permisos desde Más → Android · permisos. Android puede retrasar las alarmas si no autorizas avisos exactos.':'macOS puede ocultar o silenciar avisos si O-Isym no tiene permiso en Ajustes del Sistema → Notificaciones. El botón de prueba permite comprobarlo.')));
     panel.append(form,info);
     window.oisym?.notifications?.getStatus?.().then(result=>{
       const target=$('[data-notification-status]',panel);
-      if(target)target.textContent=(result.supported?'Notificaciones nativas disponibles. ':'Este sistema no informa compatibilidad con notificaciones nativas. ')+(result.canManageLogin?'Inicio automático: '+(result.launchAtLogin?'activado.':'desactivado.'):'El inicio automático no está disponible en este sistema.')+' Si no aparecen avisos, revisa los permisos de O-Isym en macOS.';
+      if(target)target.textContent=window.oisym?.platform==='android'?('Notificaciones: '+result.permission+'. Alarmas exactas: '+(result.exactAlarms?'activadas':'sin permiso')+'. Puedes configurarlas en Más → Android · permisos.'):(result.supported?'Notificaciones nativas disponibles. ':'Este sistema no informa compatibilidad con notificaciones nativas. ')+(result.canManageLogin?'Inicio automático: '+(result.launchAtLogin?'activado.':'desactivado.'):'El inicio automático no está disponible en este sistema.')+' Si no aparecen avisos, revisa los permisos de O-Isym en macOS.';
     }).catch(()=>{const target=$('[data-notification-status]',panel);if(target)target.textContent='No se pudo consultar el estado de las notificaciones.';});
   } else if(state.settingsSection==='focus'){
     const info=card('settings-info-card');
