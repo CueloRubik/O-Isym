@@ -9,7 +9,8 @@ async function mobile(options={}){
  r.w.document.documentElement.classList.add('oisym-android');
  r.w.oisym.platform='android';
  r.w.scrollTo=()=>{};
- r.w.eval(fs.readFileSync(path.join(__dirname,'../mobile/ui.js'),'utf8'));
+ r.w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');this.dispatchEvent(new r.w.Event('close'));};
+ for(const name of ['color-math.js','color-picker.js','screens.js','ui.js'])r.w.eval(fs.readFileSync(path.join(__dirname,'../mobile',name),'utf8'));
  r.app.updateShell();await r.wait();
  return r;
 }
@@ -43,7 +44,7 @@ test('Android back closes a dirty editor through the existing confirmation inste
  assert.equal(r.w.document.body.classList.contains('mobile-scroll-locked'),false);
  assert.deepEqual(r.errors,[]);
 });
-test('touch gestures in a board default to page scrolling and pan the board only after choosing that mode',async t=>{
+test('the full-screen board reserves finger gestures for panning instead of page scrolling',async t=>{
  const r=await mobile();t.after(r.dispose);
  const canvas=r.query('.ideas-canvas-viewport');
  const touch=(type,x,y)=>{
@@ -51,9 +52,7 @@ test('touch gestures in a board default to page scrolling and pan the board only
   Object.defineProperties(e,{pointerId:{value:7},pointerType:{value:'touch'}});
   canvas.dispatchEvent(e);return e;
  };
- assert.equal(canvas.dataset.mobileInteraction,'page');
- assert.equal(touch('pointerdown',150,200).defaultPrevented,false);
- r.click('[data-mobile-board-mode="board"]');
+ assert.ok(r.query('#main-content').classList.contains('mobile-board-workspace'));
  assert.equal(canvas.dataset.mobileInteraction,'board');
  assert.equal(touch('pointerdown',150,200).defaultPrevented,true);
  touch('pointermove',190,230);touch('pointerup',190,230);
@@ -80,4 +79,53 @@ test('Android scheduling errors are visible above the navigation',async t=>{
  r.w.dispatchEvent(new r.w.CustomEvent('oisym:android-warning',{detail:'No se pudo programar el aviso'}));
  assert.equal(r.query('.mobile-warning').textContent,'No se pudo programar el aviso');
  assert.equal(r.query('.mobile-warning').getAttribute('role'),'alert');
+});
+
+test('home separates the complete task list and progress from its summary',async t=>{
+ const r=await mobile({startInBoard:false});t.after(r.dispose);
+ const summary=r.query('[data-mobile-panel="summary"]'),day=r.query('[data-mobile-panel="day"]');
+ assert.equal(summary.hidden,false);assert.equal(day.hidden,true);
+ assert.equal(r.query('.dashboard-grid'),null);
+ r.click('[data-mobile-tab="day"]');assert.equal(summary.hidden,true);assert.equal(day.hidden,false);
+});
+test('Focus keeps timer, sound and history separate without removing form controls',async t=>{
+ const r=await mobile({startInBoard:false});t.after(r.dispose);
+ r.app.state.view='focus';r.app.updateShell();await r.wait();
+ assert.equal(r.query('[data-mobile-panel="timer"]').hidden,false);
+ assert.equal(r.query('[data-mobile-panel="sound"]').hidden,true);
+ assert.ok(r.query('.focus-panel input[name="focusEndAlarmEnabled"]'));
+ r.click('[data-mobile-tab="sound"]');
+ assert.equal(r.query('[data-mobile-panel="timer"]').hidden,true);
+ assert.equal(r.query('[data-mobile-panel="sound"]').hidden,false);
+ assert.deepEqual(r.errors,[]);
+});
+test('the custom color picker applies an exact color and persists it, while Cancel leaves the source unchanged',async t=>{
+ const r=await mobile({startInBoard:false});t.after(r.dispose);
+ r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();await r.wait();
+ const source=r.query('input[name="appearance-accent"]'),trigger=source.nextElementSibling;
+ trigger.click();await r.wait();
+ let hex=r.query('[name="mobile-color-hex"]');assert.ok(hex);
+ hex.value='#156af3';hex.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+ r.query('.mobile-color-actions .primary').click();await r.wait();await r.app.flushAppearanceChanges();await r.wait();
+ assert.equal(source.value,'#156af3');
+ assert.equal(r.saved().profiles[0].preferences.appearanceColorsByMode.light.accent,'#156af3');
+ trigger.click();await r.wait();hex=r.query('[name="mobile-color-hex"]');hex.value='#ff0000';hex.dispatchEvent(new r.w.Event('input',{bubbles:true}));
+ r.query('.mobile-color-actions .secondary').click();await r.wait();
+ assert.equal(source.value,'#156af3');assert.equal(r.query('.mobile-color-dialog'),null);
+ assert.deepEqual(r.errors,[]);
+});
+test('invalid color text cannot replace a saved custom color',async t=>{
+ const r=await mobile({startInBoard:false});t.after(r.dispose);
+ const promise=r.w.OIsymColorPicker.choose({value:'#27856b',label:'Prueba'});
+ const field=r.query('[name="mobile-color-hex"]');field.value='#xxxxxx';
+ r.query('.mobile-color-actions .primary').click();
+ assert.ok(r.query('.mobile-color-dialog'));assert.match(r.query('.mobile-color-error').textContent,/HEX/);
+ r.query('.mobile-color-actions .secondary').click();assert.equal(await promise,null);
+});
+test('switching palettes refreshes unchecked color fields without overwriting explicit custom colors',async t=>{
+ const r=await mobile({startInBoard:false});t.after(r.dispose);
+ r.app.state.view='settings';r.app.state.settingsSection='appearance';r.app.updateShell();await r.wait();
+ r.click('[data-palette="ocean"]');await r.wait();
+ assert.equal(r.query('[name="appearance-accent"]').value,'#236da8');
+ assert.deepEqual(r.errors,[]);
 });

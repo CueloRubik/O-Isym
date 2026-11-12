@@ -97,6 +97,13 @@ function updateAppearancePreview(form) {
   const editScheme=form.querySelector('[name="appearanceEditScheme"]').value;
   const result=Appearance.makeTokens({...draft,appearanceMode:editScheme},prefersDark());
   const tokens=result.vars;
+  for (const [key,,,token] of appearanceColorFields) {
+    if (!form.querySelector('[name="custom-'+key+'"]')?.checked)
+      form.querySelector('[name="appearance-'+key+'"]').value=tokens[token];
+  }
+  if (draft.appearanceIconTone!=='custom') form.querySelector('[name="appearanceIconColor"]').value=tokens['--ui-icon-color'];
+  if (!form.querySelector('[name="appearanceIconBackgroundCustom"]').checked)
+    form.querySelector('[name="appearanceIconBackgroundColor"]').value=tokens['--ui-icon-tile'];
   const preview=form.querySelector('.appearance-preview');
   if (preview) {
     const properties={
@@ -364,7 +371,7 @@ const state = {
   view: 'today',
   selectedDate: localDate(),
   calendarDate: new Date(),
-  calendarMode: window.oisym?.platform==='android' ? 'day' : 'month',
+  calendarMode: window.oisym?.platform==='android' ? 'agenda' : 'month',
   sidebarCollapsed: false,
   taskEditorFocusField: 'title',
   taskFilter: 'active',
@@ -937,6 +944,7 @@ function updateShell() {
   });
   const main = $('#main-content');
   main.replaceChildren();
+  delete main.dataset.mobileDesigned;
   const renderers = {
     today: renderToday, tasks: renderTasks, activities: renderActivities,
     calendar: renderCalendar, planner: renderPlanner, focus: renderFocus,
@@ -1115,7 +1123,7 @@ function renderToday(main) {
 
   const grid = element('div', 'dashboard-grid');
   const primary = element('div', 'dashboard-main');
-  const taskCard = card();
+  const taskCard = card('card today-task-card');
   taskCard.append(heading(childMode?'Mis tareas de hoy':'Lo que tienes hoy',childMode?'¡Puedes ir haciendo una cosa a la vez!':'Una lista clara, sin presión.'));
   renderTaskList(taskCard, tasks, { emptyTitle: 'Tu agenda está despejada', emptyDetail: 'Puedes agregar una tarea o reservar tiempo para algo importante.' });
   taskCard.append(button('+ Añadir tarea', 'quick-task', 'button primary'));
@@ -1135,7 +1143,7 @@ function renderToday(main) {
   primary.append(taskCard);
   const inboxCount = getUnscheduledTasks(state.profile).length;
   if (inboxCount) {
-    const inboxCard = card();
+    const inboxCard = card('card today-inbox-card');
     inboxCard.append(heading('Por organizar', inboxCount + ' tareas en la bandeja de entrada.'));
     inboxCard.append(button('Abrir bandeja de entrada', 'open-inbox', 'button secondary'));
     primary.append(inboxCard);
@@ -1147,7 +1155,7 @@ function renderToday(main) {
     primary.append(doneCard);
   }
   if (overdue.length) {
-    const overdueCard = card();
+    const overdueCard = card('card today-overdue-card');
     overdueCard.append(heading('Pendientes anteriores', 'Decide qué hacer con ellos; nada se mueve por su cuenta.'));
     renderTaskList(overdueCard, overdue.slice(0, 4));
     primary.append(overdueCard);
@@ -1162,7 +1170,7 @@ function renderToday(main) {
   side.append(focusCard);
   const suggestions = getRecommendations(state.profile, date);
   if (suggestions.length) {
-    const suggestCard = card();
+    const suggestCard = card('card today-suggestions-card');
     suggestCard.append(heading('Sugerencias', 'Propuestas que puedes aceptar o ignorar.'));
     suggestions.forEach(suggestion => {
       const item = element('div', 'suggestion');
@@ -1172,7 +1180,7 @@ function renderToday(main) {
     });
     side.append(suggestCard);
   }
-  const weekCard = card();
+  const weekCard = card('card today-week-card');
   weekCard.append(heading('Esta semana', 'Una pequeña vista de tu avance.'));
   const weekStart = shiftDate(date, -((new Date().getDay() + 6) % 7));
   for (let i = 0; i < 7; i++) {
@@ -1386,7 +1394,7 @@ function renderCalendar(main) {
     });
     primary.append(week);
   } else {
-    renderPlannerAgenda(primary, state.calendarMode === 'agenda');
+    renderPlannerAgenda(primary, state.calendarMode === 'agenda' || window.oisym?.platform === 'android');
   }
   layout.append(primary);
   if (state.calendarMode === 'month' || state.calendarMode === 'week') {
@@ -1492,6 +1500,7 @@ function renderIdeaBoardCanvas(main, board) {
   viewport.setAttribute('role', 'application');
   viewport.setAttribute('aria-label', 'Lienzo del pizarrón. Arrastra para seleccionar, Shift añade a la selección, rueda pulsada o dos dedos para mover y pellizco para zoom.');
   viewport.tabIndex = 0;
+  if(window.oisym?.platform==='android' && !Number(board.viewport?.x) && !Number(board.viewport?.y) && Number(board.viewport?.zoom||1)===1)viewport.dataset.mobileInitialFit='true';
   const world = element('div', 'ideas-canvas-world');
   const emptyState = element('div', 'ideas-canvas-empty');
   emptyState.append(element('span', 'ideas-canvas-empty-mark', 'O'), element('strong', '', 'Tu lienzo está vacío'), element('p', 'muted', 'Crea una nota o una actividad para comenzar a organizar tus ideas.'));
@@ -2426,13 +2435,13 @@ function renderPlannerAgenda(main, listMode = false) {
   timeCard.append(slots);
   timeCard.append(button('Añadir tarea con horario', 'calendar-add-task', 'button primary'));
   mainColumn.append(timeCard);
-  const pendingCard = card();
+  const pendingCard = card('card day-untimed-card');
   pendingCard.append(heading('Sin horario para este día',
     'Tareas programadas sin horas y fechas límite que vencen hoy.'));
   renderTaskList(pendingCard, untimed.map(item => item.task), { emptyTitle: 'Sin pendientes sin hora',
     emptyDetail: 'Las tareas con horario están en la línea temporal.' });
   mainColumn.append(pendingCard);
-  const inbox = card();
+  const inbox = card('card day-inbox-card');
   const waiting = getUnscheduledTasks(state.profile);
   inbox.append(heading('Bandeja de entrada', waiting.length + ' tareas pendientes sin fecha programada'));
   if (waiting.length) {
@@ -2627,6 +2636,7 @@ function renderFocus(main) {
   const remaining = focus ? getFocusRemainingSeconds(focus) : duration * 60;
   const display = element('div', 'focus-clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0'));
   display.id = 'focus-clock';
+  if(window.oisym?.platform==='android')display.style.setProperty('--focus-progress',String(focus?Math.max(0,Math.min(1,1-remaining/focus.durationSeconds)):0));
   const focusStatus = element('div', 'focus-status');
   const focusIconPath = !focus ? 'focus/zen.png' : (focus.isBreak ? 'focus/break.png' : (focus.pausedAt ? 'focus/pause.png' : 'focus/timer.png'));
   focusStatus.append(iconImage(focusIconPath, '', 'focus-status-icon'), element('div', 'eyebrow', focus ? (focus.isBreak ? (focus.pausedAt ? 'DESCANSO EN PAUSA' : 'DESCANSO EN CURSO') : (focus.pausedAt ? 'SESIÓN EN PAUSA' : 'SESIÓN EN CURSO')) : 'LISTO PARA CONCENTRARTE'));
@@ -2731,7 +2741,7 @@ function renderFocus(main) {
   });
   stats.append(statsGrid);
   main.append(stats);
-  const history = card();
+  const history = card('card focus-history-card');
   history.append(heading('Sesiones recientes', 'Tu historial de concentración.'));
   sessions.slice(0, 8).forEach(session => {
     const row = element('div', 'history-row');
@@ -3546,7 +3556,10 @@ function refreshFocusClock() {
   if (!focus || focus.pausedAt) return;
   const remaining = getFocusRemainingSeconds(focus);
   const display = $('#focus-clock');
-  if (display) display.textContent = String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
+  if (display) {
+    display.textContent = String(Math.floor(remaining / 60)).padStart(2, '0') + ':' + String(remaining % 60).padStart(2, '0');
+    if(window.oisym?.platform==='android')display.style.setProperty('--focus-progress',String(Math.max(0,Math.min(1,1-remaining/focus.durationSeconds))));
+  }
   if (remaining <= 0 && !isFocusSaveBlocked()) void finishFocus({ completed: true });
 }
 function startFocusTicker() {

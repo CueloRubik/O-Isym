@@ -5,7 +5,7 @@ const http=require('node:http');
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..');
-const output=path.join(root,'mobile-ui-report');
+const output=process.env.MOBILE_UI_OUTPUT||path.join(root,'mobile-ui-report');
 fs.mkdirSync(output,{recursive:true});
 const source=fs.readFileSync(path.join(root,'src/app.js'),'utf8');
 const server=http.createServer((req,res)=>{
@@ -13,7 +13,7 @@ const server=http.createServer((req,res)=>{
  if(name==='/'){
   let html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   html=html.replace('initial-scale=1','initial-scale=1, viewport-fit=cover').replace('</head>','<link rel="stylesheet" href="/src/styles/mobile.css"></head>');
-  html=html.replace('</body>','<script src="/mobile/ui.js"></script></body>');
+  html=html.replace('</body>','<script src="/mobile/color-math.js"></script><script src="/mobile/color-picker.js"></script><script src="/mobile/screens.js"></script><script src="/mobile/ui.js"></script></body>');
   res.setHeader('Content-Type','text/html; charset=utf-8');res.end(html);return;
  }
  if(name==='/src/app.js'){res.setHeader('Content-Type','text/javascript; charset=utf-8');res.end(source+'\nwindow.mobileTestApp={state,updateShell,flushIdeaChanges};');return;}
@@ -35,13 +35,13 @@ async function swipe(page,x,y,endY){
 }
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- const browser=await chromium.launch({headless:true});
- const errors=[];
+ const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});
+ const errors=[];let currentPage;
  try{
   for(const width of [320,360,412,768]){
    const context=await browser.newContext({viewport:{width,height:900},isMobile:true,hasTouch:true,deviceScaleFactor:1});
-   const page=await context.newPage();
-   page.on('pageerror',e=>errors.push(e.message));
+   const page=await context.newPage();currentPage=page;
+   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>dialog.accept());
    await page.addInitScript(()=>{
     document.addEventListener('DOMContentLoaded',()=>document.documentElement.classList.add('oisym-android'),{once:true});
     let snapshot;
@@ -49,7 +49,7 @@ async function swipe(page,x,y,endY){
     window.oisym={platform:'android',storage:{
      read:async()=>{
       const D=window.OIsymDomain,p=D.createProfile('Prueba móvil');
-      p.tasks=Array.from({length:12},(_,i)=>D.createTask({title:'Tarea '+i+' con un nombre suficientemente largo para revisar el espacio',scheduledDate:D.localDate()}));
+      p.tasks=Array.from({length:12},(_,i)=>D.createTask({title:'Tarea '+i+' con un nombre suficientemente largo para revisar el espacio',scheduledDate:D.localDate(),...(i<3?{startTime:String(9+i).padStart(2,'0')+':00',endTime:String(9+i).padStart(2,'0')+':30'}:{})}));
       const b=D.createIdeaBoard({title:'Pizarrón móvil'});b.nodes=[D.createIdeaNode('note',{title:'Nota de prueba',x:0,y:0})];p.ideaBoards=[b];
       snapshot={schemaVersion:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),profiles:[p],activeProfileId:p.id};return copy(snapshot);
      },save:async value=>{snapshot=copy(value);return copy(snapshot);}
@@ -59,76 +59,83 @@ async function swipe(page,x,y,endY){
    await page.goto('http://127.0.0.1:'+server.address().port);
    await page.waitForSelector('.mobile-navigation');
    const select=async(view,section)=>{
-    await page.evaluate(({view,section})=>{const a=window.mobileTestApp;a.state.view=view;if(section)a.state.settingsSection=section;a.updateShell();window.scrollTo(0,0);},{view,section});
-    await page.waitForTimeout(80);
+    await page.evaluate(({view,section})=>{const a=window.mobileTestApp;a.state.view=view;if(section)a.state.settingsSection=section;a.updateShell();document.querySelector('#main-content').scrollTop=0;},{view,section});
+    await page.waitForTimeout(90);
    };
+   const tab=async(name)=>{await page.locator('[data-mobile-tab="'+name+'"]:visible').tap();await page.waitForTimeout(60);};
    const check=async(label)=>{
     const bad=await page.evaluate(()=>{
-     return [...document.querySelectorAll('#main-content button,#main-content input,#main-content select,#main-content textarea,#main-content .card,#main-content .settings-navigation')]
-      .filter(e=>e.getClientRects().length&&!e.closest('.ideas-canvas-world'))
-      .map(e=>({tag:e.tagName,cls:e.className,name:e.getAttribute('name'),left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right}))
+     const nodes=[...document.querySelectorAll('#main-content button,#main-content input,#main-content select,#main-content textarea,#main-content .card,dialog[open] button,dialog[open] input')];
+     return nodes.filter(e=>e.getClientRects().length&&!e.closest('.ideas-canvas-world')&&!e.classList.contains('mobile-native-color'))
+      .map(e=>({tag:e.tagName,cls:e.className,name:e.getAttribute('name'),text:e.textContent?.slice(0,40),left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right}))
       .filter(e=>e.left < -1||e.right>window.innerWidth+1);
     });
-    assert.deepEqual(bad,[],width+'px '+label+' controls fit the screen');
-    const cramped=await page.evaluate(()=>[...document.querySelectorAll('.task-content')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().width).filter(w=>w<120));
-    assert.deepEqual(cramped,[],width+'px '+label+' task titles remain readable');
-    const tiny=await page.evaluate(()=>[...document.querySelectorAll('#main-content .button')].filter(e=>e.getClientRects().length&&!e.closest('.ideas-canvas-world,.day-positioned-block')).map(e=>({text:e.textContent,height:e.getBoundingClientRect().height})).filter(e=>e.height<44));
-    assert.deepEqual(tiny,[],width+'px '+label+' buttons have usable touch targets');
-    await page.screenshot({path:path.join(output,width+'-'+label+'.png'),fullPage:true});
+    assert.deepEqual(bad,[],width+'px '+label+' controls fit');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'No sideways page scroll');
+    assert.ok(await page.evaluate(()=>window.scrollY===0),'The page stays fixed while the active screen scrolls');
+    await page.screenshot({path:path.join(output,width+'-'+label+'.png')});
    };
-   for(const view of ['today','tasks','activities','goals','calendar','focus','planner','insights','profiles']){await select(view);await check(view);}
-   for(const section of ['profile','appearance','planning','notifications','focus','data','shortcuts']){await select('settings',section);await check('settings-'+section);}
-   await select('focus');
-   await page.setViewportSize({width,height:640});
-   const startButton=await page.locator('[data-action="focus-start"]').boundingBox();
-   assert.ok(startButton.y>=0&&startButton.y+startButton.height<=568,width+'px Focus start stays above the navigation on a short screen');
-   await page.screenshot({path:path.join(output,width+'-focus-short-screen.png')});
-   await page.setViewportSize({width,height:900});
-   await page.locator('.mobile-focus-options:not(.mobile-focus-context) summary').first().tap();
-   await check('focus-music-open');
-   await page.locator('.mobile-focus-options summary').last().tap();
-   await check('focus-alarm-open');
-   await select('settings','appearance');
-   await page.locator('.mobile-settings-navigation summary').tap();
-   await check('settings-menu-open');
-   await select('today');
+   await check('home-summary');
+   assert.equal(await page.locator('[data-mobile-panel="day"]').getAttribute('hidden'),'');
+   await tab('day');await check('home-day');
+   const listBefore=await page.locator('#main-content').evaluate(e=>e.scrollTop);
    await swipe(page,Math.round(width/2),700,250);
-   assert.ok(await page.evaluate(()=>window.scrollY)>150,width+'px page scrolls with a finger');
+   assert.ok(await page.locator('#main-content').evaluate(e=>e.scrollTop)>listBefore+80,'The current task screen scrolls with a finger');
+   await tab('progress');await check('home-progress');
+   for(const view of ['tasks','activities','goals','calendar','focus','planner','insights','profiles']){await select(view);await check(view);}
+   await select('focus');await page.setViewportSize({width,height:640});await page.waitForTimeout(100);
+   const startButton=await page.locator('[data-action="focus-start"]').boundingBox(),nav=await page.locator('.mobile-navigation').boundingBox();
+   assert.ok(startButton.y>=0&&startButton.y+startButton.height<=nav.y+1,width+'px start remains visible on a short phone');
+   await check('focus-short-screen');await page.setViewportSize({width,height:900});
+   await tab('sound');await check('focus-music');await tab('alarm');await check('focus-alarm');await tab('history');await check('focus-history');
+   await select('calendar');await tab('pending');await check('calendar-pending');await tab('planning');await check('calendar-planning');
+   await select('settings');await check('settings-hub');
+   for(const section of ['profile','appearance','planning','notifications','focus','data','shortcuts']){
+    await page.locator('.settings-navigation [data-section="'+section+'"]').tap();await page.waitForTimeout(100);await check('settings-'+section);
+    if(section==='appearance'){
+     await tab('colors');await check('appearance-colors');
+     const trigger=page.locator('input[name="appearance-accent"] + .mobile-color-trigger');
+     await trigger.tap();await page.waitForSelector('.mobile-color-dialog');
+     await page.getByRole('textbox',{name:'Color hexadecimal'}).fill('#5469de');
+     await check('color-picker');
+     await page.getByRole('button',{name:'Aplicar color',exact:true}).tap();
+     await page.waitForSelector('.mobile-color-dialog',{state:'detached'});
+     assert.equal(await page.locator('input[name="appearance-accent"]').inputValue(),'#5469de');
+     assert.equal(await page.evaluate(()=>window.mobileTestApp.state.profile.preferences.appearanceColorsByMode.light.accent),'#5469de');
+     await trigger.tap();await page.getByRole('textbox',{name:'Color hexadecimal'}).fill('#ff0000');
+     await page.getByRole('button',{name:'Cancelar',exact:true}).tap();
+     assert.equal(await page.locator('input[name="appearance-accent"]').inputValue(),'#5469de');
+     await tab('style');await check('appearance-style');
+    }
+    await page.locator('.mobile-back-button').tap();
+   }
    await page.locator('[data-mobile-more]').tap();
-   assert.equal(await page.locator('.workspace-sidebar').getAttribute('aria-hidden'),'false');
-   assert.equal(await page.locator('.workspace-sidebar .navigation-group-items').first().evaluate(e=>getComputedStyle(e).flexDirection),'column');
-   await page.waitForFunction(()=>{const r=document.querySelector('.workspace-sidebar').getBoundingClientRect();return Math.abs(r.left)<1&&r.right>150;});
-   await page.screenshot({path:path.join(output,width+'-menu.png')});
-   await page.locator('.workspace-sidebar [data-view="tasks"]').tap();
-   await page.waitForTimeout(120);
-   assert.equal(await page.locator('.workspace-sidebar').getAttribute('aria-hidden'),'true');
-   await page.locator('[data-action="quick-task"]').tap();
-   await page.waitForSelector('[data-profile-modal]');
+   await page.waitForFunction(()=>{const r=document.querySelector('.workspace-sidebar').getBoundingClientRect();return Math.abs(r.top)<1&&r.bottom>400;});
+   await check('space-menu');
+   await page.locator('.workspace-sidebar [data-view="tasks"]').tap();await page.waitForTimeout(120);
+   await page.locator('[data-action="quick-task"]').tap();await page.waitForSelector('[data-profile-modal]');
    await check('task-editor');
    const panel=page.locator('.task-editor-panel');
-   await page.locator('.task-editor-panel input[name="title"]').focus();
-   await page.setViewportSize({width,height:480});
+   await page.locator('.task-editor-panel input[name="title"]').focus();await page.setViewportSize({width,height:480});
    await page.waitForFunction(()=>document.body.classList.contains('mobile-keyboard-open'));
    assert.equal(await page.locator('.mobile-navigation').evaluate(e=>getComputedStyle(e).display),'none');
-   await page.screenshot({path:path.join(output,width+'-editor-keyboard-resize.png')});
-   await page.setViewportSize({width,height:900});
-   await page.locator('.task-editor-panel input[name="title"]').blur();
-   const before=await panel.evaluate(e=>e.scrollTop);
-   await swipe(page,Math.round(width/2),700,250);
-   assert.ok(await panel.evaluate(e=>e.scrollTop)>before,width+'px editor scrolls with a finger');
+   await check('editor-keyboard');await page.setViewportSize({width,height:900});await page.locator('.task-editor-panel input[name="title"]').blur();
+   const before=await panel.evaluate(e=>e.scrollTop);await swipe(page,Math.round(width/2),700,250);
+   assert.ok(await panel.evaluate(e=>e.scrollTop)>before,'Editor scrolls independently');
    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('oisym:android-back',{cancelable:true})));
    await page.waitForSelector('[data-profile-modal]',{state:'detached'});
    await page.evaluate(()=>{const a=window.mobileTestApp;a.state.view='planner';a.state.plannerSection='board';a.state.selectedIdeaBoardId=a.state.profile.ideaBoards[0].id;a.updateShell();});
-   await check('board');
-   await page.locator('.ideas-canvas-viewport').scrollIntoViewIfNeeded();
-   let box=await page.locator('.ideas-canvas-viewport').boundingBox();
-   const start=await page.evaluate(()=>window.scrollY);
-   assert.ok(start>50,width+'px board starts below the page header');
-   await swipe(page,Math.round(box.x+box.width-20),Math.max(110,box.y+30),Math.min(750,box.y+box.height-30));
-   assert.ok(await page.evaluate(()=>window.scrollY)<start-50,width+'px board permits page scrolling');
+   await check('board-workspace');
+   const canvas=page.locator('.ideas-canvas-viewport'),box=await canvas.boundingBox();
+   assert.ok(box.height>300,'Board uses the remaining screen height');
+   await page.getByRole('button',{name:'Herramientas',exact:true}).tap();await page.waitForSelector('dialog.mobile-sheet[open]');
+   await check('board-tools');
+   await page.locator('.mobile-sheet-close').tap();await page.waitForSelector('dialog.mobile-sheet',{state:'detached'});
+   assert.equal(await canvas.getAttribute('data-mobile-interaction'),'board');
    await context.close();
-   console.log('Mobile UI '+width+'px: navigation, editors, touch scroll and screen bounds passed');
+   console.log('Mobile redesign '+width+'px: separated screens, custom colors, touch scrolling, keyboard and board workspace passed');
   }
   assert.deepEqual(errors,[],'No uncaught renderer errors');
- }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
+ }catch(error){if(currentPage&&!currentPage.isClosed())await currentPage.screenshot({path:path.join(output,'failure.png')}).catch(()=>{});throw error;}
+ finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

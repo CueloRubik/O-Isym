@@ -31,64 +31,10 @@ function setup(){
   document.body.classList.add('mobile-menu-open');syncMenu();syncLock();
   root.querySelector('.workspace-sidebar .nav-item.active')?.focus({preventScroll:true});
  }
- function boardControls(){
-  const canvas=root.querySelector('.ideas-canvas-viewport');
-  if(!canvas||canvas.dataset.mobileInteraction)return;
-  canvas.dataset.mobileInteraction='page';
-  const controls=document.createElement('div');controls.className='mobile-board-controls';
-  controls.setAttribute('role','group');controls.setAttribute('aria-label','Gestos del pizarrón');
-  for(const [mode,label]of [['page','Desplazar página'],['board','Mover pizarrón']]){
-   const button=document.createElement('button');button.type='button';button.className='button secondary';button.textContent=label;button.dataset.mobileBoardMode=mode;
-   button.setAttribute('aria-pressed',String(mode==='page'));
-   button.addEventListener('click',()=>{
-    canvas.dataset.mobileInteraction=mode;
-    controls.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
-   });
-   controls.append(button);
-  }
-  const hint=document.createElement('p');hint.className='small-note';
-  hint.textContent='Desplaza la página con el dedo. Activa Mover pizarrón para arrastrar el fondo o las cabeceras de las notas; usa + y − para el zoom.';
-  controls.append(hint);canvas.before(controls);
-  canvas.setAttribute('aria-label','Pizarrón. Elige Desplazar página o Mover pizarrón en los controles anteriores.');
-  const help=root.querySelector('.ideas-help-panel');if(help)help.textContent=hint.textContent;
-  for(const [selector,label]of [['.ideas-tool-group[aria-label="Conexiones"]','Conexiones'],['.ideas-canvas-filter-tools','Buscar y filtrar']]){
-   const group=root.querySelector(selector);if(!group)continue;
-   const details=document.createElement('details');details.className='mobile-board-tools';
-   const summary=document.createElement('summary');summary.textContent=label;details.append(summary);
-   group.before(details);details.append(group);
-  }
- }
- function compactSections(){
-  const panel=root.querySelector('.focus-panel');
-  if(panel&&!panel.querySelector('.mobile-focus-context')){
-   const task=panel.querySelector('#focus-task')?.closest('.field');
-   const activity=panel.querySelector('#focus-activity')?.closest('.field');
-   const actions=panel.querySelector('.button-group.center');
-   if(task&&activity&&actions){
-    const details=document.createElement('details');details.className='mobile-focus-context mobile-focus-options';
-    const summary=document.createElement('summary');summary.textContent='Tarea y actividad (opcional)';details.append(summary);
-    actions.after(details);details.append(task,activity);
-    const hint=panel.querySelector('.focus-hint');if(hint)details.append(hint);
-   }
-  }
-  for(const [selector,label]of [['.focus-music-settings','Música para concentrarte'],['.focus-alarm-settings','Alarma al terminar']]){
-   const options=root.querySelector(selector);
-   if(!options||options.parentElement.classList.contains('mobile-focus-options'))continue;
-   const details=document.createElement('details');details.className='mobile-focus-options';
-   const summary=document.createElement('summary');summary.textContent=label;details.append(summary);
-   options.before(details);details.append(options);const title=options.querySelector('h3');if(title)title.hidden=true;
-  }
-  const navigation=root.querySelector('.settings-navigation');
-  if(navigation&&!navigation.parentElement.classList.contains('mobile-settings-navigation')){
-   const details=document.createElement('details');details.className='mobile-settings-navigation';
-   const summary=document.createElement('summary');summary.textContent='Categoría · '+(navigation.querySelector('.active strong')?.textContent||'Ajustes');details.append(summary);
-   navigation.before(details);details.append(navigation);
-  }
- }
  function syncView(){
   const view=root.querySelector('#main-content')?.dataset.view;
   if(document.body.classList.contains('mobile-menu-open'))closeMenu();
-  if(view&&previousView&&view!==previousView)window.scrollTo(0,0);
+  if(view&&previousView&&view!==previousView){window.scrollTo(0,0);root.querySelector('#main-content')?.scrollTo?.(0,0);}
   if(view)previousView=view;
   const active=root.querySelector('.workspace-sidebar .nav-item.active')?.dataset.view;
   root.querySelectorAll('.mobile-navigation [data-view]').forEach(b=>{
@@ -97,7 +43,7 @@ function setup(){
   });
   const more=toggleButton();
   if(more){const selected=active&&!['today','calendar','focus','planner'].includes(active);more.classList.toggle('active',Boolean(selected));}
-  boardControls();compactSections();syncMenu();syncLock();
+  window.OIsymMobileScreens?.adapt(root);syncMenu();syncLock();
  }
  function mount(){
   if(!document?.body)return;
@@ -105,8 +51,11 @@ function setup(){
   if(!shell){closeMenu();mounted=null;return;}
   if(mounted===shell)return;mounted=shell;
   const nav=document.createElement('nav');nav.className='mobile-navigation';nav.setAttribute('aria-label','Navegación móvil');
-  for(const [view,label]of [['today','Hoy'],['calendar','Agenda'],['focus','Focus'],['planner','Pizarrones'],['more','Más']]){
-   const b=document.createElement('button');b.type='button';b.textContent=label;b.setAttribute('aria-label',label);
+  for(const [view,label]of [['today','Hoy'],['calendar','Agenda'],['focus','Focus'],['planner','Pizarrones'],['more','Espacio']]){
+   const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',label);
+   const path={today:'navigation/today.png',calendar:'navigation/calendar.png',focus:'focus/timer.png',planner:'navigation/dashboard.png',more:'interface/settings.png'}[view];
+   const glyph=window.OIsymMobileScreens?.icon(path);if(glyph)b.append(glyph);
+   const text=document.createElement('span');text.textContent=label;b.append(text);
    if(view==='more'){b.dataset.mobileMore='true';b.setAttribute('aria-controls','workspace-sidebar');b.setAttribute('aria-expanded','false');}
    else{b.dataset.action='navigate';b.dataset.view=view;b.className='nav-item';}
    nav.append(b);
@@ -115,6 +64,8 @@ function setup(){
   const mask=document.createElement('button');mask.type='button';mask.className='mobile-menu-mask';mask.tabIndex=-1;mask.setAttribute('aria-label','Cerrar menú');mask.addEventListener('click',()=>closeMenu(true));shell.append(mask);
   const close=document.createElement('button');close.type='button';close.className='button secondary mobile-menu-close';close.textContent='Cerrar menú';close.addEventListener('click',()=>closeMenu(true));shell.querySelector('.workspace-sidebar')?.prepend(close);
   const android=document.createElement('button');android.type='button';android.className='mobile-android-status';android.textContent='Android · permisos';android.addEventListener('click',permissions);shell.querySelector('.sidebar-bottom')?.append(android);
+  const brand=shell.querySelector('.brand-mark');if(brand){const img=document.createElement('img');img.src='assets/icons/app.png';img.alt='';brand.replaceChildren(img);}
+  const create=shell.querySelector('.topbar-create');if(create){create.replaceChildren();const glyph=window.OIsymMobileScreens?.icon('actions/add.png');if(glyph)create.append(glyph);else create.textContent='+';create.setAttribute('aria-label','Nueva tarea');}
   syncView();
  }
  document.addEventListener('click',e=>{
@@ -128,6 +79,7 @@ function setup(){
   if(dialog){e.preventDefault();if(dialog.dispatchEvent(new Event('cancel',{cancelable:true})))dialog.close();syncLock();return;}
   if(document.body.classList.contains('mobile-menu-open')){e.preventDefault();closeMenu(true);return;}
   if(document.querySelector('[data-profile-modal]')){e.preventDefault();document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));syncLock();return;}
+  if(root.querySelector('#main-content')?.mobileSettingsBack?.()){e.preventDefault();return;}
   const details=root.querySelector('details[open]');if(details){e.preventDefault();details.open=false;return;}
   const library=root.querySelector('[data-action="ideas-library"]');
   if(library){e.preventDefault();library.click();return;}
@@ -168,7 +120,7 @@ function setup(){
  }
  window.visualViewport?.addEventListener('resize',resize);window.addEventListener('resize',resize);
  document.addEventListener('focusout',()=>setTimeout(resize,100));
- new MutationObserver(mount).observe(root,{childList:true});
+ new MutationObserver(()=>{mount();window.OIsymColorPicker?.refresh(root);}).observe(root,{childList:true});
  new MutationObserver(syncLock).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});
  window.addEventListener('oisym:rendered',syncView);
  mount();resize();

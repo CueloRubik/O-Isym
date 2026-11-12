@@ -1,190 +1,357 @@
-/* Android uses one page scroll surface; editors and the menu scroll on their own. */
-html.oisym-android[data-scheme] { min-width:0; width:100%; overflow-x:clip; scroll-padding-top:88px; scroll-padding-bottom:100px; }
-html.oisym-android[data-scheme] body { min-width:0; width:100%; margin:0; overflow-x:clip; overscroll-behavior-y:auto; }
-.oisym-android #app { min-height:100vh; min-height:100dvh; }
-.mobile-navigation,.mobile-menu-mask,.mobile-android-status,.mobile-menu-close { display:none; }
-html.oisym-android[data-scheme] .workspace-shell { display:block; min-width:0; padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
-html.oisym-android[data-scheme] .workspace { display:flex; flex-direction:column; min-width:0; width:100%; max-width:900px; margin:0 auto; }
-html.oisym-android[data-scheme] .workspace-main { width:100%; min-width:0; padding:20px 16px 32px; gap:18px; }
-html.oisym-android[data-scheme] .workspace-main > * { min-width:0; max-width:100%; }
-html.oisym-android[data-scheme] :is(input,select,textarea) { font-size:16px; max-width:100%; }
-html.oisym-android[data-scheme] :is(button,summary,a) { touch-action:manipulation; }
-html.oisym-android[data-scheme] :is(.input,.button,select,.icon-button,.text-button,.task-menu-trigger) { min-height:48px; }
-html.oisym-android[data-scheme] :is(input,textarea,select,button,summary) { scroll-margin-block:88px; }
-html.oisym-android[data-scheme] :is(h1,h2,h3,p,strong,label) { overflow-wrap:anywhere; }
-html.oisym-android[data-scheme] h1 { font-size:clamp(24px,7vw,34px); }
-html.oisym-android[data-scheme] .workspace-main :is(.card,.form-card) { padding:18px; }
-html.oisym-android[data-scheme] .workspace-main .welcome-card { padding:20px; }
-html.oisym-android[data-scheme] :is(.button-group,.form-actions,.toolbar,.calendar-controls,.today-hero-actions,.ideas-library-header-actions) { flex-wrap:wrap; gap:10px; }
-html.oisym-android[data-scheme] :is(.button,.task-menu-choice) { white-space:normal; overflow-wrap:anywhere; }
-html.oisym-android[data-scheme] .workspace-topbar {
- position:sticky; top:0; z-index:30; height:auto; min-height:72px;
- padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
- gap:8px; flex-wrap:nowrap; background:var(--surface);
+/* Phone interface: one destination and one active panel per screen. */
+html.oisym-android,html.oisym-android body { width:100%; height:100%; margin:0; overflow:hidden; overscroll-behavior:none; }
+html.oisym-android { --mobile-radius:20px; --mobile-control:14px; --mobile-nav-height:76px; }
+html.oisym-android[data-radius="square"] { --mobile-radius:4px; --mobile-control:4px; }
+html.oisym-android[data-radius="rounded"] { --mobile-radius:28px; --mobile-control:20px; }
+html.oisym-android [hidden] { display:none!important; }
+html.oisym-android #app { height:100vh; height:var(--mobile-viewport-height,100dvh); min-height:0; font-size:14px; }
+html.oisym-android .workspace-shell { display:flex!important; flex-direction:column; height:100%; min-height:0; padding:0; background:var(--page); }
+html.oisym-android .workspace { flex:1 1 auto; width:100%; max-width:900px; min-height:0; min-width:0; margin:0 auto; }
+html.oisym-android .workspace-main {
+ flex:1 1 auto; width:100%; max-width:900px; min-width:0; min-height:0;
+ margin:0; padding:16px 18px 28px; display:flex; flex-direction:column; gap:18px;
+ overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; scroll-padding-block:20px 100px; -webkit-overflow-scrolling:touch;
 }
-html.oisym-android[data-scheme] .topbar-context { flex:1; min-width:0; gap:8px; }
-html.oisym-android[data-scheme] .topbar-location { min-width:0; }
-html.oisym-android[data-scheme] .topbar-view-name { font-size:17px; }
-html.oisym-android[data-scheme] :is(.topbar-eyebrow,.topbar-date,.topbar-inbox,.topbar-today,.topbar-calendar) { display:none; }
-html.oisym-android[data-scheme] .workspace-topbar .topbar-actions { flex:0 0 auto; margin-left:auto; gap:0; }
-html.oisym-android[data-scheme] .workspace-topbar .topbar-create { min-height:48px; padding:10px; font-size:12px; }
-html.oisym-android[data-scheme] .sidebar-toggle { display:grid; width:48px; height:48px; flex:0 0 48px; place-items:center; }
+html.oisym-android .workspace-main > * { min-width:0; max-width:100%; flex-shrink:0; }
+html.oisym-android body.mobile-scroll-locked { position:fixed; left:0; right:0; width:100%; overflow:hidden; }
+html.oisym-android[data-scheme] :is(h1,h2,h3,p,strong,label) { overflow-wrap:break-word; }
+html.oisym-android[data-scheme] h1 { font-size:24px; line-height:1.18; letter-spacing:-.7px; }
+html.oisym-android[data-scheme] h2 { font-size:18px; line-height:1.3; letter-spacing:-.35px; }
+html.oisym-android[data-scheme] h3 { font-size:15px; }
+html.oisym-android[data-scheme] .muted,html.oisym-android[data-scheme] .small-note { color:var(--muted); line-height:1.5; }
+html.oisym-android .mobile-glyph { display:block; width:23px; height:23px; flex:0 0 23px; }
+html.oisym-android[data-icon-mode="none"] .mobile-glyph { display:none; }
+html.oisym-android :is(button,summary,a) { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+html.oisym-android[data-scheme] :is(input,select,textarea) { max-width:100%; font-size:16px; }
+html.oisym-android[data-scheme] .workspace-main :is(.button,.button.small),
+html.oisym-android[data-scheme] .profile-modal .button,
+html.oisym-android[data-scheme] .workspace-topbar .button { min-height:46px; border-radius:var(--mobile-control); font-size:13px; padding:10px 14px; }
+html.oisym-android[data-scheme] .workspace-main .button.primary { background:var(--accent); color:var(--ui-accent-text); box-shadow:none; }
+html.oisym-android[data-scheme] .workspace-main :is(.button-group,.form-actions) { flex-wrap:wrap; gap:10px; }
+html.oisym-android[data-scheme] .workspace-main .input { width:100%; min-width:0; min-height:48px; border-radius:var(--mobile-control); padding:11px 13px; box-shadow:none; background:var(--ui-field); }
+html.oisym-android[data-scheme] .workspace-main input.input:is([type="checkbox"],[type="radio"]) { width:22px; height:22px; min-height:22px; min-width:22px; padding:0; margin:0; flex:0 0 22px; accent-color:var(--accent); box-shadow:none; }
+html.oisym-android[data-scheme] .workspace-main input.input[type="range"] { min-height:40px; height:40px; border:0; padding:0; box-shadow:none; accent-color:var(--accent); }
+html.oisym-android :is(input,textarea,select,button) { scroll-margin-block:18px 100px; }
+html.oisym-android[data-scheme] .workspace-main :is(.card,.form-card) {
+ min-width:0; max-width:100%; padding:18px; border:1px solid var(--line); border-radius:var(--mobile-radius);
+ background:var(--surface); box-shadow:0 4px 18px rgba(25,37,57,.035);
+}
+html.oisym-android[data-card-style="outlined"] .workspace-main .card { box-shadow:none; border-width:2px; }
+html.oisym-android[data-card-style="soft"] .workspace-main .card { box-shadow:none; background:var(--surface-soft); }
+html.oisym-android .mobile-leading-heading { display:none!important; }
+html.oisym-android .view-heading-row { gap:12px; margin:0; }
+html.oisym-android .view-heading-row > .button { width:100%; }
+html.oisym-android[data-scheme] .workspace-main :is(.dashboard-grid,.dashboard-side,.focus-layout,.settings-layout,.profiles-layout,.calendar-layout,.planner-layout,.insights-grid,.form-grid,.profile-editor-preference-grid) { grid-template-columns:minmax(0,1fr); min-width:0; }
+html.oisym-android .mobile-screen-panel { display:flex; flex-direction:column; min-width:0; width:100%; gap:16px; }
+html.oisym-android .mobile-segments {
+ display:flex; align-items:stretch; min-width:0; width:100%; padding:4px; gap:4px;
+ border:1px solid var(--line); background:var(--surface-soft); border-radius:16px;
+}
+html.oisym-android .mobile-segment {
+ flex:1 1 0; min-width:0; min-height:44px; padding:9px 4px; border:0; border-radius:12px;
+ background:transparent; color:var(--muted); font-size:12px; font-weight:700; line-height:1.25; text-align:center;
+}
+html.oisym-android .mobile-segment[aria-selected="true"] { color:var(--text); background:var(--surface); box-shadow:0 2px 7px rgba(25,37,57,.07); }
+html.oisym-android .mobile-eyebrow { display:block; color:var(--muted); font-size:10px; font-weight:750; letter-spacing:1.2px; line-height:1.4; }
+/* App bar and the five persistent destinations. */
+html.oisym-android[data-scheme] .workspace-topbar {
+ position:relative; top:auto; z-index:30; flex:0 0 auto; height:auto; min-height:68px;
+ padding:calc(10px + env(safe-area-inset-top)) 18px 10px; gap:12px; flex-wrap:nowrap;
+ border-bottom:0; background:var(--page); box-shadow:none;
+}
+html.oisym-android .topbar-context { flex:1; min-width:0; gap:12px; }
+html.oisym-android .topbar-location { min-width:0; }
+html.oisym-android .topbar-view-name { color:var(--text); font-size:24px; font-weight:750; letter-spacing:-.7px; }
+html.oisym-android :is(.topbar-eyebrow,.topbar-date,.topbar-inbox,.topbar-today,.topbar-calendar) { display:none; }
+html.oisym-android .topbar-actions { flex:0 0 auto; }
+html.oisym-android .sidebar-toggle { display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px; border:1px solid var(--line); border-radius:14px; color:var(--text); background:var(--surface); }
+html.oisym-android[data-scheme] .workspace-topbar .topbar-create { display:grid; place-items:center; width:44px; height:44px; min-height:44px; padding:10px; border-radius:50%; border:0; background:var(--accent); color:var(--ui-accent-text); box-shadow:none; }
+html.oisym-android .mobile-navigation {
+ display:flex; flex:0 0 auto; position:relative; z-index:100; min-height:var(--mobile-nav-height);
+ padding:7px max(8px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
+ gap:3px; background:var(--surface); border-top:1px solid var(--line);
+}
+html.oisym-android .mobile-navigation > button {
+ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+ flex:1 1 0; min-width:0; width:auto; min-height:56px; padding:5px 1px;
+ border:0; border-radius:16px; font-size:10px; font-weight:650; color:var(--muted); background:transparent; text-align:center;
+}
+html.oisym-android .mobile-navigation > button.active { color:var(--accent-dark); background:var(--accent-soft); }
+html.oisym-android .mobile-navigation .mobile-glyph { width:22px; height:22px; }
+/* Espacio is a destination grid, rather than a narrow desktop sidebar. */
 html.oisym-android[data-scheme] .workspace-sidebar,
 html.oisym-android[data-scheme] .workspace-shell.is-sidebar-collapsed .workspace-sidebar {
- position:fixed; inset:0 auto 0 0; display:flex; flex-direction:column;
- width:min(320px,88vw); max-width:88vw; height:100vh;
- height:var(--mobile-viewport-height,100dvh); margin:0;
- z-index:120; transform:translateX(-110%); visibility:hidden;
- transition:transform .15s,visibility .15s; overflow-y:auto; overflow-x:hidden;
- overscroll-behavior:contain; touch-action:pan-y;
- padding:calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
- border-right:1px solid var(--line); background:var(--ui-sidebar,var(--surface));
+ position:fixed; inset:0; z-index:120; display:flex; flex-direction:column; width:100%; max-width:100%;
+ height:100vh; height:var(--mobile-viewport-height,100dvh); padding:calc(18px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));
+ overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; border:0; background:var(--page);
+ transform:translateY(105%); visibility:hidden; transition:transform .2s ease,visibility .2s;
 }
-html.oisym-android[data-scheme] body.mobile-menu-open .workspace-sidebar { transform:none; visibility:visible; }
-html.oisym-android[data-scheme] .workspace-sidebar .workspace-brand { display:flex; justify-content:flex-start; padding:16px 4px; }
-html.oisym-android[data-scheme] .workspace-sidebar .brand-copy { display:flex; }
-html.oisym-android[data-scheme] .workspace-sidebar .profile-switcher { display:flex; flex-direction:column; align-items:stretch; gap:10px; padding:14px; }
-html.oisym-android[data-scheme] .workspace-sidebar :is(.profile-switcher .eyebrow,.profile-switcher select,.profile-add,.nav-label,.navigation-group-label,.sidebar-bottom) { display:block; }
-html.oisym-android[data-scheme] .workspace-sidebar .profile-switcher select { min-height:48px; padding:6px; }
-html.oisym-android[data-scheme] .workspace-sidebar .navigation { display:flex; flex-direction:column; overflow:visible; margin:20px 0; gap:18px; }
-html.oisym-android[data-scheme] .workspace-sidebar .navigation-group { flex:0 0 auto; }
-html.oisym-android[data-scheme] .workspace-sidebar .navigation-group-items { display:flex; flex-direction:column; align-items:stretch; gap:6px; }
-html.oisym-android[data-scheme] .workspace-sidebar .nav-item { display:flex; justify-content:flex-start; width:100%; height:auto; min-height:48px; padding:10px 12px; gap:12px; font-size:14px; }
-html.oisym-android[data-scheme] .workspace-sidebar .sidebar-bottom { margin-top:auto; }
-html.oisym-android[data-scheme] .mobile-menu-close { display:block; flex:0 0 auto; align-self:flex-end; }
-html.oisym-android[data-scheme] .mobile-android-status { display:block; min-height:48px; width:100%; margin-top:12px; border:1px solid var(--line); border-radius:var(--ui-radius-control,12px); background:var(--surface); color:var(--text); }
-html.oisym-android[data-scheme] body.mobile-menu-open .mobile-menu-mask { display:block; position:fixed; inset:0; border:0; background:#0007; z-index:110; }
-html.oisym-android[data-scheme] body.mobile-scroll-locked { position:fixed; left:0; right:0; width:100%; overflow:hidden; }
-html.oisym-android[data-scheme] .mobile-navigation {
- display:flex; align-items:stretch; position:fixed; bottom:0; left:0; right:0; z-index:100;
- height:calc(72px + env(safe-area-inset-bottom));
- padding:6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
- gap:4px; border-top:1px solid var(--line); background:var(--surface); box-shadow:0 -2px 12px #0001;
-}
-html.oisym-android[data-scheme] .mobile-navigation > button {
- flex:1 1 0; min-width:0; width:auto; min-height:48px; border:0; border-radius:12px;
- display:flex; justify-content:center; align-items:center; padding:8px 2px; margin:0;
- color:var(--muted); background:transparent; font-size:12px; font-weight:700; white-space:normal; text-align:center;
-}
-html.oisym-android[data-scheme] .mobile-navigation > button.active { background:var(--accent-soft); color:var(--accent-dark,var(--accent)); }
-html.oisym-android[data-scheme] .workspace-main :is(.dashboard-grid,.dashboard-side,.focus-layout,.settings-layout,.profiles-layout,.calendar-layout,.planner-layout,.insights-grid,.form-grid,.profile-editor-preference-grid) { grid-template-columns:minmax(0,1fr); }
-html.oisym-android[data-scheme] .workspace-main :is(.today-overview,.metrics-grid,.profile-stats-grid,.profile-preference-grid) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-html.oisym-android[data-scheme] .today-metric { padding:14px; }
-html.oisym-android[data-scheme] .today-title { align-items:flex-start; }
-html.oisym-android[data-scheme] .workspace-main :is(.settings-navigation,.calendar-detail-card) { position:static; }
-html.oisym-android[data-scheme] .settings-navigation { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-html.oisym-android[data-scheme] .settings-navigation > .eyebrow { grid-column:1/-1; }
-html.oisym-android[data-scheme] .settings-nav-item { min-width:0; min-height:56px; padding:12px; }
-html.oisym-android[data-scheme] .settings-nav-item small { display:none; }
-html.oisym-android[data-scheme] .settings-panel { min-width:0; }
-html.oisym-android[data-scheme] .profiles-list { max-height:none; overflow:visible; grid-template-columns:minmax(0,1fr); }
-html.oisym-android[data-scheme] .ideas-board-grid { grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr)); }
-html.oisym-android[data-scheme] .workspace-main .task-row { flex-wrap:wrap; }
-html.oisym-android[data-scheme] .workspace-main .card .task-row .task-actions { flex:1 1 100%; margin-left:0; justify-content:flex-end; }
-html.oisym-android[data-scheme] .workspace-main .card .task-check { flex:0 0 44px; width:44px; height:44px; }
-html.oisym-android[data-scheme] .workspace-main :is(.task-toolbar,.ideas-library-toolbar) { display:flex; flex-direction:column; align-items:stretch; }
-html.oisym-android[data-scheme] :is(.task-toolbar,.ideas-library-toolbar) :is(select,.search-field) { width:100%; min-width:0; flex:0 0 auto; }
-html.oisym-android[data-scheme] .focus-panel { padding:24px 16px; }
-html.oisym-android[data-scheme] .focus-clock { font-size:clamp(56px,18vw,88px); letter-spacing:-3px; }
-html.oisym-android[data-scheme] :is(.focus-music-controls,.focus-alarm-pattern,.focus-stats-grid) { grid-template-columns:minmax(0,1fr); width:100%; }
-html.oisym-android[data-scheme] :is(.focus-music-settings,.focus-alarm-settings) { min-width:0; width:100%; max-width:100%; }
-html.oisym-android[data-scheme] :is(.focus-options,.focus-option) { gap:12px; }
-html.oisym-android[data-scheme] .focus-option { min-height:44px; }
-html.oisym-android[data-scheme] .calendar-card { overflow:visible; }
-html.oisym-android[data-scheme] .workspace-main .calendar-grid { min-width:0; gap:3px; }
-html.oisym-android[data-scheme] .workspace-main .calendar-day { min-width:0; min-height:64px; padding:5px; gap:4px; }
-html.oisym-android[data-scheme] .calendar-blank { min-height:64px; }
-html.oisym-android[data-scheme] .calendar-count { font-size:9px; }
-html.oisym-android[data-scheme] .calendar-controls { width:100%; }
-html.oisym-android[data-scheme] .calendar-mode { display:flex; flex-wrap:wrap; }
-html.oisym-android[data-scheme] .day-date-bar { flex-wrap:wrap; }
-html.oisym-android[data-scheme] .day-date-bar input { flex:1; width:100%; min-width:0; }
-html.oisym-android[data-scheme] .day-positioned-block .button { min-height:32px; }
-html.oisym-android[data-scheme] :is(.profile-modal-backdrop,.task-editor-backdrop,.entity-editor-backdrop,.modal-backdrop) {
- position:fixed; inset:0; z-index:140; padding:0; align-items:stretch; overflow:hidden;
- height:100vh; height:var(--mobile-viewport-height,100dvh);
-}
-html.oisym-android[data-scheme] :is(.profile-modal,.task-editor-panel,.entity-editor-panel) {
- width:100%; max-width:100%; height:auto; max-height:100%;
- margin:auto; overflow-y:auto; overscroll-behavior:contain; border-radius:var(--ui-radius-card,16px);
-}
-html.oisym-android[data-scheme] :is(.task-editor-panel,.entity-editor-panel) { height:100%; margin:0; border-radius:0; }
-html.oisym-android[data-scheme] :is(.task-editor-panel-header,.entity-editor-panel-header) { padding-top:calc(12px + env(safe-area-inset-top)); }
-html.oisym-android[data-scheme] :is(.task-editor-actions,.entity-editor-actions) { position:static; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
-html.oisym-android[data-scheme] .profile-modal .profile-modal-form { padding:calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); }
-html.oisym-android[data-scheme] .android-permissions {
- max-width:calc(100vw - 32px); width:420px; max-height:calc(var(--mobile-viewport-height,100dvh) - 32px);
- padding:24px; overflow:auto; overscroll-behavior:contain;
- border:1px solid var(--line); border-radius:18px; background:var(--surface,#fff); color:var(--text,#202b24);
-}
-html.oisym-android[data-scheme] .android-permissions button { display:block; margin-top:12px; width:100%; min-height:48px; }
-html.oisym-android[data-scheme] .android-permissions p { margin-top:12px; }
-html.oisym-android[data-scheme] :is(.toast,.mobile-warning) {
- position:fixed; z-index:160; bottom:calc(88px + env(safe-area-inset-bottom)); left:16px; right:16px;
- max-width:600px; margin:0 auto; padding:14px 16px; border-radius:12px;
-}
-html.oisym-android[data-scheme] .mobile-warning { color:var(--text); background:var(--surface); border:2px solid var(--danger); }
-html.oisym-android[data-scheme] .focus-audio-stop-control { bottom:calc(88px + env(safe-area-inset-bottom)); max-width:calc(100vw - 32px); left:16px; right:16px; z-index:105; }
-html.oisym-android[data-scheme] .ideas-canvas-header { flex-direction:column; align-items:stretch; }
-html.oisym-android[data-scheme] .ideas-canvas-toolbar { gap:10px; }
-html.oisym-android[data-scheme] .ideas-tool-group { flex-wrap:wrap; gap:8px; width:100%; }
-html.oisym-android[data-scheme] .ideas-tool-group .button { flex:1 1 auto; }
-html.oisym-android[data-scheme] .mobile-board-tools { min-width:0; width:100%; }
-html.oisym-android[data-scheme] .mobile-board-tools summary { display:flex; align-items:center; min-height:48px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-weight:700; }
-html.oisym-android[data-scheme] .mobile-board-tools[open] > div { margin-top:10px; }
-html.oisym-android[data-scheme] .ideas-canvas-filter-tools { display:flex; flex-direction:column; align-items:stretch; width:100%; }
-html.oisym-android[data-scheme] .ideas-canvas-filter-tools > * { width:100%; min-width:0; max-width:100%; }
-html.oisym-android[data-scheme] .mobile-board-controls { display:flex; flex-wrap:wrap; gap:8px; }
-html.oisym-android[data-scheme] .mobile-board-controls > button { flex:1 1 130px; }
-html.oisym-android[data-scheme] .mobile-board-controls [aria-pressed="true"] { background:var(--accent-soft); color:var(--accent-dark); border-color:var(--accent); }
-html.oisym-android[data-scheme] .mobile-board-controls p { flex:1 1 100%; }
-html.oisym-android[data-scheme] .ideas-canvas-viewport { min-height:280px; height:clamp(280px,55vh,560px); touch-action:pan-y pinch-zoom; }
-html.oisym-android[data-scheme] .ideas-canvas-viewport[data-mobile-interaction="page"] * { touch-action:pan-y pinch-zoom; }
-html.oisym-android[data-scheme] .ideas-canvas-viewport[data-mobile-interaction="board"],
-html.oisym-android[data-scheme] .ideas-canvas-viewport[data-mobile-interaction="board"] :is(.ideas-note-header,.ideas-activity-header,.ideas-group-header,.ideas-note-resize) { touch-action:none; }
-html.oisym-android[data-scheme] body.mobile-keyboard-open .mobile-navigation { display:none; }
-html.oisym-android[data-scheme] body.mobile-keyboard-open .workspace-shell { padding-bottom:16px; }
-@media(max-width:359px) {
- html.oisym-android[data-scheme] .workspace-main { padding:16px 12px 28px; }
- html.oisym-android[data-scheme] .workspace-main :is(.card,.form-card) { padding:14px; }
- html.oisym-android[data-scheme] .topbar-create .button-icon { display:none; }
- html.oisym-android[data-scheme] .mobile-navigation > button { font-size:11px; }
- html.oisym-android[data-scheme] .settings-navigation { grid-template-columns:minmax(0,1fr); }
-}
-@media(prefers-reduced-motion:reduce) { html.oisym-android[data-scheme] .workspace-sidebar { transition:none; } }
-
-/* Desktop density rules have more specificity than a generic button rule. */
-html.oisym-android[data-scheme] .workspace-main :is(.button,.button.small),
-html.oisym-android[data-scheme] .workspace-main .focus-card .button.primary,
-html.oisym-android[data-scheme] .workspace-topbar .button,
-html.oisym-android[data-scheme] .calendar-mode .button,
-html.oisym-android[data-scheme] .task-menu-trigger,
-html.oisym-android[data-scheme] .workspace-main .input { min-height:48px; }
-html.oisym-android[data-scheme] .workspace-main .task-row .task-content { flex:1 1 120px; min-width:120px; }
-html.oisym-android[data-scheme] .workspace-main .task-row .task-actions :is(.button,.task-menu-trigger) { padding:9px 8px; font-size:12px; }
-html.oisym-android[data-scheme] .workspace-main .task-row .button-with-icon { gap:6px; }
-html.oisym-android[data-scheme] .workspace-main input.input:is([type="checkbox"],[type="radio"]) {
- width:22px; height:22px; min-width:22px; min-height:22px; flex:0 0 22px;
- padding:0; margin:0; box-shadow:none; accent-color:var(--accent);
-}
-html.oisym-android[data-scheme] .workspace-main input.input[type="range"] {
- min-height:40px; height:40px; padding:0; border:0; box-shadow:none; background:transparent;
-}
-html.oisym-android[data-scheme] :is(.mobile-focus-options,.mobile-settings-navigation) { width:100%; min-width:0; }
-html.oisym-android[data-scheme] :is(.mobile-focus-options,.mobile-settings-navigation) > summary {
- display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:52px;
- padding:12px 14px; border:1px solid var(--line); border-radius:var(--ui-radius-control,10px);
- background:var(--surface); color:var(--text); font-weight:700; cursor:pointer;
-}
-html.oisym-android[data-scheme] :is(.mobile-focus-options,.mobile-settings-navigation) > summary::after { content:'＋'; flex:none; }
-html.oisym-android[data-scheme] :is(.mobile-focus-options,.mobile-settings-navigation)[open] > summary::after { content:'−'; }
-html.oisym-android[data-scheme] .mobile-focus-options { margin:8px 0; }
-html.oisym-android[data-scheme] .mobile-focus-options[open] > :is(.focus-alarm-settings,.focus-music-settings) { margin:12px 0 0; }
-html.oisym-android[data-scheme] .mobile-settings-navigation[open] > .settings-navigation { margin-top:10px; }
-
-html.oisym-android[data-scheme] .task-menu-choice { min-height:48px; }
+html.oisym-android[data-scheme] body.mobile-menu-open .workspace-sidebar,
 html.oisym-android[data-scheme] body.mobile-menu-open .workspace-shell.is-sidebar-collapsed .workspace-sidebar { transform:none; visibility:visible; }
+html.oisym-android .mobile-menu-close { display:block; align-self:flex-end; min-height:44px; padding:9px 14px; font-size:12px; margin-bottom:-34px; z-index:1; }
+html.oisym-android .workspace-sidebar .workspace-brand { display:flex; align-items:center; padding:0 100px 22px 0; justify-content:flex-start; gap:10px; }
+html.oisym-android .workspace-sidebar .brand-copy { display:flex; }
+html.oisym-android .workspace-sidebar .brand-copy strong { color:var(--text); font-size:20px; }
+html.oisym-android .workspace-sidebar .brand-copy span { color:var(--muted); font-size:10px; }
+html.oisym-android .workspace-sidebar .brand-mark { background:transparent; width:42px; height:42px; box-shadow:none; flex:0 0 42px; }
+html.oisym-android .brand-mark img { width:42px; height:42px; object-fit:contain; }
+html.oisym-android[data-scheme] .workspace-sidebar .profile-switcher { display:grid; grid-template-columns:42px minmax(0,1fr); align-items:center; gap:12px; padding:12px; background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:none; }
+html.oisym-android .workspace-sidebar .profile-switcher :is(.eyebrow,.profile-add) { display:none; }
+html.oisym-android .workspace-sidebar .profile-switcher select { display:block; width:100%; min-height:44px; font-size:16px; font-weight:700; color:var(--text); }
+html.oisym-android .workspace-sidebar .navigation { display:flex; flex-direction:column; gap:20px; overflow:visible; margin:22px 0; }
+html.oisym-android .workspace-sidebar .navigation-group-label { display:block; font-size:10px; letter-spacing:1.1px; margin-bottom:8px; padding:0 3px; }
+html.oisym-android .workspace-sidebar .navigation-group-items { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:10px; }
+html.oisym-android .workspace-sidebar .nav-item { display:flex; justify-content:flex-start; width:100%; min-width:0; min-height:62px; padding:12px; gap:10px; border:1px solid var(--line); border-radius:16px; background:var(--surface); font-size:13px; font-weight:650; color:var(--text); }
+html.oisym-android .workspace-sidebar .nav-label { display:block; white-space:normal; }
+html.oisym-android .workspace-sidebar .nav-item.active { background:var(--accent-soft); color:var(--accent-dark); border-color:var(--accent); }
+html.oisym-android .workspace-sidebar .nav-item.active::before { display:none; }
+html.oisym-android .workspace-sidebar .sidebar-bottom { display:block; margin-top:auto; }
+html.oisym-android .sidebar-note { display:none; }
+html.oisym-android .mobile-android-status { display:block; min-height:48px; width:100%; padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--text); }
+.mobile-menu-mask { display:none; }
+/* Home: a short summary and separate views for the full day and progress. */
+html.oisym-android .mobile-day-summary { display:flex; flex-direction:column; gap:16px; }
+html.oisym-android[data-scheme] .workspace-main .welcome-card { padding:22px; color:var(--ui-accent-text); background:var(--accent); border:0; box-shadow:none; }
+html.oisym-android[data-scheme] .workspace-main .welcome-card :is(h1,p,strong,span,.eyebrow) { color:inherit; }
+html.oisym-android .welcome-card .view-title-icon { display:none; }
+html.oisym-android .welcome-card h1 { font-size:26px; margin:10px 0; }
+html.oisym-android .welcome-card > p { font-size:12px; opacity:.9; }
+html.oisym-android .welcome-card .eyebrow { font-size:10px; opacity:.8; }
+html.oisym-android .welcome-card .progress-wrap { margin-top:18px; }
+html.oisym-android .welcome-card .progress-label { font-size:11px; }
+html.oisym-android .welcome-card .progress-track { background:rgba(255,255,255,.22); height:5px; }
+html.oisym-android .welcome-card .progress-fill { background:var(--ui-accent-text); }
+html.oisym-android .today-hero-actions { display:flex; margin-top:16px; }
+html.oisym-android .today-hero-actions [data-action="quick-task"] { display:none; }
+html.oisym-android[data-scheme] .workspace-main .today-hero-actions .button { min-height:40px; padding:9px 12px; background:rgba(255,255,255,.16); color:inherit; border:1px solid rgba(255,255,255,.3); }
+html.oisym-android .workspace-main .today-overview { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+html.oisym-android[data-scheme] .today-metric { display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 5px; border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:none; text-align:center; }
+html.oisym-android .today-metric-value { order:0; font-size:23px; color:var(--text); }
+html.oisym-android .today-metric-label { order:1; font-size:9px; color:var(--muted); }
+html.oisym-android .today-metric-detail { display:none; }
+html.oisym-android .mobile-next-card { padding:18px; border:1px solid var(--line); border-radius:var(--mobile-radius); background:var(--surface); }
+html.oisym-android .mobile-next-card h2 { margin:6px 0 12px; }
+html.oisym-android .mobile-next-task { display:flex; align-items:center; gap:12px; width:100%; min-height:66px; padding:12px 0; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--text); text-align:left; }
+html.oisym-android .mobile-next-task > span:nth-child(2) { flex:1; min-width:0; display:grid; gap:4px; }
+html.oisym-android .mobile-next-task strong { font-size:13px; line-height:1.4; }
+html.oisym-android .mobile-next-task small { display:block; color:var(--muted); font-size:10px; max-height:28px; overflow:hidden; }
+html.oisym-android .mobile-next-mark { display:grid; place-items:center; width:38px; height:38px; flex:0 0 38px; border-radius:12px; color:var(--accent-dark); background:var(--accent-soft); }
+html.oisym-android .mobile-chevron { color:var(--muted); font-size:22px; }
+html.oisym-android .mobile-inline-link { min-height:44px; padding:10px 0; border:0; background:transparent; color:var(--accent-dark); font-weight:700; font-size:12px; text-align:left; }
+html.oisym-android[data-scheme] .workspace-main .focus-card { background:var(--accent-soft); padding:18px; border:0; }
+html.oisym-android .focus-card .eyebrow { display:none; }
+html.oisym-android .focus-card h3 { margin:0; }
+html.oisym-android .focus-card p { margin:8px 0 12px; }
+/* Task actions are contextual; the list keeps its vertical space for titles. */
+html.oisym-android[data-scheme] .workspace-main .card .task-list { gap:0; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row { display:grid; grid-template-columns:40px minmax(0,1fr) 38px; align-items:start; gap:10px; padding:16px 0; margin:0; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; box-shadow:none; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row:last-child { border:0; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-check { width:36px; height:36px; min-height:36px; padding:7px; margin:0; border-radius:50%; border:2px solid var(--line); color:var(--ui-accent-text); }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-check.checked { background:var(--accent); border-color:var(--accent); }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-content { min-width:0; width:100%; gap:7px; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-content > strong { font-size:14px; font-weight:650; line-height:1.4; overflow-wrap:break-word; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-actions { display:block; flex:none; width:38px; min-width:0; margin:0; }
+html.oisym-android[data-scheme] .task-menu-trigger { min-height:40px; width:38px; padding:1px 5px; font-size:24px; line-height:36px; background:transparent; border:0; text-align:center; }
+html.oisym-android[data-scheme] .task-menu-choices { z-index:60; padding:8px; border-radius:16px; background:var(--surface); }
+html.oisym-android[data-scheme] .workspace-main .task-menu-choices :is(.button,.task-menu-choice) { display:flex; align-items:center; justify-content:flex-start; width:100%; min-height:46px; margin:0; padding:10px 12px; border:0; background:transparent; text-align:left; font-size:13px; }
+html.oisym-android[data-scheme] .workspace-main .task-row .meta-chip { min-height:0; padding:3px 5px; border-radius:5px; font-size:9px; }
+html.oisym-android .task-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+html.oisym-android[data-scheme] .workspace-main .task-toolbar { padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+html.oisym-android .task-toolbar > .filter-icon { display:none; }
+html.oisym-android .task-toolbar :is(select,.search-field) { width:100%; min-width:0; }
+html.oisym-android .task-toolbar .search-field { min-height:48px; border-radius:16px; background:var(--surface); }
+/* Focus is a timer screen, with sound and history on their own tabs. */
+html.oisym-android[data-scheme] .workspace-main .focus-panel { display:flex; align-items:stretch; padding:0; border:0; background:transparent; box-shadow:none; }
+html.oisym-android .mobile-focus-timer { display:flex; flex-direction:column; align-items:center; gap:14px; padding:8px 0; }
+html.oisym-android .focus-status { display:flex; justify-content:center; gap:6px; padding:0; }
+html.oisym-android .focus-status-icon { display:none; }
+html.oisym-android .focus-status .eyebrow { color:var(--muted); font-size:10px; }
+html.oisym-android .focus-clock { display:grid; place-items:center; width:224px; height:224px; flex:0 0 224px; margin:0; border:9px solid var(--accent-soft); border-top-color:var(--accent); border-radius:50%; background:var(--surface); color:var(--text); font-size:clamp(44px,14vw,64px); font-weight:700; letter-spacing:-2px; }
+html.oisym-android .mobile-focus-timer > .field { width:min(360px,100%); margin:0; }
+html.oisym-android .mobile-focus-timer .button-group.center { width:100%; margin:0; gap:9px; justify-content:center; }
+html.oisym-android[data-scheme] .mobile-focus-timer .button.primary { width:100%; min-height:54px; border-radius:18px; font-size:15px; }
+html.oisym-android .mobile-focus-timer .center-text { max-width:320px; margin:0; font-size:11px; }
+html.oisym-android .mobile-focus-link-button { display:flex; align-items:center; justify-content:center; gap:9px; width:100%; min-height:46px; padding:10px; border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--muted); font-size:12px; }
+html.oisym-android .mobile-focus-link-fields { display:flex; flex-direction:column; gap:18px; }
+html.oisym-android .mobile-focus-link-fields .focus-hint { margin:0; text-align:left; font-size:12px; }
+html.oisym-android .mobile-focus-sound { display:flex; flex-direction:column; gap:16px; }
+html.oisym-android[data-scheme] :is(.focus-music-settings,.focus-alarm-settings) { width:100%; max-width:100%; min-width:0; margin:0; padding:18px; border:1px solid var(--line); border-radius:var(--mobile-radius); background:var(--surface); box-shadow:none; }
+html.oisym-android .focus-music-controls,html.oisym-android .focus-alarm-pattern { display:grid; grid-template-columns:minmax(0,1fr); width:100%; gap:12px; }
+html.oisym-android .focus-option { min-height:44px; align-items:center; gap:12px; }
+html.oisym-android .focus-stats-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+html.oisym-android .focus-stat { padding:12px 8px; border:0; border-radius:12px; box-shadow:none; text-align:center; }
+html.oisym-android .focus-stat strong { font-size:20px; }
+html.oisym-android .focus-stat span { font-size:10px; }
+/* Calendar shows one job at a time. */
+html.oisym-android .calendar-heading { gap:12px; margin-bottom:14px; }
+html.oisym-android .calendar-heading h1 { font-size:18px; line-height:1.3; }
+html.oisym-android .calendar-heading .view-title-icon { display:none; }
+html.oisym-android .calendar-controls { display:flex; width:100%; flex-wrap:wrap; gap:8px; }
+html.oisym-android .calendar-mode { flex:1 1 100%; justify-content:space-between; padding:3px; border:0; box-shadow:none; }
+html.oisym-android[data-scheme] .calendar-mode .button { flex:1; min-width:0; padding:9px 4px; min-height:44px; font-size:12px; }
+html.oisym-android .day-date-bar { display:flex; flex-wrap:wrap; margin:0 0 14px; padding:0; border:0; background:transparent; box-shadow:none; }
+html.oisym-android .day-date-bar > p { display:none; }
+html.oisym-android .day-date-bar input { min-width:0; width:100%; }
+html.oisym-android .mobile-calendar-content { display:flex; flex-direction:column; gap:14px; }
+html.oisym-android .day-positioned-block .button { min-height:32px; padding:5px; }
+html.oisym-android .mobile-availability { margin:14px 0; border:1px solid var(--line); border-radius:12px; }
+html.oisym-android .mobile-availability summary { min-height:44px; padding:12px; color:var(--accent-dark); font-size:12px; font-weight:700; }
+html.oisym-android .mobile-availability .free-slot-list { padding:12px; }
+html.oisym-android .calendar-grid { min-width:0; gap:3px; }
+html.oisym-android[data-scheme] .workspace-main .calendar-day { min-width:0; min-height:70px; padding:5px; gap:4px; font-size:11px; }
+html.oisym-android .calendar-blank { min-height:70px; }
+/* Settings starts as a hub; details and appearance have dedicated screens. */
+html.oisym-android[data-scheme] .settings-layout { gap:0; }
+html.oisym-android[data-scheme] .settings-navigation { position:static; display:flex; flex-direction:column; gap:10px; margin:0; padding:0; border:0; background:transparent; box-shadow:none; }
+html.oisym-android .settings-navigation > .eyebrow { padding:0 2px 8px; }
+html.oisym-android[data-scheme] .settings-navigation .settings-nav-item { display:grid; grid-template-columns:30px minmax(0,1fr) 16px; align-items:center; gap:3px 12px; min-height:76px; padding:16px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); }
+html.oisym-android .settings-nav-item .mobile-glyph { grid-column:1; grid-row:1/3; color:var(--accent-dark); }
+html.oisym-android .settings-nav-item strong { grid-column:2; font-size:14px; }
+html.oisym-android .settings-nav-item small { grid-column:2; font-size:11px; color:var(--muted); }
+html.oisym-android .settings-nav-item .mobile-chevron { grid-column:3; grid-row:1/3; }
+html.oisym-android[data-scheme] .settings-panel { min-width:0; padding:0; border:0; background:transparent; box-shadow:none; }
+html.oisym-android .mobile-back-button { display:flex; align-items:center; gap:8px; min-height:44px; margin-bottom:12px; padding:8px 0; border:0; background:transparent; color:var(--accent-dark); font-weight:700; }
+html.oisym-android .mobile-back-button span { font-size:25px; line-height:1; }
+html.oisym-android .settings-panel > .section-heading { margin-bottom:18px; }
+html.oisym-android[data-scheme] .workspace-main .appearance-form { padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; gap:16px; }
+html.oisym-android .appearance-form > p { font-size:12px; }
+html.oisym-android .appearance-section { min-width:0; margin:0; padding:0; border:0; }
+html.oisym-android .appearance-mode-options { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+html.oisym-android .appearance-mode-option { display:flex; align-items:center; justify-content:center; gap:6px; min-height:52px; padding:10px 5px; border-radius:14px; font-size:12px; background:var(--surface); }
+html.oisym-android .appearance-mode-option input { width:16px; height:16px; }
+html.oisym-android .appearance-palette-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+html.oisym-android .appearance-palette-button { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:96px; gap:8px; padding:12px 5px; border-radius:16px; background:var(--surface); }
+html.oisym-android .appearance-palette-scene { width:38px; height:38px; border:0; border-radius:50%; background:var(--palette-accent); pointer-events:none; }
+html.oisym-android .appearance-palette-scene > * { display:none; }
+html.oisym-android .appearance-palette-name { font-size:11px; }
+html.oisym-android .appearance-edit-modes { margin:12px 0 18px; }
+html.oisym-android .mobile-theme-gallery > p { display:none; }
+html.oisym-android .mobile-custom-colors .appearance-custom-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+html.oisym-android .mobile-color-help { font-size:12px; color:var(--muted); line-height:1.5; margin:8px 0 14px; }
+html.oisym-android .mobile-custom-colors > p:not(.mobile-color-help) { display:none; }
+html.oisym-android .mobile-custom-colors .appearance-color-control { display:flex; flex-direction:column; gap:10px; min-width:0; padding:14px 12px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }
+html.oisym-android .mobile-custom-colors .appearance-color-control > .small-note { display:none; }
+html.oisym-android .mobile-custom-colors .appearance-color-control > label:not(.appearance-custom-toggle) { font-size:0; }
+html.oisym-android .appearance-color-control .appearance-custom-toggle { min-height:32px; gap:6px; font-size:10px; }
+html.oisym-android .appearance-icons-settings .appearance-custom-grid { grid-template-columns:minmax(0,1fr); }
+html.oisym-android .appearance-preview-layout { grid-template-columns:1fr; min-height:160px; }
+html.oisym-android .appearance-preview-nav { display:none; }
+html.oisym-android .appearance-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin:0; }
+html.oisym-android .appearance-save-status { font-size:11px; }
+/* Color selection never opens Android's limited native swatch chooser. */
+html.oisym-android input.mobile-native-color { position:absolute!important; width:1px!important; height:1px!important; min-height:0!important; padding:0!important; margin:0!important; opacity:0; pointer-events:none; }
+html.oisym-android .mobile-color-trigger { display:flex; align-items:center; gap:8px; min-height:46px; max-width:100%; width:100%; padding:8px; border:1px solid var(--line); border-radius:12px; background:var(--ui-field); color:var(--text); text-align:left; font-size:12px; }
+html.oisym-android .mobile-color-dot { width:26px; height:26px; flex:0 0 26px; border:1px solid rgba(0,0,0,.12); border-radius:8px; }
+html.oisym-android .mobile-color-value { flex:1; min-width:0; font-size:11px; font-weight:650; }
+html.oisym-android .mobile-color-edit { color:var(--muted); font-size:10px; }
+html.oisym-android .mobile-custom-colors .mobile-color-edit { display:none; }
+html.oisym-android .mobile-color-dialog { width:min(440px,calc(100vw - 24px)); max-width:calc(100vw - 24px); max-height:calc(var(--mobile-viewport-height,100dvh) - 24px); margin:auto; padding:20px; overflow:auto; overscroll-behavior:contain; border:1px solid var(--line); border-radius:24px; background:var(--surface); color:var(--text); }
+html.oisym-android .mobile-color-dialog::backdrop,html.oisym-android .mobile-sheet::backdrop { background:rgba(12,20,34,.5); }
+html.oisym-android .mobile-color-header { position:relative; padding-right:36px; margin-bottom:18px; }
+html.oisym-android .mobile-color-header h2 { margin-top:5px; font-size:20px; }
+html.oisym-android .mobile-icon-button { position:absolute; top:0; right:0; width:36px; height:36px; border:0; border-radius:50%; background:var(--surface-soft); color:var(--text); font-size:26px; line-height:32px; }
+html.oisym-android .mobile-color-square { position:relative; width:100%; aspect-ratio:1.5; min-height:150px; border-radius:16px; background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,var(--picker-hue)); touch-action:none; overflow:hidden; }
+html.oisym-android .mobile-color-point { position:absolute; width:20px; height:20px; border:3px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.5); border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; }
+html.oisym-android .mobile-hue-label { display:block; margin-top:14px; font-size:12px; color:var(--muted); }
+html.oisym-android .mobile-hue { display:block; width:100%; height:32px; padding:0; accent-color:var(--accent); }
+html.oisym-android .mobile-hue::-webkit-slider-runnable-track { height:14px; border-radius:8px; background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
+html.oisym-android .mobile-color-sv { display:flex; gap:12px; margin-top:10px; }
+html.oisym-android .mobile-color-sv label { flex:1; min-width:0; color:var(--muted); font-size:11px; }
+html.oisym-android .mobile-color-sv input { width:100%; min-width:0; accent-color:var(--accent); }
+html.oisym-android .mobile-color-compare { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+html.oisym-android .mobile-color-before,html.oisym-android .mobile-color-after { display:grid; place-items:center; min-height:42px; border:1px solid var(--line); border-radius:12px; font-size:12px; font-weight:650; }
+html.oisym-android .mobile-color-values { display:grid; grid-template-columns:1.7fr repeat(3,1fr); gap:8px; }
+html.oisym-android .mobile-color-values label { display:grid; min-width:0; gap:6px; color:var(--muted); font-size:11px; font-weight:650; }
+html.oisym-android .mobile-color-values input { width:100%; min-width:0; min-height:44px; padding:8px; border:1px solid var(--line); border-radius:10px; background:var(--ui-field); color:var(--text); font-size:13px; }
+html.oisym-android .mobile-color-error { color:var(--danger); font-size:12px; min-height:18px; margin-top:10px; }
+html.oisym-android .mobile-color-actions { display:flex; gap:10px; position:sticky; bottom:-20px; margin:0 -20px -20px; padding:14px 20px; border-top:1px solid var(--line); background:var(--surface); }
+html.oisym-android .mobile-color-actions button { flex:1; min-height:48px; color:var(--text); }
+html.oisym-android .mobile-color-actions .primary { background:var(--accent); color:var(--ui-accent-text); }
+/* Boards occupy the available screen. Tools open in a separate sheet. */
+html.oisym-android .ideas-library-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+html.oisym-android .ideas-library-toolbar > * { min-width:0; max-width:100%; width:100%; }
+html.oisym-android .ideas-board-grid { display:flex; flex-direction:column; gap:12px; }
+html.oisym-android[data-scheme] .workspace-main .ideas-board-card { display:grid; grid-template-columns:58px minmax(0,1fr) 36px; gap:8px 12px; align-items:center; padding:16px; }
+html.oisym-android .ideas-board-open { grid-column:1; grid-row:1/4; width:58px; height:66px; padding:10px; border:0; border-radius:16px; background:var(--accent-soft); }
+html.oisym-android .ideas-board-open-label { display:none; }
+html.oisym-android .ideas-board-preview-icon { width:32px; height:32px; }
+html.oisym-android .ideas-board-card-title { grid-column:2; display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+html.oisym-android .ideas-board-card-title h3 { font-size:15px; }
+html.oisym-android .ideas-board-card-title > span { font-size:11px; }
+html.oisym-android .ideas-board-description { grid-column:2/4; font-size:11px; max-height:34px; overflow:hidden; margin:0; }
+html.oisym-android .ideas-board-card-footer { display:contents; }
+html.oisym-android .ideas-board-card-footer > .small-note { grid-column:2; font-size:10px; }
+html.oisym-android .mobile-board-menu { grid-column:3; grid-row:1; position:relative; }
+html.oisym-android .mobile-board-menu summary { display:grid; place-items:center; width:36px; height:44px; font-size:24px; list-style:none; cursor:pointer; }
+html.oisym-android .mobile-board-menu .ideas-board-actions { position:absolute; top:44px; right:0; z-index:55; display:flex; flex-direction:column; align-items:stretch; width:180px; padding:8px; border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:0 12px 24px rgba(0,0,0,.12); }
+html.oisym-android .workspace-main.mobile-board-workspace { position:relative; display:flex; flex-direction:column; gap:12px; padding:8px 12px 14px; overflow:hidden; }
+html.oisym-android .mobile-board-workspace > .ideas-canvas-header { flex:0 0 auto; display:flex; flex-direction:row; align-items:center; gap:8px; margin:0; }
+html.oisym-android .mobile-board-workspace .ideas-canvas-title { min-width:0; flex:1; }
+html.oisym-android .mobile-board-workspace .ideas-canvas-title h1 { font-size:16px; line-height:1.3; max-height:42px; overflow:hidden; }
+html.oisym-android .mobile-board-workspace .ideas-canvas-title > p { display:none; }
+html.oisym-android .mobile-board-workspace .ideas-library-header-actions { display:flex; flex:0 0 auto; gap:6px; }
+html.oisym-android .mobile-board-workspace .ideas-library-header-actions > button:not([data-action="ideas-library"]) { display:none; }
+html.oisym-android[data-scheme] .mobile-board-workspace .ideas-library-header-actions .button { font-size:11px; padding:8px; min-height:42px; }
+html.oisym-android .mobile-board-workspace > .ideas-canvas-viewport { flex:1 1 auto; min-height:0; height:auto; width:100%; max-width:100%; border-radius:20px; touch-action:none; }
+html.oisym-android .mobile-board-workspace .ideas-canvas-hint { display:none; }
+html.oisym-android .mobile-board-dock { position:absolute; bottom:28px; left:24px; right:24px; z-index:5; display:flex; gap:6px; align-items:center; padding:6px; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:0 6px 22px rgba(0,0,0,.12); }
+html.oisym-android .mobile-board-control,html.oisym-android .mobile-board-tools-button { min-height:44px; min-width:38px; padding:8px; border:0; border-radius:10px; background:var(--surface-soft); color:var(--text); font-size:12px; font-weight:700; }
+html.oisym-android .mobile-board-tools-button { flex:1; background:var(--accent); color:var(--ui-accent-text); }
+html.oisym-android .ideas-custom-color { width:32px; height:32px; min-height:32px; padding:0; border:1px solid var(--line); border-radius:50%; background:var(--surface); color:var(--text); font-size:22px; }
+html.oisym-android .ideas-canvas-toolbar { display:flex; flex-direction:column; gap:16px; }
+html.oisym-android .ideas-tool-group { display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+html.oisym-android .ideas-tool-group .button { flex:1 1 120px; min-height:44px; }
+html.oisym-android .ideas-canvas-filter-tools { display:flex; flex-direction:column; gap:10px; }
+html.oisym-android .ideas-canvas-filter-tools > * { width:100%; min-width:0; }
+html.oisym-android .mobile-sheet { width:100%; max-width:600px; max-height:calc(var(--mobile-viewport-height,100dvh) - 24px); margin:auto auto 0; padding:0; border:1px solid var(--line); border-radius:26px 26px 0 0; background:var(--surface); color:var(--text); overflow:hidden; }
+html.oisym-android .mobile-sheet-header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px; border-bottom:1px solid var(--line); }
+html.oisym-android .mobile-sheet-header h2 { font-size:19px; }
+html.oisym-android .mobile-sheet-close { min-height:42px; padding:8px 12px; border:0; border-radius:12px; background:var(--surface-soft); color:var(--text); font-weight:650; }
+html.oisym-android .mobile-sheet-body { max-height:calc(var(--mobile-viewport-height,100dvh) - 110px); padding:18px 18px calc(22px + env(safe-area-inset-bottom)); overflow:auto; overscroll-behavior:contain; }
+html.oisym-android .mobile-sheet-body :is(.form-card,.ideas-canvas-toolbar) { border:0; box-shadow:none; padding:0; }
+html.oisym-android .mobile-sheet-body .button { min-height:46px; }
+/* Forms remain full-screen editors with their own scroll surface. */
+html.oisym-android :is(.profile-modal-backdrop,.task-editor-backdrop,.entity-editor-backdrop) { position:fixed; inset:0; z-index:140; height:100vh; height:var(--mobile-viewport-height,100dvh); padding:0; overflow:hidden; align-items:stretch; background:rgba(12,20,34,.5); }
+html.oisym-android :is(.profile-modal,.task-editor-panel,.entity-editor-panel) { width:100%; max-width:100%; height:auto; max-height:100%; overflow:auto; overscroll-behavior:contain; margin:auto; border-radius:24px; background:var(--surface); }
+html.oisym-android[data-scheme] :is(.task-editor-panel,.entity-editor-panel) { width:100%; height:100%; margin:0; border-radius:0; }
+html.oisym-android :is(.task-editor-panel-header,.entity-editor-panel-header) { padding-top:calc(14px + env(safe-area-inset-top)); }
+html.oisym-android .task-editor-actions { position:static; padding-bottom:calc(18px + env(safe-area-inset-bottom)); }
+html.oisym-android .profile-modal .profile-modal-form { padding:20px 18px calc(24px + env(safe-area-inset-bottom)); }
+html.oisym-android .task-editor-panel .task-editor-form { padding:20px 18px 0; }
+html.oisym-android .profiles-list { max-height:none; overflow:visible; grid-template-columns:minmax(0,1fr); }
+html.oisym-android .profile-stats-grid,html.oisym-android .profile-preference-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+html.oisym-android .metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+html.oisym-android .android-permissions { width:min(420px,calc(100vw - 24px)); max-height:calc(var(--mobile-viewport-height,100dvh) - 24px); overflow:auto; padding:22px; border:1px solid var(--line); border-radius:24px; background:var(--surface); color:var(--text); }
+html.oisym-android .android-permissions p { margin:12px 0; }
+html.oisym-android .android-permissions button { display:block; width:100%; min-height:48px; margin-top:12px; }
+html.oisym-android :is(.toast,.mobile-warning) { position:fixed; z-index:160; bottom:calc(90px + env(safe-area-inset-bottom)); left:18px; right:18px; max-width:600px; padding:14px 16px; margin:0 auto; border-radius:16px; font-size:13px; }
+html.oisym-android .mobile-warning { border:2px solid var(--danger); background:var(--surface); color:var(--text); }
+html.oisym-android .focus-audio-stop-control { bottom:calc(90px + env(safe-area-inset-bottom)); left:18px; right:18px; max-width:calc(100vw - 36px); z-index:105; }
+html.oisym-android body.mobile-keyboard-open .mobile-navigation { display:none; }
+@media(max-width:359px) {
+ html.oisym-android .workspace-main { padding:14px 12px 24px; }
+ html.oisym-android[data-scheme] .workspace-main .card { padding:14px; }
+ html.oisym-android .workspace-main .card .task-row { grid-template-columns:32px minmax(0,1fr) 32px; gap:7px; }
+ html.oisym-android .focus-clock { width:196px; height:196px; flex-basis:196px; }
+ html.oisym-android .mobile-color-dialog { padding:16px; }
+ html.oisym-android .mobile-color-actions { bottom:-16px; margin:0 -16px -16px; padding:12px 16px; }
+ html.oisym-android .mobile-color-values { gap:5px; }
+}
+@media(max-height:720px) {
+ html.oisym-android .focus-clock { width:176px; height:176px; flex-basis:176px; font-size:44px; border-width:7px; }
+ html.oisym-android .mobile-focus-timer { gap:10px; }
+ html.oisym-android .mobile-focus-timer .center-text { display:none; }
+ html.oisym-android .mobile-focus-timer > .field .field-label { font-size:11px; }
+ html.oisym-android .mobile-focus-timer > .field .input { min-height:42px; }
+ html.oisym-android .mobile-color-square { min-height:120px; aspect-ratio:1.8; }
+}
+@media(prefers-reduced-motion:reduce) { html.oisym-android * { scroll-behavior:auto!important; transition:none!important; } }
 
-html.oisym-android[data-scheme] .mobile-focus-context[open] { padding-bottom:12px; }
-html.oisym-android[data-scheme] .mobile-focus-context > .field { margin:16px 0; }
-html.oisym-android[data-scheme] .mobile-focus-context .focus-hint { margin:12px 0; text-align:left; }
+html.oisym-android .mobile-sheet-body .input { min-height:48px; width:100%; min-width:0; font-size:16px; }
+html.oisym-android .mobile-sheet-body .form-grid { grid-template-columns:minmax(0,1fr); }
+html.oisym-android[data-scheme] .workspace-main .card .task-row { grid-template-columns:44px minmax(0,1fr) 44px; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-check { width:44px; height:44px; min-height:44px; }
+html.oisym-android[data-scheme] .workspace-main .card .task-row .task-actions { width:44px; }
+html.oisym-android[data-scheme] .task-menu-trigger { width:44px; min-height:44px; }
+
+html.oisym-android .focus-clock { border-color:transparent; background:linear-gradient(var(--surface),var(--surface)) padding-box,conic-gradient(var(--accent) calc(var(--focus-progress,0)*1turn),var(--accent-soft) 0) border-box; }
