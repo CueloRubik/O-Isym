@@ -28,7 +28,7 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
 </div></header>
 <main>
 <section class="hero"><div class="wrap hero-inner">
-<span class="eyebrow" id="release-badge">O-ISYM · PRÓXIMAMENTE 1.1.0</span>
+<span class="eyebrow" id="release-badge">O-ISYM · 1.1.0</span>
 <h1>Organiza tu tiempo.<br>Enfócate en lo que importa.</h1>
 <p>Un espacio personal para organizar actividades, tareas, calendario y objetivos, y dedicar tu atención a lo que quieres conseguir.</p>
 <div class="actions"><a class="button" href="#descargas">Descargar O-Isym ↓</a><a class="button alt" href="https://github.com/CueloRubik/O-Isym">Conocer el proyecto</a></div>
@@ -41,8 +41,11 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
 <article class="feature"><div class="symbol" aria-hidden="true">↗</div><h3>Objetivos</h3><p>Da seguimiento a tus objetivos y observa cómo avanzas con el tiempo.</p></article>
 </div></div></section>
 <section class="download-section" id="descargas"><div class="wrap">
-<div class="head"><h2>Descarga O-Isym.</h2><p id="current-release">La versión 1.1.0 estará disponible próximamente.</p></div>
-<div class="downloads" id="latest-downloads"><article class="download"><h3>O-Isym 1.1.0</h3><p class="detail">Los instaladores aparecerán aquí cuando se publiquen. Mientras tanto, puedes descargar la edición anterior.</p><a class="button alt" href="#versiones-anteriores">Ver versiones anteriores</a></article></div>
+<div class="head"><h2>Descarga O-Isym.</h2><p id="current-release">O-Isym 1.1.0 · Elige el instalador correspondiente a tu equipo.</p></div>
+<div class="downloads" id="latest-downloads"><article class="download"><h3>Windows x64</h3><p class="detail">O-Isym-1.0.4-Windows-x64-Setup.exe · 147.8 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.0.4-Windows-x64-Setup.exe">Descargar para Windows x64</a></article>
+<article class="download"><h3>Mac Intel</h3><p class="detail">O-Isym-1.1.0-intel.dmg · 126.4 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.1.0-intel.dmg">Descargar para Mac Intel</a></article>
+<article class="download"><h3>Mac Universal</h3><p class="detail">O-Isym-1.1.0-universal.dmg · 196.7 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.1.0-universal.dmg">Descargar para Mac Universal</a></article></div>
+<p class="note">Windows x64: compilación 1.0.4 incluida en la publicación 1.1.0.</p>
 <p class="note" id="release-status" role="status">Consultando las publicaciones de GitHub…</p>
 <p class="note"><a href="https://github.com/CueloRubik/O-Isym/releases">Ver todas las publicaciones en GitHub</a></p>
 </div></section>
@@ -143,7 +146,7 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
     }
     status.textContent = current ? 'Descargas actualizadas desde GitHub. Solo se muestran instaladores publicados; los demás se añadirán cuando estén disponibles.' : 'La versión 1.1.0 todavía no tiene instaladores publicados. Las descargas anteriores están disponibles abajo.';
   } catch {
-    status.textContent = 'No se pudieron consultar las nuevas versiones. Puedes descargar la edición anterior abajo o consultar GitHub.';
+    status.textContent = 'No se pudieron comprobar nuevas versiones. Las descargas de la publicación 1.1.0 siguen disponibles; también puedes consultar GitHub.';
   } finally {
     clearTimeout(timeout);
   }
