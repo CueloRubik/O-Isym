@@ -1,6 +1,6 @@
 # Primera adaptación Android
 
-Estado: APK debug 1.1.0 / versionCode 11002 compilado. El usuario confirmó que la primera APK abre en su dispositivo; esta revisión de interfaz aún debe probarse físicamente.
+Estado: APK debug 1.1.0 / versionCode 11004 compilado. El usuario confirmó que la primera APK abre en su dispositivo; esta revisión de interfaz aún debe probarse físicamente.
 
 ## Implementado en oisym-android
 
@@ -15,6 +15,7 @@ Estado: APK debug 1.1.0 / versionCode 11002 compilado. El usuario confirmó que 
 - Pizarrones: Desplazar página permite scroll vertical; Mover pizarrón permite arrastrar el fondo y las cabeceras. Zoom con botones, filtros y conexiones plegables.
 - Los contenedores Android conservan la clase base card y los ajustes de tema; se corrigió el selector múltiple del interruptor de alarma.
 - Pruebas de contratos del puente, captura de snapshots y recordatorios.
+- Ícono de aplicación con una sola fuente: assets/icons/app.png. Nombres Android propios para evitar el robot de plantilla drawable-v24. [Causa y verificación del ícono](ICON.md).
 
 ## Antes de considerar Android estable
 
@@ -27,7 +28,7 @@ Los recordatorios móviles iniciales usan las tareas del perfil activo y un máx
 ## Evidencia
 
 - Pruebas locales: 68 pruebas de puente Android, dominio, planificación y audio aprobadas con Node 26; revisión de sintaxis de los scripts.
-- [Compilación CI y APK de esta revisión](https://github.com/CueloRubik/O-Isym/actions/runs/43238674436), código 64e5689923fdea38ae73f76f9d9d3c1e45c4c4bb: 197 pruebas aprobadas, assembleDebug correcto, versionName 1.1.0, versionCode 11002, minSdk 26 y targetSdk 36. Artefactos: O-Isym-Android-debug y mobile-ui-screenshots.
+- [Compilación CI y APK de esta revisión](https://github.com/CueloRubik/O-Isym/actions/runs/43244291310), código 7521ed1be73734bece864133e16cd08747f0092a: 199 pruebas aprobadas, compilación limpia e incremental correctas, versionName 1.1.0, versionCode 11004, minSdk 26 y targetSdk 36. La inspección del APK verifica que el ícono seleccionado termina en el PNG original. Artefactos: O-Isym-Android-debug y mobile-ui-screenshots.
 - Dependencias exactas y lockfile mobile/package-lock.json guardados después de la compilación.
 - El ejecutable JBR de Android Studio instalado en la Lenovo es Java 25; el comando de compilación detecta y solicita JDK 21 para evitar un error de Gradle.
 - Chromium en CI: anchos 320, 360, 412 y 768 px; límites de controles, títulos de tareas, objetivos táctiles, scroll por gestos de página/editor/pizarrón, menú visible, pantalla de Focus de 640 px de alto y cambio de viewport al enfocar un campo (simulación del espacio del teclado). Las capturas se revisaron visualmente.
