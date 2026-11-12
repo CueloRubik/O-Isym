@@ -15,9 +15,9 @@
 ## Desarrollo y revisión
 
 - [Correcciones de la revisión del 11 de noviembre de 2026](AUDIT-FIXES-2026-11-11.md) — recuperación, instancia única, Focus, recordatorios y límites del planificador.
-- [Auditoría técnica y prioridades](QUALITY_AUDIT_OISYM_5.md).
-- [Hoja de ruta del producto](ROADMAP_OISYM_5.md).
-- [Especificaciones de perfiles e interfaz](PROFILE_AND_UI_SPEC_OISYM_5.md).
+- [Auditoría técnica y prioridades](QUALITY_AUDIT_OISYM_1.md).
+- [Hoja de ruta del producto](ROADMAP_OISYM_1.md).
+- [Especificaciones de perfiles e interfaz](PROFILE_AND_UI_SPEC_OISYM_1.md).
 - [Plan de implementación de pizarrones](IDEAS-PLANNER-IMPLEMENTATION.md).
 - [Formato de archivos .oisym](OISYM-FILE-FORMAT.md).
 - [Revisión de pizarrones](PIZARRONES-REVISION.md).

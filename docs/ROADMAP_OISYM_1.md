@@ -1,7 +1,7 @@
 # O-Isym 1.0.0 — Hoja de ruta y estado del proyecto
 
 **Rama de desarrollo:** `oisym-5-development`  
-**Documento de auditoría vigente:** [QUALITY_AUDIT_OISYM_5.md](QUALITY_AUDIT_OISYM_5.md)
+**Documento de auditoría vigente:** [QUALITY_AUDIT_OISYM_1.md](QUALITY_AUDIT_OISYM_1.md)
 
 > Este archivo organiza el trabajo de producto. Para el registro detallado de errores, riesgos, soluciones, pruebas y prioridades técnicas, la fuente principal es la auditoría técnica. Los estados antiguos de esta hoja de ruta se actualizaron para no presentar como pendientes funciones ya implementadas.
 
