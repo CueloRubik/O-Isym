@@ -2,6 +2,12 @@
 
 O-Isym es una aplicación de organización personal con perfiles, tareas, calendario, actividades, metas, Focus y pizarrones de ideas.
 
+## Preparación de Android en esta rama
+
+`feature/android-capacitor` parte de development y conserva la aplicación de escritorio como base. Esta primera entrega añade una planificación revisable; todavía no incorpora Capacitor, servicios nativos ni una compilación Android nueva.
+
+Consulta [Android: plan e índice](docs/android/README.md). Empieza por A0 y sigue las etapas de entorno, integración, datos, interfaz móvil, Focus en suspensión, pruebas y distribución.
+
 ## Estado del repositorio
 
 - **`development`**: base de código en desarrollo, compartida por macOS y Windows.

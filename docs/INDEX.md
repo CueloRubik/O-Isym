@@ -4,6 +4,14 @@
 
 - [Estrategia de ramas, compilaciones y Releases](RELEASE-STRATEGY.md) — fuente actual para las ramas `development` y futura `main`, builds multiplataforma y página oficial.
 
+## Android
+
+- [Plan e índice Android](android/README.md) — adaptación con Capacitor, interfaz de teléfono, datos, notificaciones, música y Focus con pantalla apagada.
+- [Etapas y criterios de aceptación](android/PLAN.md).
+- [Matriz de pruebas y distribución](android/VALIDATION.md).
+
+Estado: planificación en `feature/android-capacitor`; implementación y pruebas Android pendientes.
+
 ## Próxima etapa de producto
 
 - [Organización Unificada: planificación diaria y calendario avanzado](UNIFIED-PLANNING.md) — especificación y bloques de trabajo.
