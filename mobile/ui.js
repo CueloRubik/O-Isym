@@ -14,6 +14,7 @@ function setup(){
   if(toggle){toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'Cerrar menú':'Abrir menú');}
  }
  function syncLock(){
+  if(!document?.body)return;
   const needsLock=document.body.classList.contains('mobile-menu-open')||Boolean(document.querySelector('[data-profile-modal],dialog[open]'));
   if(needsLock===locked)return;
   locked=needsLock;
@@ -72,6 +73,7 @@ function setup(){
   boardControls();syncMenu();syncLock();
  }
  function mount(){
+  if(!document?.body)return;
   const shell=root.querySelector('.workspace-shell');
   if(!shell){closeMenu();mounted=null;return;}
   if(mounted===shell)return;mounted=shell;

@@ -111,7 +111,7 @@ html.oisym-android :is(.profile-modal,.task-editor-panel,.entity-editor-panel) {
 html.oisym-android :is(.task-editor-panel,.entity-editor-panel) { height:100%; margin:0; border-radius:0; }
 html.oisym-android :is(.task-editor-panel-header,.entity-editor-panel-header) { padding-top:calc(12px + env(safe-area-inset-top)); }
 html.oisym-android :is(.task-editor-actions,.entity-editor-actions) { position:static; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
-html.oisym-android .profile-modal .profile-modal-form { padding:20px 16px calc(24px + env(safe-area-inset-bottom)); }
+html.oisym-android .profile-modal .profile-modal-form { padding:calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); }
 html.oisym-android .android-permissions {
  max-width:calc(100vw - 32px); width:420px; max-height:calc(var(--mobile-viewport-height,100dvh) - 32px);
  padding:24px; overflow:auto; overscroll-behavior:contain;

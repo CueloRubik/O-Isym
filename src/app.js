@@ -4724,7 +4724,7 @@ root.addEventListener('change', async event => {
     const previousProfile = cloneActiveProfile();
     state.profile.preferences[event.target.name] = event.target.checked;
     if (event.target.name === 'focusEndAlarmEnabled') {
-      $('.focus-alarm-settings select, .focus-alarm-settings input[type="range"], .focus-alarm-settings [data-action="preview-focus-alarm"]').forEach(control => {
+      $$('.focus-alarm-settings select, .focus-alarm-settings input[type="range"], .focus-alarm-settings [data-action="preview-focus-alarm"]').forEach(control => {
         control.disabled = Boolean(state.profile.activeFocus) || !event.target.checked;
       });
     }
