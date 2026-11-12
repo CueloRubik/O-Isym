@@ -14,7 +14,7 @@ const path = require('node:path');
   const archive = path.join(root, 'resources/app.asar');
   assert.deepEqual(asar.extractFile(archive, 'app.ico'), fs.readFileSync(path.resolve(__dirname, '../app.ico')));
   for (const entry of ['electron/preload.js', 'electron/task-notifications.js', 'src/app.js', 'assets/icons/notifications/task-reminder.png']) {
-    assert.ok(asar.extractFile(archive, entry).length, `Missing packaged file: ${entry}`);
+    assert.ok(asar.extractFile(archive, path.normalize(entry)).length, `Missing packaged file: ${entry}`);
   }
   if (!process.argv.includes('--dir')) assert.ok(fs.readdirSync(path.dirname(root)).some(file => file.endsWith('-Setup.exe')), 'Installer missing');
   console.log('Windows executable, icon and packaged runtime verified.');
