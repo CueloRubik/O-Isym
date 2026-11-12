@@ -42,19 +42,19 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
 </div></div></section>
 <section class="download-section" id="descargas"><div class="wrap">
 <div class="head"><h2>Descarga O-Isym.</h2><p id="current-release">O-Isym 1.1.0 · Elige el instalador correspondiente a tu equipo.</p></div>
-<div class="downloads" id="latest-downloads"><article class="download"><h3>Windows x64</h3><p class="detail">O-Isym-1.0.4-Windows-x64-Setup.exe · 147.8 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.0.4-Windows-x64-Setup.exe">Descargar para Windows x64</a></article>
+<div class="downloads" id="latest-downloads"><article class="download"><h3>Windows x64</h3><p class="detail">O-Isym-1.1.0-Windows-x64-Setup.exe · 147.8 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.1.0-Windows-x64-Setup.exe">Descargar para Windows x64</a></article>
 <article class="download"><h3>Mac Intel</h3><p class="detail">O-Isym-1.1.0-intel.dmg · 126.4 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.1.0-intel.dmg">Descargar para Mac Intel</a></article>
 <article class="download"><h3>Mac Universal</h3><p class="detail">O-Isym-1.1.0-universal.dmg · 196.7 MB</p><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.1.0/O-Isym-1.1.0-universal.dmg">Descargar para Mac Universal</a></article></div>
-<p class="note">Windows x64: compilación 1.0.4 incluida en la publicación 1.1.0.</p>
+
 <p class="note" id="release-status" role="status">Consultando las publicaciones de GitHub…</p>
 <p class="note"><a href="https://github.com/CueloRubik/O-Isym/releases">Ver todas las publicaciones en GitHub</a></p>
 </div></section>
 <section id="versiones-anteriores"><div class="wrap">
 <div class="head"><h2>Versiones anteriores.</h2><p>Instaladores de ediciones anteriores de O-Isym.</p></div>
-<div id="release-history"><details class="release" open><summary>O-Isym 5.0.0</summary><p class="note">Publicada el 5 de noviembre de 2026. Nombre conservado tal como aparece en GitHub.</p><div class="downloads">
-<article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Intel</h3><span class="detail">DMG · Procesadores Intel</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/v5.0.0/O-Isym.Intel-Installer.dmg">Descargar para Mac Intel</a></article>
-<article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Universal</h3><span class="detail">DMG · Intel y Apple Silicon</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/v5.0.0/O-Isym-universal-installer.dmg">Descargar para Mac Universal</a></article>
-<article class="download"><div class="platform" aria-hidden="true">▦</div><h3>Windows</h3><span class="detail">Instalador · Windows x64</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/v5.0.0/O-Isym.Setup.5.0.0.exe">Descargar para Windows</a></article>
+<div id="release-history"><details class="release" open><summary>O-Isym 1.0.0</summary><p class="note">Publicada el 5 de noviembre de 2026. </p><div class="downloads">
+<article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Intel</h3><span class="detail">DMG · Procesadores Intel</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.0.0/O-Isym-1.0.0-intel.dmg">Descargar para Mac Intel</a></article>
+<article class="download"><div class="platform" aria-hidden="true">●</div><h3>Mac Universal</h3><span class="detail">DMG · Intel y Apple Silicon</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.0.0/O-Isym-1.0.0-universal.dmg">Descargar para Mac Universal</a></article>
+<article class="download"><div class="platform" aria-hidden="true">▦</div><h3>Windows</h3><span class="detail">Instalador · Windows x64</span><a class="button" href="https://github.com/CueloRubik/O-Isym/releases/download/1.0.0/O-Isym-1.0.0-Windows-x64-Setup.exe">Descargar para Windows</a></article>
 </div>
 </details></div>
 </div></section>
@@ -63,7 +63,7 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
 <script>
 (async () => {
   const repository = 'https://github.com/CueloRubik/O-Isym';
-  const baseline = 'v5.0.0';
+  const baseline = '1.0.0';
   const baselineDate = Date.parse('2026-11-05T18:37:45Z');
   const status = document.getElementById('release-status');
   const latest = document.getElementById('latest-downloads');
@@ -126,7 +126,7 @@ footer{padding:27px 0;color:var(--muted);font-size:13px}.foot{display:flex;justi
     const data = await response.json();
     if (!Array.isArray(data)) throw new Error('Respuesta inesperada');
     const releases = data.filter(r => !r.draft && !r.prerelease && installers(r).length).sort((a,b) => Date.parse(b.published_at) - Date.parse(a.published_at));
-    // Publication date supports the transition from the old 5.0.0 numbering to 1.1.0.
+    // Select the most recently published stable release.
     const current = releases.find(r => r.tag_name !== baseline && Date.parse(r.published_at) > baselineDate);
     if (current) {
       const grid = cards(current);
