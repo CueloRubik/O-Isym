@@ -1,4 +1,4 @@
-# O-Isym 5 — Especificación de perfiles y reorganización de la interfaz
+# O-Isym 1.0.0 — Especificación de perfiles y reorganización de la interfaz
 
 **Estado:** especificación funcional y visual; primera entrega de perfiles y Ajustes implementada parcialmente. Consulta el estado de implementación al final del documento.  
 **Rama:** `oisym-5-development`. `main` debe permanecer intacta.  

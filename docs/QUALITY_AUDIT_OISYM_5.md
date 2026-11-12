@@ -1,4 +1,4 @@
-# Auditoría técnica y registro de calidad — O-Isym 5
+# Auditoría técnica y registro de calidad — O-Isym 1.0.0
 
 **Última revisión:** 2026-11-05  
 **Rama auditada:** `oisym-5-development`  

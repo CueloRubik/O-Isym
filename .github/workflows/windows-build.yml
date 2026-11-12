@@ -20,6 +20,14 @@ jobs:
       - run: npm test
       - run: npm run build:win
       - run: npm run build:win:portable
+      - name: Verify release version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $setup = Get-Item "dist/O-Isym-$version-Windows-x64-Setup.exe"
+          if ($setup.VersionInfo.ProductVersion -ne $version) { throw 'Installer version mismatch' }
+          $app = Get-Item 'dist/win-unpacked/O-Isym.exe'
+          if ($app.VersionInfo.ProductVersion -ne $version) { throw 'Application version mismatch' }
       - name: Verify packaged application and executable icon
         run: node scripts/verify-windows-build.cjs
       - name: Install and launch on Windows
@@ -54,3 +62,22 @@ jobs:
           name: O-Isym-Windows-x64
           path: dist/*.exe
           if-no-files-found: error
+
+  publish-corrected-installer:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[publish-1.1.0]')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: O-Isym-Windows-x64
+          path: installers
+      - name: Replace Windows installer in release 1.1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          test -f installers/O-Isym-1.1.0-Windows-x64-Setup.exe
+          gh release upload 1.1.0 installers/O-Isym-1.1.0-Windows-x64-Setup.exe --clobber

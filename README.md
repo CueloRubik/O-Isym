@@ -26,7 +26,7 @@ npm.cmd start
 npm.cmd run build:win
 ```
 
-El instalador queda en `dist/O-Isym-5.0.0-Windows-x64-Setup.exe`. Incluye el icono `app.ico`, asistente en español, selección de carpeta, acceso directo en Inicio y en el escritorio. Conserva los datos de perfiles al actualizar o desinstalar. No se publica ninguna Release automáticamente.
+El instalador queda en `dist/O-Isym-1.1.0-Windows-x64-Setup.exe`. Incluye el icono `app.ico`, asistente en español, selección de carpeta, acceso directo en Inicio y en el escritorio. Conserva los datos de perfiles al actualizar o desinstalar. No se publica ninguna Release automáticamente.
 
 Otros destinos:
 
@@ -35,7 +35,7 @@ npm.cmd run build:win:portable
 npm.cmd run build:win:dir
 ```
 
-El portable se genera como `dist/O-Isym-5.0.0-Windows-x64-Portable.exe`. Para notificaciones e inicio automático se recomienda instalar: el portable no registra inicio automático porque su ruta de ejecución es temporal. `npm start` también desactiva ese registro para evitar iniciar `electron.exe` sin la aplicación.
+El portable se genera como `dist/O-Isym-1.1.0-Windows-x64-Portable.exe`. Para notificaciones e inicio automático se recomienda instalar: el portable no registra inicio automático porque su ruta de ejecución es temporal. `npm start` también desactiva ese registro para evitar iniciar `electron.exe` sin la aplicación.
 
 La firma digital está desactivada mediante `signExecutable: false`; el empaquetador sigue aplicando icono y metadatos. Así se evita el flujo antiguo de winCodeSign sin desactivar la edición del icono. Windows puede mostrar editor desconocido porque estos paquetes no tienen certificado de firma.
 
