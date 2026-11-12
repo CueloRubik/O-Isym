@@ -26,10 +26,12 @@ const server=http.createServer((req,res)=>{
 });
 async function swipe(page,x,y,endY){
  const cdp=await page.context().newCDPSession(page);
+ await page.evaluate(()=>{window.mobileLastScroll=performance.now();if(!window.mobileScrollObserver){window.addEventListener('scroll',()=>window.mobileLastScroll=performance.now(),true);window.mobileScrollObserver=true;}});
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
  for(let i=1;i<=12;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+(endY-y)*i/12}]});await page.waitForTimeout(20);}
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
- await page.waitForTimeout(350);await cdp.detach();
+ await page.waitForTimeout(350);
+ await page.waitForFunction(()=>performance.now()-window.mobileLastScroll>250,{},{polling:50,timeout:6000});await cdp.detach();
 }
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
