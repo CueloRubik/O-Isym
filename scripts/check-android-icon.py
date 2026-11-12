@@ -12,7 +12,7 @@ def dump(*args):
     return subprocess.check_output([aapt, "dump", *args], text=True)
 resources = dump("resources", apk)
 def resource_id(name):
-    match = re.search(r"resource (0x[0-9a-f]+) [^\\s:]+:" + re.escape(name) + r"\\b", resources)
+    match = re.search(r"resource (0x[0-9a-f]+) [^\s:]+:" + re.escape(name) + r"\b", resources)
     assert match, "Missing compiled resource: " + name
     return match.group(1)
 with zipfile.ZipFile(apk) as archive:
