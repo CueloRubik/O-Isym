@@ -149,6 +149,9 @@
    canvas.addEventListener('focusin',()=>{canvas.style.touchAction='pan-y';});
    canvas.addEventListener('focusout',()=>setTimeout(()=>{if(!canvas.contains(document.activeElement))canvas.style.touchAction='';},0));
    for(const card of main.querySelectorAll('.ideas-note-card,.ideas-activity-card')){
+    const background=card.style.getPropertyValue('--note-color')||'#fff2bf';
+    const contrast=window.OIsymAppearance.contrast;
+    card.style.setProperty('--mobile-note-ink',contrast(background,'#ffffff')>=contrast(background,'#000000')?'#ffffff':'#000000');
     const palette=card.querySelector('.ideas-note-palette');if(!palette)continue;
     const custom=action('+',async()=>{
      const color=await window.OIsymColorPicker.choose({value:card.style.getPropertyValue('--note-color')||'#fff2bf',label:'Color del elemento'});

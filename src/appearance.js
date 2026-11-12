@@ -6,7 +6,7 @@
   // Each palette works in both light and dark mode. These are color schemes,
   // not copies of tasks, profile data or preference collections.
   const PALETTES = [
-    { id: 'forest', name: 'Bosque', light: '#27856b', dark: '#74d9b3', base: '#15251e' },
+    { id: 'forest', name: 'Bosque', light: '#18745b', dark: '#74d9b3', base: '#15251e' },
     { id: 'ocean', name: 'Océano', light: '#236da8', dark: '#75baff', base: '#121f35' },
     { id: 'midnight', name: 'Medianoche', light: '#39578a', dark: '#95b7ff', base: '#121827' },
     { id: 'aurora', name: 'Aurora', light: '#168c86', dark: '#6de0d6', base: '#11292c' },

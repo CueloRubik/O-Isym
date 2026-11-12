@@ -59,8 +59,8 @@
     hue.value=String(Math.round(state.h));ranges.s.value=String(Math.round(state.s*100));ranges.v.value=String(Math.round(state.v*100));
     if(!keep.hex)hexInput.value=selected.toUpperCase();
     if(!keep.rgb)C.rgb(selected).forEach((value,i)=>rgbInputs[i].value=String(value));
-    after.style.backgroundColor=selected;after.style.color=window.OIsymAppearance?.contrast(selected,'#ffffff')>=4.5?'#ffffff':'#172735';
-    before.style.color=window.OIsymAppearance?.contrast(original,'#ffffff')>=4.5?'#ffffff':'#172735';
+    after.style.backgroundColor=selected;after.style.color=window.OIsymAppearance?.contrast(selected,'#ffffff')>=window.OIsymAppearance?.contrast(selected,'#000000')?'#ffffff':'#000000';
+    before.style.color=window.OIsymAppearance?.contrast(original,'#ffffff')>=window.OIsymAppearance?.contrast(original,'#000000')?'#ffffff':'#000000';
     error.textContent='';hexInput.removeAttribute('aria-invalid');
    }
    function pick(e){const rect=square.getBoundingClientRect();state.s=C.clamp((e.clientX-rect.left)/rect.width,0,1);state.v=1-C.clamp((e.clientY-rect.top)/rect.height,0,1);sync();}

@@ -43,7 +43,16 @@ function setup(){
   });
   const more=toggleButton();
   if(more){const selected=active&&!['today','calendar','focus','planner'].includes(active);more.classList.toggle('active',Boolean(selected));}
-  window.OIsymMobileScreens?.adapt(root);syncMenu();syncLock();
+  window.OIsymMobileScreens?.adapt(root);
+  const create=root.querySelector('.topbar-create');
+  if(create){
+   const kind=view==='planner'?(root.querySelector('.ideas-canvas-viewport')?'ideas-note-create':'ideas-create'):({activities:'new-activity',goals:'new-goal',profiles:'new-profile',calendar:'calendar-add-task'}[view]||'quick-task');
+   create.dataset.action=kind;create.hidden=['settings','focus','insights'].includes(view);
+   create.setAttribute('aria-label',({'new-activity':'Nueva actividad','new-goal':'Nuevo objetivo','new-profile':'Crear perfil','ideas-create':'Nuevo pizarrón','ideas-note-create':'Nueva nota'}[kind]||'Nueva tarea'));
+   const returnId=({activities:'activity-create-button',goals:'goal-create-button'}[view]||'task-create-button');
+   const original=root.querySelector('#main-content #'+returnId);if(original)original.removeAttribute('id');create.id=returnId;
+  }
+  syncMenu();syncLock();
  }
  function mount(){
   if(!document?.body)return;
@@ -116,7 +125,7 @@ function setup(){
   if(!isEditing())viewportHeight=height;else viewportHeight=Math.max(viewportHeight,height);
   document.documentElement.style.setProperty('--mobile-viewport-height',height+'px');
   document.body.classList.toggle('mobile-keyboard-open',isEditing()&&viewportHeight-height>150);
-  if(isEditing())document.activeElement.scrollIntoView?.({block:'nearest',inline:'nearest'});
+  if(isEditing()&&!document.activeElement.closest('.ideas-canvas-viewport'))document.activeElement.scrollIntoView?.({block:'nearest',inline:'nearest'});
  }
  window.visualViewport?.addEventListener('resize',resize);window.addEventListener('resize',resize);
  document.addEventListener('focusout',()=>setTimeout(resize,100));
