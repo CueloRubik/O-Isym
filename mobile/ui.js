@@ -59,6 +59,18 @@ function setup(){
   }
  }
  function compactSections(){
+  const panel=root.querySelector('.focus-panel');
+  if(panel&&!panel.querySelector('.mobile-focus-context')){
+   const task=panel.querySelector('#focus-task')?.closest('.field');
+   const activity=panel.querySelector('#focus-activity')?.closest('.field');
+   const actions=panel.querySelector('.button-group.center');
+   if(task&&activity&&actions){
+    const details=document.createElement('details');details.className='mobile-focus-context mobile-focus-options';
+    const summary=document.createElement('summary');summary.textContent='Tarea y actividad (opcional)';details.append(summary);
+    actions.after(details);details.append(task,activity);
+    const hint=panel.querySelector('.focus-hint');if(hint)details.append(hint);
+   }
+  }
   for(const [selector,label]of [['.focus-music-settings','Música para concentrarte'],['.focus-alarm-settings','Alarma al terminar']]){
    const options=root.querySelector(selector);
    if(!options||options.parentElement.classList.contains('mobile-focus-options'))continue;

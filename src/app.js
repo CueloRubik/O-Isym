@@ -1711,7 +1711,7 @@ function renderIdeaBoardCanvas(main, board) {
   connectionLayer.classList.add('ideas-connections-layer');
   connectionLayer.setAttribute('aria-hidden', 'true');
   connectionLayer.style.overflow = 'visible';
-  const connectionHint = element('p', 'ideas-canvas-hint', 'Arrastra para seleccionar · Shift añade · Option/Alt selecciona una nota del grupo · Rueda pulsada o dos dedos para mover · Pellizco o Ctrl + rueda para zoom');
+  const connectionHint = element('p', 'ideas-canvas-hint', (window.oisym?.platform==='android' ? 'Usa Desplazar página para recorrer la pantalla y Mover pizarrón para arrastrar el fondo o las notas. Los botones + y − ajustan el zoom.' : 'Arrastra para seleccionar · Shift añade · Option/Alt selecciona una nota del grupo · Rueda pulsada o dos dedos para mover · Pellizco o Ctrl + rueda para zoom'));
   main.append(viewport, connectionHint);
   let connectMode = null;
   let connectionStartId = null;
@@ -1725,7 +1725,7 @@ function renderIdeaBoardCanvas(main, board) {
     deleteConnection.disabled = !selectedConnectionId;
     connectionHint.textContent = connectMode
       ? (connectionStartId ? 'Ahora selecciona el segundo elemento · Esc para cancelar' : 'Selecciona el primer elemento · Esc para cancelar')
-      : 'Arrastra para seleccionar · Shift añade · Option/Alt selecciona una nota del grupo · Rueda pulsada o dos dedos para mover · Pellizco o Ctrl + rueda para zoom';
+      : (window.oisym?.platform==='android' ? 'Usa Desplazar página para recorrer la pantalla y Mover pizarrón para arrastrar el fondo o las notas. Los botones + y − ajustan el zoom.' : 'Arrastra para seleccionar · Shift añade · Option/Alt selecciona una nota del grupo · Rueda pulsada o dos dedos para mover · Pellizco o Ctrl + rueda para zoom');
   };
   const drawConnections = () => {
     connectionLayer.replaceChildren();

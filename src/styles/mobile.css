@@ -184,3 +184,7 @@ html.oisym-android[data-scheme] .mobile-settings-navigation[open] > .settings-na
 
 html.oisym-android[data-scheme] .task-menu-choice { min-height:48px; }
 html.oisym-android[data-scheme] body.mobile-menu-open .workspace-shell.is-sidebar-collapsed .workspace-sidebar { transform:none; visibility:visible; }
+
+html.oisym-android[data-scheme] .mobile-focus-context[open] { padding-bottom:12px; }
+html.oisym-android[data-scheme] .mobile-focus-context > .field { margin:16px 0; }
+html.oisym-android[data-scheme] .mobile-focus-context .focus-hint { margin:12px 0; text-align:left; }

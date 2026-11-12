@@ -79,7 +79,12 @@ async function swipe(page,x,y,endY){
    for(const view of ['today','tasks','activities','goals','calendar','focus','planner','insights','profiles']){await select(view);await check(view);}
    for(const section of ['profile','appearance','planning','notifications','focus','data','shortcuts']){await select('settings',section);await check('settings-'+section);}
    await select('focus');
-   await page.locator('.mobile-focus-options summary').first().tap();
+   await page.setViewportSize({width,height:640});
+   const startButton=await page.locator('[data-action="focus-start"]').boundingBox();
+   assert.ok(startButton.y>=0&&startButton.y+startButton.height<=568,width+'px Focus start stays above the navigation on a short screen');
+   await page.screenshot({path:path.join(output,width+'-focus-short-screen.png')});
+   await page.setViewportSize({width,height:900});
+   await page.locator('.mobile-focus-options:not(.mobile-focus-context) summary').first().tap();
    await check('focus-music-open');
    await page.locator('.mobile-focus-options summary').last().tap();
    await check('focus-alarm-open');
@@ -101,6 +106,13 @@ async function swipe(page,x,y,endY){
    await page.waitForSelector('[data-profile-modal]');
    await check('task-editor');
    const panel=page.locator('.task-editor-panel');
+   await page.locator('.task-editor-panel input[name="title"]').focus();
+   await page.setViewportSize({width,height:480});
+   await page.waitForFunction(()=>document.body.classList.contains('mobile-keyboard-open'));
+   assert.equal(await page.locator('.mobile-navigation').evaluate(e=>getComputedStyle(e).display),'none');
+   await page.screenshot({path:path.join(output,width+'-editor-keyboard-resize.png')});
+   await page.setViewportSize({width,height:900});
+   await page.locator('.task-editor-panel input[name="title"]').blur();
    const before=await panel.evaluate(e=>e.scrollTop);
    await swipe(page,Math.round(width/2),700,250);
    assert.ok(await panel.evaluate(e=>e.scrollTop)>before,width+'px editor scrolls with a finger');
