@@ -58,6 +58,21 @@ function setup(){
    group.before(details);details.append(group);
   }
  }
+ function compactSections(){
+  for(const [selector,label]of [['.focus-music-settings','Música para concentrarte'],['.focus-alarm-settings','Alarma al terminar']]){
+   const options=root.querySelector(selector);
+   if(!options||options.parentElement.classList.contains('mobile-focus-options'))continue;
+   const details=document.createElement('details');details.className='mobile-focus-options';
+   const summary=document.createElement('summary');summary.textContent=label;details.append(summary);
+   options.before(details);details.append(options);const title=options.querySelector('h3');if(title)title.hidden=true;
+  }
+  const navigation=root.querySelector('.settings-navigation');
+  if(navigation&&!navigation.parentElement.classList.contains('mobile-settings-navigation')){
+   const details=document.createElement('details');details.className='mobile-settings-navigation';
+   const summary=document.createElement('summary');summary.textContent='Categoría · '+(navigation.querySelector('.active strong')?.textContent||'Ajustes');details.append(summary);
+   navigation.before(details);details.append(navigation);
+  }
+ }
  function syncView(){
   const view=root.querySelector('#main-content')?.dataset.view;
   if(document.body.classList.contains('mobile-menu-open'))closeMenu();
@@ -70,7 +85,7 @@ function setup(){
   });
   const more=toggleButton();
   if(more){const selected=active&&!['today','calendar','focus','planner'].includes(active);more.classList.toggle('active',Boolean(selected));}
-  boardControls();syncMenu();syncLock();
+  boardControls();compactSections();syncMenu();syncLock();
  }
  function mount(){
   if(!document?.body)return;

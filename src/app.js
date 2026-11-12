@@ -525,7 +525,7 @@ const textarea = (name, placeholder, value = '') => {
   node.rows = 3;
   return node;
 };
-const card = (className = 'card') => element('section', className);
+const card = (className = 'card') => element('section', window.oisym?.platform === 'android' ? Array.from(new Set(['card', ...className.split(' ')])).join(' ') : className);
 const heading = (title, subtitle, iconPath = '') => {
   const wrap = element('div', 'section-heading');
   const titleRow = element('div', 'section-heading-title');
@@ -2714,7 +2714,7 @@ function renderFocus(main) {
   const stop=button('Detener alarma','stop-focus-alarm','button ghost small');stop.id='focus-alarm-stop';stop.disabled=!focusAudioController.isAlarmPlaying();audioActions.append(stop);alarmOptions.append(audioActions);
   const notificationLabel=element('label','focus-option'),notifications=input('focusNotifications','','checkbox');notifications.checked=state.profile.preferences.focusNotifications!==false;notifications.disabled=Boolean(focus);
   notificationLabel.append(notifications,element('span','','Mostrar notificación del sistema al terminar'));alarmOptions.append(notificationLabel);
-  alarmOptions.append(element('p','small-note','El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
+  alarmOptions.append(element('p','small-note',window.oisym?.platform==='android'?'En Android, la música y la alarma usan el servicio de audio. Puedes apagar la pantalla; revisa los permisos de notificaciones y alarmas exactas en Android · permisos.':'El MP3 requiere que la ventana esté abierta o minimizada. Si cierras la ventana, O-Isym puede mostrar una notificación silenciosa; al salir con Cmd + Q, los temporizadores se detienen.'));
   focusCard.append(alarmOptions);
   main.append(focusCard);
   const sessions = state.profile.focusSessions.slice().reverse();

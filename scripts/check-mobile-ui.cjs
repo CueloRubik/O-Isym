@@ -70,10 +70,22 @@ async function swipe(page,x,y,endY){
       .filter(e=>e.left < -1||e.right>window.innerWidth+1);
     });
     assert.deepEqual(bad,[],width+'px '+label+' controls fit the screen');
+    const cramped=await page.evaluate(()=>[...document.querySelectorAll('.task-content')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().width).filter(w=>w<120));
+    assert.deepEqual(cramped,[],width+'px '+label+' task titles remain readable');
+    const tiny=await page.evaluate(()=>[...document.querySelectorAll('#main-content .button')].filter(e=>e.getClientRects().length&&!e.closest('.ideas-canvas-world,.day-positioned-block')).map(e=>({text:e.textContent,height:e.getBoundingClientRect().height})).filter(e=>e.height<44));
+    assert.deepEqual(tiny,[],width+'px '+label+' buttons have usable touch targets');
     await page.screenshot({path:path.join(output,width+'-'+label+'.png'),fullPage:true});
    };
    for(const view of ['today','tasks','activities','goals','calendar','focus','planner','insights','profiles']){await select(view);await check(view);}
    for(const section of ['profile','appearance','planning','notifications','focus','data','shortcuts']){await select('settings',section);await check('settings-'+section);}
+   await select('focus');
+   await page.locator('.mobile-focus-options summary').first().tap();
+   await check('focus-music-open');
+   await page.locator('.mobile-focus-options summary').last().tap();
+   await check('focus-alarm-open');
+   await select('settings','appearance');
+   await page.locator('.mobile-settings-navigation summary').tap();
+   await check('settings-menu-open');
    await select('today');
    await swipe(page,Math.round(width/2),700,250);
    assert.ok(await page.evaluate(()=>window.scrollY)>150,width+'px page scrolls with a finger');
