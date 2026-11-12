@@ -1,6 +1,6 @@
-# O-Isym 5
+# O-Isym 1.0.0
 
-O-Isym es un espacio personal para organizar tareas, actividades, calendario, planificación y concentración. La construcción principal se realiza en \`oisym-5-development\`; \`main\` permanece separada.
+O-Isym es un espacio personal para organizar tareas, actividades, calendario, planificación y concentración. La construcción principal se realiza en \`development\`; \`main\` permanece separada.
 
 ## Instalar y ejecutar
 
